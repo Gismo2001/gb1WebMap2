@@ -8,43 +8,42 @@ html, body {
   height: 100vh;
 }
 
-body,
-html {
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  z-index: 1;
+/* Allgemeine Button-Verbesserung */
+.ol-control button {
+  padding: 10px;
+  background-size: 70% 70%;
 }
 
-.ol-control {
-  z-index: 2;
-}
-
-/* Mobile Responsivität für Controls */
+/* Mobile Optimierung */
 @media (max-width: 768px) {
+
+  /* Buttons größer & fingerfreundlich */
   .ol-control button {
-    width: 40px !important;
-    height: 40px !important;
-    font-size: 18px !important;
+    width: 48px;
+    height: 48px;
+    font-size: 1.4em;
   }
 
-  .ol-zoom-extent button {
-    background-size: 20px !important;
+  /* LayerSwitcher Panel */
+  .ol-layerswitcher .panel {
+    font-size: 1.2em;
+    max-height: 65vh;
   }
 
-  .ol-layerswitcher button {
-    width: 50px !important;
-    height: 50px !important;
+  /* Checkboxen größer */
+  .ol-layerswitcher input[type="checkbox"] {
+    transform: scale(1.5);
+    margin-right: 8px;
   }
 
-  .ol-layerswitcher .ol-layerswitcher-button {
-    font-size: 20px !important;
+  /* Mehr Abstand zwischen Layern */
+  .ol-layerswitcher li {
+    margin-bottom: 6px;
   }
+}
 
-  .ol-layerswitcher .ol-layer-item {
-    font-size: 16px !important;
-    padding: 8px !important;
-  }
+/* Scrollbarer LayerSwitcher */
+.ol-layerswitcher .panel {
+  max-height: 60vh;
+  overflow-y: auto;
 }

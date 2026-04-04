@@ -1,5 +1,6 @@
 import TileLayer from 'ol/layer/Tile';
 import OSM from 'ol/source/OSM';
+import XYZ from 'ol/source/XYZ';
 
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
@@ -33,11 +34,40 @@ export function createGewLayer() {
   });
 }
 
-export function createBaseLayer() {
+
+export function createOsmTileGr() {
   return new TileLayer({
-    source: new OSM(),
+    title: 'osm-grey',
+    name: 'osmgrey',
+    permalink: 'osmgrey',
+    type: 'base',
+    source: new XYZ({
+      url: 'https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png',
+      attributions: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+    }),
+    opacity: 1,
+    visible: true,
   });
 }
+
+export function createOsmTileCr() {
+  return new TileLayer({
+    title: 'osm-color',
+    name: 'osmcolor',
+    permalink: 'osmcolor',
+    className: 'base',
+    type: 'base',
+    source: new OSM({
+      url: 'https://{a-c}.tile.openstreetmap.de/{z}/{x}/{y}.png',
+      //attributions: ['© OpenStreetMap contributors', 'Tiles courtesy of <a href="https://www.openstreetmap.org/"></a>'],
+    }),
+    opacity: 1,
+    visible: false,
+  });
+}
+
+
+
 
 export function createExpBwSleLayer() {
   return new VectorLayer({

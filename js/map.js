@@ -5,8 +5,6 @@ import { FullScreen, Attribution, defaults as defaultControls, ZoomToExtent } fr
 import { DragRotateAndZoom, defaults as defaultInteractions } from 'ol/interaction';
 
 
-
-
 export function createMap(target = 'map', layers = []) {
   return new Map({
     target,

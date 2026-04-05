@@ -11,7 +11,8 @@ import Style from 'ol/style/Style';
 import Fill from 'ol/style/Fill';
 import Stroke from 'ol/style/Stroke';
 
-import {SleStyle, WehStyle, BruAndereStyle, BruNlwknStyle, DueStyle, QueStyle, getStyleForArtEin} from './utils.js';
+import {SleStyle, WehStyle, BruAndereStyle, BruNlwknStyle, DueStyle, QueStyle, getStyleForArtEin, getStyleForArtSonPun, getStyleForArtSonLin, getStyleForArtGewInfo} from './utils.js';
+import LayerGroup from 'ol/layer/Group';
 
 
 export function createGewLayer() {
@@ -74,8 +75,8 @@ export function createExpBwSleLayer() {
       strategy: bboxStrategy
     }),
     title: 'Schleuse',
-    name: 'Sle',
-    permalink: 'Sle',
+    name: 'sle',
+    permalink: 'sle',
     style: SleStyle,
     visible: true,
   });
@@ -182,4 +183,147 @@ export function createExpBwEinLayer() {
   style: getStyleForArtEin,
   visible: false
   });
+}
+
+
+export function createExpBwSonPunLayer() {
+  return new VectorLayer({
+    source: new VectorSource({
+      format: new GeoJSON(),
+      url: function (extent) {
+        return '/myLayers/exp_bw_son_pun.geojson?bbox=' + extent.join(',');
+      },
+      strategy: bboxStrategy
+    }),
+   title: 'Sonstige, Punkte', 
+  name: 'son_pun', 
+  permalink:'son_pun', 
+  style: getStyleForArtSonPun,
+  visible: false
+  });
+}
+export function createExpBwSonLinLayer() {
+  return new VectorLayer({
+    source: new VectorSource({
+      format: new GeoJSON(),
+      url: function (extent) {
+        return '/myLayers/exp_bw_son_lin.geojson?bbox=' + extent.join(',');
+      },
+      strategy: bboxStrategy
+    }),
+   title: 'Sonstige, Linien', 
+  name: 'son_lin', 
+  permalink:'son_lin', 
+  style: getStyleForArtSonLin,
+  visible: false 
+  });
+}
+
+export function createExpGewInfoLayer() {
+  return new VectorLayer({
+    source: new VectorSource({
+      format: new GeoJSON(),
+      url: function (extent) {
+        return '/myLayers/exp_gew_info.geojson?bbox=' + extent.join(',');
+      },
+      strategy: bboxStrategy
+    }),
+    title: 'Gew, Info', 
+  name: 'gew_info',
+  permalink: 'gew_info', 
+  style: getStyleForArtGewInfo,
+  visible: false
+  });
+}
+
+
+export function createLayerStructure() {
+
+  // Basiskarten
+  const osmGrey = createOsmTileGr();
+  const osmColor = createOsmTileCr();
+
+  // Gewässernetz
+  const gew = createGewLayer();
+
+  //Thematische Layer
+  const sle = createExpBwSleLayer();
+  const weh = createExpBwWehLayer();
+  const bruAndere = createExpBwBruAndereLayer();
+  const bruNlwkn = createExpBwBruNlwknLayer();
+  const due = createExpBwDueLayer();
+  const que = createExpBwQueLayer();
+  const ein = createExpBwEinLayer();
+  const sonPun = createExpBwSonPunLayer();
+  const sonLin = createExpBwSonLinLayer();
+  const gewInfo = createExpGewInfoLayer();
+
+
+  return [
+    
+    // 🗺️ Basiskarten
+    new LayerGroup({
+      title: 'Base',
+      layers: [
+        osmGrey,
+        osmColor
+      ]
+    }),
+
+   
+     // 🏗️ Luftbilder
+    new LayerGroup({
+      title: 'Luftbilder',
+      layers: [
+       
+        
+      ]
+    }),
+    // 👉 Einzelner Layer (NICHT in Gruppe)
+    gew,
+         // 🏗️ WMS-Layer
+    new LayerGroup({
+      title: 'WMS-Layer',
+      layers: [
+       
+        
+      ]
+    }),
+     
+    // 🏗️ km
+    new LayerGroup({
+      title: 'Station',
+      layers: [
+       
+        
+      ]
+    }),
+
+     // 🌊 Gewässer
+    new LayerGroup({
+      title: 'Bauw.(L)',
+      layers: [
+        sonLin,
+        gewInfo
+      ]
+    }),
+    // 🏗️ Bauwerke
+    new LayerGroup({
+      title: 'Bauw.(P)',
+      layers: [
+        sle,
+        weh,
+        bruAndere,
+        bruNlwkn,
+        due,
+        que,
+        ein,
+        sonPun
+        
+      ]
+    }),
+
+
+ 
+  ];
 }

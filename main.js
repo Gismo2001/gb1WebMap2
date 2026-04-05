@@ -1,57 +1,24 @@
 import './style.css';
 import 'ol/ol.css';
 import 'ol-ext/dist/ol-ext.css';   // 👈 unbedingt notwendig!
+import './style.css';
+import 'ol/ol.css';
+import 'ol-ext/dist/ol-ext.css';
 
 import { createMap } from './js/map.js';
-import { 
-    createOsmTileCr, 
-    createOsmTileGr, 
-    createGewLayer, 
-    createExpBwSleLayer, 
-    createExpBwWehLayer,
-    createExpBwBruAndereLayer,
-    createExpBwBruNlwknLayer,
-    createExpBwDueLayer,
-    createExpBwQueLayer,
-    createExpBwEinLayer
-} from './js/layers.js';
-
+import { createLayerStructure } from './js/layers.js';
 import { createLayerSwitcher } from './js/controls.js';
-
 import { registerProjections } from './js/projection.js';
+
+// Projektionen registrieren
 registerProjections();
 
+// 👉 Layerstruktur (inkl. Gruppen)
+const layers = createLayerStructure();
 
-const osmTileCr = createOsmTileCr();
-const osmTileGr = createOsmTileGr();
+// 👉 Map erstellen (mit Layern!)
+const map = createMap('map', layers);
 
-const gewLayer = createGewLayer();
-const exp_bw_SleLayer = createExpBwSleLayer();
-const exp_bw_WehLayer = createExpBwWehLayer();
-const exp_bw_BruAndereLayer = createExpBwBruAndereLayer();
-const exp_bw_BruNlwknLayer = createExpBwBruNlwknLayer();
-const exp_bw_DueLayer = createExpBwDueLayer();
-const exp_bw_QueLayer = createExpBwQueLayer();
-const exp_bw_EinLayer = createExpBwEinLayer();
-
-// Map erstellen
-const map = createMap('map');
-
-// Alternative:
-map.addLayer(osmTileCr);
-map.addLayer(osmTileGr);
-
-map.addLayer(gewLayer);
-map.addLayer(exp_bw_WehLayer);
-map.addLayer(exp_bw_SleLayer);
-map.addLayer(exp_bw_BruAndereLayer);
-map.addLayer(exp_bw_BruNlwknLayer);
-map.addLayer(exp_bw_DueLayer);
-map.addLayer(exp_bw_QueLayer);
-map.addLayer(exp_bw_EinLayer);
-
-
-
-// LayerSwitcher hinzufügen
+// 👉 LayerSwitcher hinzufügen
 const layerSwitcher = createLayerSwitcher();
 map.addControl(layerSwitcher);

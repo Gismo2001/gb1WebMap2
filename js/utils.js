@@ -1,6 +1,6 @@
 import {Circle as CircleStyle, Fill, RegularShape, Icon, Stroke, Style, Text} from 'ol/style';
-//import MultiPoint from 'ol/geom/MultiPoint';
-//import { Point} from 'ol/geom';
+import MultiPoint from 'ol/geom/MultiPoint';
+
 
 
 const BruAndereStyle = new Style({
@@ -70,6 +70,89 @@ function getStyleForArtEin(feature) {
 };
 
 
+function getStyleForArtSonPun(feature) {
+    const artValue = feature.get('bauart');
+    let iconSrc;
+
+    if (/boots/i.test(artValue)) {
+        iconSrc = './data/bwSonPun_Anleger.svg';
+    
+    }else if (/betriebs/i.test(artValue)) {
+        iconSrc = './data/sonPunBetrieb.svg';
+    
+    }else if (/steg/i.test(artValue)) {
+        iconSrc = './data/bwSonPun_Anleger.svg';   
+        
+    } else if (artValue === 'Infotafel') {
+        iconSrc = './data/sonPunInfo.svg';
+    } else if (artValue === 'Auskolkung') {
+        iconSrc = './data/sonPunKolk.svg';
+    } else if (artValue === 'Furt') {
+        iconSrc = './data/bwSonPun_Furt.svg';
+    } else if (artValue === 'Tor') {
+        iconSrc = './data/bwSonPun_Tor.svg';
+    } else if (artValue === 'Überfahrt') {
+        iconSrc = './data/bwSonPun_Ueberfahrt.svg';
+    } else if (artValue === 'Betriebspegel') {
+        iconSrc = './data/bwSonPun_Betriebspegel.svg';
+    } else {
+        iconSrc = './data/sonPunSonstige.svg';
+    }
+
+    return new Style({
+        image: new Icon({
+            src: iconSrc,
+            scale: 0.9
+        })
+    });
+}
+
+
+function getStyleForArtSonLin(feature) {   
+    const artValue = feature.get('bauart');
+    let strokeColor;
+    let strokeWidth;
+    let lineDash;
+
+    if (artValue === 'Anlegehilfe') {
+        strokeColor = 'blue';
+        strokeWidth = 5;
+    } else if (/sohlgl|umgehungs|fisch/i.test(artValue)) {
+        strokeColor = 'red';
+        strokeWidth = 5;
+        lineDash = [10, 15];
+    } else if (/fuß|rad/i.test(artValue)) {
+        strokeColor = 'olive';
+        strokeWidth = 5;
+        lineDash = [20, 10];
+    } else if (/bio/i.test(artValue)) {
+        strokeColor = 'green';
+        strokeWidth = 5;
+        lineDash = [17.5, 10];
+
+    } else if (/strasse|Straße/i.test(artValue)) {
+        strokeColor = 'Black';
+        strokeWidth = 5;
+        lineDash = [12.5, 10];
+
+    } else {
+        strokeColor = 'blue';
+        strokeWidth = 5;
+        lineDash = undefined;
+    }
+    
+    return new Style({
+        fill: new Fill({
+            color: strokeColor
+        }),
+        stroke: new Stroke({
+            color: strokeColor,
+            width: strokeWidth,
+            lineDash: lineDash 
+        })
+    });
+};
+
 const QueStyle = new Style({
     image: new Icon({
     src: '/data/que.svg',
@@ -78,6 +161,63 @@ const QueStyle = new Style({
 });
 
 
+function getStyleForArtGewInfo(feature) {
+    const uArt = feature.get('Kat');
+    const txtIdUabschn = feature.get('IDUabschn')
+    let strokeColor;
+    let lineDash = [10, 15]; // Gilt für alle Linien
+
+    // Linienfarbe festlegen abhängig von uArt
+    if (uArt === 'E') {
+        strokeColor = 'green'; // Grün für "E"
+    } else {
+        strokeColor = 'red'; // Rot für alles andere
+    }
+
+    // Stil zurückgeben, der Linien und Punkte für Linienenden definiert
+    return [
+        new Style({
+            stroke: new Stroke({
+                color: strokeColor,
+                width: 5, // Feste Breite
+                lineDash: lineDash
+            }),
+            fill: new Fill({
+                color: strokeColor // Füllung abhängig von der Linienfarbe
+            })
+        }),
+        // Stil für die Kreise an den Linienenden
+        new Style({
+            geometry: function(feature) {
+                const coordinates = feature.getGeometry().getCoordinates(); // Koordinaten der Geometrie
+                return new MultiPoint([coordinates[0], coordinates[coordinates.length - 1]]); // Start- und Endpunkt
+            },
+            image: new CircleStyle({
+                radius: 5, // Größe des Kreises
+                fill: new Fill({
+                    color: 'black' // Schwarzer gefüllter Kreis
+                })
+            })
+        }),
+        new Style({
+            text: new Text({
+                text: txtIdUabschn, // Text ist der Wert von IDUabschn
+                font: 'bold 14px Arial',
+                fill: new Fill({
+                    color: '#000' // Schwarze Schriftfarbe
+                }),
+                stroke: new Stroke({
+                    color: '#fff', // Weißer Rand um den Text
+                    width: 3
+                }),
+                overflow: true, // Text wird auch außerhalb des Features angezeigt
+                placement: 'point', // Text wird an einem Punkt und nicht entlang der Linie platziert
+                rotation: 0, // Rotation auf 0 setzen, damit der Text waagerecht bleibt
+            })
+        })
+    ];
+}
+
 export {
     SleStyle,
     WehStyle,
@@ -85,5 +225,9 @@ export {
     BruNlwknStyle,
     DueStyle,
     getStyleForArtEin,
-    QueStyle    
+    getStyleForArtSonPun,
+    QueStyle,
+    getStyleForArtSonLin,
+    getStyleForArtGewInfo
+
 };

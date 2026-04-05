@@ -11,10 +11,9 @@ import Style from 'ol/style/Style';
 import Fill from 'ol/style/Fill';
 import Stroke from 'ol/style/Stroke';
 
-import {SleStyle, WehStyle, BruAndereStyle, BruNlwknStyle, DueStyle, QueStyle} from './utils.js';
+import {SleStyle, WehStyle, BruAndereStyle, BruNlwknStyle, DueStyle, QueStyle, getStyleForArtEin} from './utils.js';
 
 
-// 👉 dein neuer Layer
 export function createGewLayer() {
   return new VectorLayer({
     source: new VectorSource({
@@ -163,6 +162,24 @@ export function createExpBwQueLayer() {
   name: 'que', 
   permalink:'que',  
   style: QueStyle,
+  visible: false
+  });
+}
+
+
+export function createExpBwEinLayer() {
+  return new VectorLayer({
+    source: new VectorSource({
+      format: new GeoJSON(),
+      url: function (extent) {
+        return '/myLayers/exp_bw_ein.geojson?bbox=' + extent.join(',');
+      },
+      strategy: bboxStrategy
+    }),
+  title: 'Einläufe', 
+  name: 'ein', 
+  permalink:'ein',  
+  style: getStyleForArtEin,
   visible: false
   });
 }

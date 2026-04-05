@@ -12,7 +12,8 @@ import {
     createExpBwBruAndereLayer,
     createExpBwBruNlwknLayer,
     createExpBwDueLayer,
-    createExpBwQueLayer
+    createExpBwQueLayer,
+    createExpBwEinLayer
 } from './js/layers.js';
 
 import { createLayerSwitcher } from './js/controls.js';
@@ -31,6 +32,7 @@ const exp_bw_BruAndereLayer = createExpBwBruAndereLayer();
 const exp_bw_BruNlwknLayer = createExpBwBruNlwknLayer();
 const exp_bw_DueLayer = createExpBwDueLayer();
 const exp_bw_QueLayer = createExpBwQueLayer();
+const exp_bw_EinLayer = createExpBwEinLayer();
 
 // Map erstellen
 const map = createMap('map');
@@ -46,6 +48,7 @@ map.addLayer(exp_bw_BruAndereLayer);
 map.addLayer(exp_bw_BruNlwknLayer);
 map.addLayer(exp_bw_DueLayer);
 map.addLayer(exp_bw_QueLayer);
+map.addLayer(exp_bw_EinLayer);
 
 
 

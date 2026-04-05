@@ -11,8 +11,8 @@ import Style from 'ol/style/Style';
 import Fill from 'ol/style/Fill';
 import Stroke from 'ol/style/Stroke';
 
-import {SleStyle} from './utils.js';
-import {WehStyle} from './utils.js';
+import {SleStyle, WehStyle, BruAndereStyle, BruNlwknStyle, DueStyle, QueStyle} from './utils.js';
+
 
 // 👉 dein neuer Layer
 export function createGewLayer() {
@@ -33,7 +33,6 @@ export function createGewLayer() {
     visible: true
   });
 }
-
 
 export function createOsmTileGr() {
   return new TileLayer({
@@ -66,9 +65,6 @@ export function createOsmTileCr() {
   });
 }
 
-
-
-
 export function createExpBwSleLayer() {
   return new VectorLayer({
     source: new VectorSource({
@@ -95,10 +91,78 @@ export function createExpBwWehLayer() {
       },
       strategy: bboxStrategy
     }),
-    title: 'Schleuse',
-    name: 'Weh',
-    permalink: 'Weh',
-    style: WehStyle,
-    visible: true,
+  title: 'Wehr', 
+  name: 'weh', 
+  permalink:'weh',
+  style: WehStyle,
+  visible: false
+  });
+}
+
+export function createExpBwBruAndereLayer() {
+  return new VectorLayer({
+    source: new VectorSource({
+      format: new GeoJSON(),
+      url: function (extent) {
+        return '/myLayers/exp_bw_bru_andere.geojson?bbox=' + extent.join(',');
+      },
+      strategy: bboxStrategy
+    }),
+    title: 'Brücke (andere)',
+    name: 'bru_andere', 
+    permalink:'bru_andere',  
+    style: BruAndereStyle,
+    visible: false
+  });
+}
+
+export function createExpBwBruNlwknLayer() {
+  return new VectorLayer({
+    source: new VectorSource({
+      format: new GeoJSON(),
+      url: function (extent) {
+        return '/myLayers/exp_bw_bru_nlwkn.geojson?bbox=' + extent.join(',');
+      },
+      strategy: bboxStrategy
+    }),
+    title: 'Brücke (NLWKN)', 
+    name: 'bru_nlwkn', // Titel für den Layer-Switcher
+    permalink:'bru_nlwkn',  // Um Permalink zu setzen
+    style: BruNlwknStyle,
+    visible: false
+  });
+}
+
+export function createExpBwDueLayer() {
+  return new VectorLayer({
+    source: new VectorSource({
+      format: new GeoJSON(),
+      url: function (extent) {
+        return '/myLayers/exp_bw_due.geojson?bbox=' + extent.join(',');
+      },
+      strategy: bboxStrategy
+    }),
+   title: 'Düker', 
+  name: 'due', 
+  permalink:'due',  
+  style: DueStyle,
+  visible: false
+  });
+}
+
+export function createExpBwQueLayer() {
+  return new VectorLayer({
+    source: new VectorSource({
+      format: new GeoJSON(),
+      url: function (extent) {
+        return '/myLayers/exp_bw_que.geojson?bbox=' + extent.join(',');
+      },
+      strategy: bboxStrategy
+    }),
+  title: 'Querung', 
+  name: 'que', 
+  permalink:'que',  
+  style: QueStyle,
+  visible: false
   });
 }

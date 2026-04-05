@@ -1,0 +1,10 @@
+<svg width="20" height="20" version="1.1" viewBox="0 0 5.2917 5.2917" xmlns="http://www.w3.org/2000/svg">
+		<title>bru</title>
+		<g>
+				<ellipse cx="2.6458" cy="2.6458" rx="2.4512" ry="2.4512" style="fill:#fff;stroke-width:.38926;stroke:#000"/>
+				<path d="m2.6421 0.36265s-0.46493 0.058976-0.7771 0.15542c-0.36501 0.11277-0.81005 0.43504-1.0361 0.7401-0.21642 0.29201-0.40367 0.71024-0.44406 1.0657-0.052934 0.46591 0.045847 0.97004 0.25163 1.3914 0.18685 0.38258 0.69569 0.81411 0.69569 0.81411 0.43519 0.24494 0.93561 0.3793 1.31 0.41445z" style="fill:#999;stroke-width:0"/>
+				<text x="0.82741708" y="3.3903544" style="fill:#000000;font-family:Arial;font-size:2.2931px;font-variant-caps:normal;font-variant-east-asian:normal;font-variant-ligatures:normal;font-variant-numeric:normal;stroke-width:.19463" xml:space="preserve">
+			<tspan x="0.82741708" y="3.3903544">Bru</tspan>
+		</text>
+		</g>
+</svg>

@@ -1,0 +1,20 @@
+<svg width="20" height="20" version="1.1" viewBox="0 0 5.2917 5.2917" xmlns="http://www.w3.org/2000/svg">
+	<title>bru</title>
+	<g>
+		<ellipse cx="2.6458" cy="2.6458" rx="2.4512" ry="2.4512" 
+		style="fill:#fff;stroke-width:.38926;stroke:#000"/>
+		<text x="0.82741708" y="3.3903544" 
+			style="fill:#000000;
+			font-family:Arial;
+			font-size:2.2931px;
+			font-variant-caps:normal;
+			font-variant-east-asian:
+			normal;font-variant-ligatures:
+			normal;font-variant-numeric:normal;
+			font-weight: bold;
+			stroke-width:.19463" 
+			xml:space="preserve">
+			<tspan x="0.82741708" y="3.3903544">Due</tspan>
+		</text>
+	</g>
+</svg>

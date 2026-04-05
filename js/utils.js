@@ -2,7 +2,7 @@ import {Circle as CircleStyle, Fill, RegularShape, Icon, Stroke, Style, Text} fr
 import MultiPoint from 'ol/geom/MultiPoint';
 
 
-
+// BW-Style Punkte
 const BruAndereStyle = new Style({
     image: new Icon({
         src: '/data/bru_andere.svg',
@@ -108,6 +108,7 @@ function getStyleForArtSonPun(feature) {
 }
 
 
+// BW-Style Linien
 function getStyleForArtSonLin(feature) {   
     const artValue = feature.get('bauart');
     let strokeColor;
@@ -218,6 +219,64 @@ function getStyleForArtGewInfo(feature) {
     ];
 }
 
+// Style für Kilomtrierung
+const Km10scalStyle = new Style({
+    stroke: new Stroke({
+        color: 'grey',
+        width: .5
+    })
+});
+const Km100scalStyle = function(feature, km, resolution) {
+    var minResolution = 0;
+    var maxResolution = 5; 
+    var kmInKilometer = km / 1000;
+    var kmFormatted = kmInKilometer.toFixed(2);
+    
+    if (resolution > minResolution && resolution < maxResolution) {
+        return new Style({
+            text: new Text({
+                text: kmFormatted.toString(), // Verwenden Sie den Wert von km als Text
+                font: 'normal 18px "Arial Light", "Helvetica Neue Light", Arial, sans-serif',
+                offsetX: -20,
+                offsetY: 10,        
+            }),
+            stroke: new Stroke({
+                color: 'black', // oder eine andere Linienfarbe
+                width: 1 // oder eine andere Linienbreite  
+            })
+        });
+    } else {
+        return null;
+    }
+};
+const Km500scalStyle = function(feature, km, resolution) {
+    var minResolution = 0;
+    var maxResolution = 14; 
+    var kmInKilometer = km / 1000;
+    var kmFormatted = kmInKilometer.toFixed(2);
+    if (resolution > minResolution && resolution < maxResolution) {
+        return new Style({
+            text: new Text({
+                text: kmFormatted.toString(), // Verwenden Sie den Wert von km als Text
+                font: 'bold 20px "Arial Light", "Helvetica Neue Light", Arial, sans-serif', // Fett formatierter Text
+                offsetX: -35,
+                offsetY: 10,
+                fill: new Fill({
+                    color: 'rgba(0, 0, 0, 1)'
+                }),
+            }),
+            stroke: new Stroke({
+                color: 'black', // oder eine andere Linienfarbe
+                width: 2 // oder eine andere Linienbreite  
+            })
+        });
+    } else {
+        return null;
+    }
+};
+
+
+
 export {
     SleStyle,
     WehStyle,
@@ -228,6 +287,9 @@ export {
     getStyleForArtSonPun,
     QueStyle,
     getStyleForArtSonLin,
-    getStyleForArtGewInfo
+    getStyleForArtGewInfo,
+    Km10scalStyle,
+    Km100scalStyle,
+    Km500scalStyle
 
 };

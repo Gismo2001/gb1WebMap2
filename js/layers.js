@@ -5,16 +5,19 @@ import XYZ from 'ol/source/XYZ';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import GeoJSON from 'ol/format/GeoJSON';
-import {bbox as bboxStrategy} from 'ol/loadingstrategy';
+//import {bbox as bboxStrategy} from 'ol/loadingstrategy';
 
 import Style from 'ol/style/Style';
 import Fill from 'ol/style/Fill';
 import Stroke from 'ol/style/Stroke';
 
-import {SleStyle, WehStyle, BruAndereStyle, BruNlwknStyle, DueStyle, QueStyle, getStyleForArtEin, getStyleForArtSonPun, getStyleForArtSonLin, getStyleForArtGewInfo, Km10scalStyle, Km100scalStyle, Km500scalStyle } from './utils.js';
+import {SleStyle, WehStyle, BruAndereStyle, BruNlwknStyle, DueStyle, QueStyle, getStyleForArtEin, getStyleForArtSonPun, getStyleForArtSonLin, getStyleForArtGewInfo , 
+/*   Km10scalStyle, 
+  Km100scalStyle, 
+  Km500scalStyle 
+ */} from './utils.js';
 import LayerGroup from 'ol/layer/Group';
 import { TileWMS } from 'ol/source.js';
-
 
 
 
@@ -97,7 +100,7 @@ return new TileLayer({
 }
  */
 
-
+/* 
 // Station (Kilometrierung) Layer
 export function createKm10scalLayer() {
  return new VectorLayer({
@@ -134,9 +137,9 @@ export function createKm500scalLayer() {
  
  });
 }
+ */
 
-
-// Basiskarten
+/* // Basiskarten
 export function creategoogleHybLayer() {
 return new TileLayer({
   title: 'GoogleHybrid',
@@ -195,7 +198,9 @@ return new TileLayer({
   opacity: 1,
   visible: false,  
 });
-}
+} */
+
+
 export function createDop20niLayer() {
   return new TileLayer({
   title: 'DOP20 NI',
@@ -456,10 +461,10 @@ export function createExpGewInfoLayer() {
 export function createLayerStructure() {
 
   // Basiskarten
-  const ESRIGrey = createESRIWorldGreyLayer();
+  /* const ESRIGrey = createESRIWorldGreyLayer();
   const ESRISat = createEsriWorldImageryLayer();
   const googleHyb = creategoogleHybLayer();
-  const googleSat = creategoogleSatLayer();
+  const googleSat = creategoogleSatLayer(); */
   const dop20ni = createDop20niLayer();
   const baseDEGr = createbaseDEGrLayer();
   const baseDECr = createbaseDECrLayer();
@@ -488,21 +493,21 @@ export function createLayerStructure() {
   const sonLin = createExpBwSonLinLayer();
   const gewInfo = createExpGewInfoLayer();
 
-  //Kilometrierung
+  /* //Kilometrierung
   const Km10scal = createKm10scalLayer();
   const Km100scal = createKm100scalLayer();
   const Km500scal = createKm500scalLayer();
-
+ */
 
   return [
     // 🗺️ Basiskarten
     new LayerGroup({
       title: 'Base',
       layers: [
-        ESRIGrey,
+      /*   ESRIGrey,
         ESRISat,
         googleHyb,
-        googleSat,
+        googleSat, */
         dop20ni,
         baseDEGr,
         baseDECr,
@@ -534,17 +539,18 @@ export function createLayerStructure() {
         
       ]
     }),
-    // 🏗️ km
+
+
+/*     // 🏗️ km
     new LayerGroup({
       title: 'Station',
       layers: [
       Km10scal,
       Km100scal,
       Km500scal
-        
-      ]
+        ]
     }),
-
+ */
      // 🌊 Bauwerke Linien
     new LayerGroup({
       title: 'Bauw.(L)',

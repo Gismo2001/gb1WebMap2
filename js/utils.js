@@ -219,7 +219,7 @@ function getStyleForArtGewInfo(feature) {
     ];
 }
 
-// Style für Kilomtrierung
+/* // Style für Kilomtrierung
 const Km10scalStyle = new Style({
     stroke: new Stroke({
         color: 'grey',
@@ -275,7 +275,7 @@ const Km500scalStyle = function(feature, km, resolution) {
     }
 };
 
-
+ */
 
 export {
     SleStyle,
@@ -288,8 +288,8 @@ export {
     QueStyle,
     getStyleForArtSonLin,
     getStyleForArtGewInfo,
-    Km10scalStyle,
+   /*  Km10scalStyle,
     Km100scalStyle,
-    Km500scalStyle
+    Km500scalStyle */
 
 };

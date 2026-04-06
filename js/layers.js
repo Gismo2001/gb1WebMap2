@@ -38,7 +38,7 @@ export function createGewLayer() {
   });
 }
 
-//Luftbilder Layer
+/* //Luftbilder Layer
 export function creategnAtlas2023Layer() {
 return new TileLayer({
   title: 'NI2023',
@@ -81,7 +81,6 @@ return new TileLayer({
   visible: false,
 });
 }
-
 export function creategnAtlas2014Layer() {
 return new TileLayer({
   title: 'NI2014',
@@ -96,7 +95,7 @@ return new TileLayer({
   visible: false,
 });
 }
-
+ */
 
 
 // Station (Kilometrierung) Layer
@@ -467,11 +466,11 @@ export function createLayerStructure() {
   const osmGrey = createOsmTileGr();
   const osmColor = createOsmTileCr();
 
-  //Luftbilder Layer
+  /* //Luftbilder Layer
   const NI2014 = creategnAtlas2014Layer();
   const NI2017 = creategnAtlas2017Layer();
   const NI2020 = creategnAtlas2020Layer();
-  const NI2023 = creategnAtlas2023Layer();
+  const NI2023 = creategnAtlas2023Layer(); */
   
 
   // Gewässernetz
@@ -511,7 +510,8 @@ export function createLayerStructure() {
         osmColor
       ]
     }),
-     // 🏗️ Luftbilder
+
+    /*  // 🏗️ Luftbilder
     new LayerGroup({
       title: 'Luftbilder',
       layers: [
@@ -522,7 +522,8 @@ export function createLayerStructure() {
         
       ],
       visible: false
-    }),
+    }), */
+
     // 👉 GEW Layer 
     gew,
          // 🏗️ WMS-Layer

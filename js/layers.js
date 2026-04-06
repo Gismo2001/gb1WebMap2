@@ -18,13 +18,13 @@ import Stroke from 'ol/style/Stroke';
  } from './utils.js'; 
  */
 
-import LayerGroup from 'ol/layer/Group';
+//import LayerGroup from 'ol/layer/Group';
 /* import { TileWMS } from 'ol/source.js'; */
 
 
 
 
-export function createGewLayer() {
+/* export function createGewLayer() {
   return new VectorLayer({
     source: new VectorSource({
       format: new GeoJSON(),
@@ -42,7 +42,7 @@ export function createGewLayer() {
     visible: true
   });
 }
-
+ */
 /* //Luftbilder Layer
 export function creategnAtlas2023Layer() {
 return new TileLayer({
@@ -460,7 +460,7 @@ export function createExpGewInfoLayer() {
   });
 }
 
- */
+ 
 export function createLayerStructure() {
 
   // Basiskarten
@@ -474,17 +474,17 @@ export function createLayerStructure() {
   const osmGrey = createOsmTileGr();
   const osmColor = createOsmTileCr();
 
-  /* //Luftbilder Layer
+  //Luftbilder Layer
   const NI2014 = creategnAtlas2014Layer();
   const NI2017 = creategnAtlas2017Layer();
   const NI2020 = creategnAtlas2020Layer();
-  const NI2023 = creategnAtlas2023Layer(); */
+  const NI2023 = creategnAtlas2023Layer(); 
   
 
   // Gewässernetz
   const gew = createGewLayer();
 
-/*   //Thematische Layer
+   //Thematische Layer
   const sle = createExpBwSleLayer();
   const weh = createExpBwWehLayer();
   const bruAndere = createExpBwBruAndereLayer();
@@ -495,33 +495,33 @@ export function createLayerStructure() {
   const sonPun = createExpBwSonPunLayer();
   const sonLin = createExpBwSonLinLayer();
   const gewInfo = createExpGewInfoLayer();
- */
-  /* //Kilometrierung
+ 
+  //Kilometrierung
   const Km10scal = createKm10scalLayer();
   const Km100scal = createKm100scalLayer();
   const Km500scal = createKm500scalLayer();
- */
+ 
 
   return [
     // 🗺️ Basiskarten
     new LayerGroup({
       title: 'Base',
       layers: [
-      /*   ESRIGrey,
+        ESRIGrey,
         ESRISat,
         googleHyb,
-        googleSat, */
+        googleSat, 
        
-       /*  dop20ni,
+         dop20ni,
         baseDEGr,
         baseDECr,
         osmGrey,
         osmColor
-         */
+         
       ]
     }),
 
-    /*  // 🏗️ Luftbilder
+    // 🏗️ Luftbilder
     new LayerGroup({
       title: 'Luftbilder',
       layers: [
@@ -532,8 +532,7 @@ export function createLayerStructure() {
         
       ],
       visible: false
-    }), */
-
+    }), 
     // 👉 GEW Layer 
     gew,
 
@@ -547,7 +546,7 @@ export function createLayerStructure() {
     }),
 
 
-/*     // 🏗️ km
+     // 🏗️ km
     new LayerGroup({
       title: 'Station',
       layers: [
@@ -556,19 +555,19 @@ export function createLayerStructure() {
       Km500scal
         ]
     }),
- */
+ 
    
- /*    // 🌊 Bauwerke Linien
+   // 🌊 Bauwerke Linien
     new LayerGroup({
       title: 'Bauw.(L)',
       layers: [
         sonLin,
         gewInfo
       ]
-    }), */
+    }), 
 
 
-/*     // 🏗️ Bauwerke Punkte
+     // 🏗️ Bauwerke Punkte
     new LayerGroup({
       title: 'Bauw.(P)',
       layers: [
@@ -582,8 +581,7 @@ export function createLayerStructure() {
         sonPun
         
       ]
-    }), */
-
-
+    }), 
   ];
 }
+  */

@@ -200,7 +200,7 @@ return new TileLayer({
 });
 } */
 
-
+/* 
 export function createDop20niLayer() {
   return new TileLayer({
   title: 'DOP20 NI',
@@ -289,7 +289,7 @@ export function createbaseDEGrLayer() {
     
   });
 }
-
+ */
 
 
 
@@ -464,7 +464,7 @@ export function createLayerStructure() {
   /* const ESRIGrey = createESRIWorldGreyLayer();
   const ESRISat = createEsriWorldImageryLayer();
   const googleHyb = creategoogleHybLayer();
-  const googleSat = creategoogleSatLayer(); */
+  const googleSat = creategoogleSatLayer(); 
   const dop20ni = createDop20niLayer();
   const baseDEGr = createbaseDEGrLayer();
   const baseDECr = createbaseDECrLayer();
@@ -508,11 +508,13 @@ export function createLayerStructure() {
         ESRISat,
         googleHyb,
         googleSat, */
-        dop20ni,
+       
+       /*  dop20ni,
         baseDEGr,
         baseDECr,
         osmGrey,
         osmColor
+         */
       ]
     }),
 

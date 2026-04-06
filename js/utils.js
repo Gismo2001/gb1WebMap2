@@ -1,4 +1,4 @@
-import {Circle as CircleStyle, Fill, RegularShape, Icon, Stroke, Style, Text} from 'ol/style';
+import {Circle as CircleStyle, Fill,  Icon, Stroke, Style, Text} from 'ol/style';
 import MultiPoint from 'ol/geom/MultiPoint';
 
 

@@ -7,4 +7,8 @@ html, body {
   width: 100vw;
   height: 100vh;
 }
+.ol-bar {
+  top: 1em;
+  left: 1em;
+}
 

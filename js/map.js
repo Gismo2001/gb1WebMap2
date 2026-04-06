@@ -12,7 +12,7 @@ export function createMap(target = 'map', layers = []) {
       center: fromLonLat([7.35, 52.7]),
       zoom: 9
     }),
-    //layers,
+    layers,
     controls: defaultControls().extend([
       new FullScreen(),
       new ZoomToExtent({

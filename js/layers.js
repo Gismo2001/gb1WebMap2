@@ -1,37 +1,32 @@
-/* import TileLayer from 'ol/layer/Tile';
+import TileLayer from 'ol/layer/Tile';
 import OSM from 'ol/source/OSM';
-import XYZ from 'ol/source/XYZ'; */
+import XYZ from 'ol/source/XYZ';
 
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import GeoJSON from 'ol/format/GeoJSON';
-//import {bbox as bboxStrategy} from 'ol/loadingstrategy';
+import {bbox as bboxStrategy} from 'ol/loadingstrategy';
 
 import Style from 'ol/style/Style';
 import Fill from 'ol/style/Fill';
 import Stroke from 'ol/style/Stroke';
 
-/*  import {SleStyle, WehStyle, BruAndereStyle, BruNlwknStyle, DueStyle, QueStyle, getStyleForArtEin, getStyleForArtSonPun, getStyleForArtSonLin, getStyleForArtGewInfo , 
-   Km10scalStyle, 
-  Km100scalStyle, 
-  Km500scalStyle 
- } from './utils.js'; 
- */
-
-//import LayerGroup from 'ol/layer/Group';
-/* import { TileWMS } from 'ol/source.js'; */
+import {SleStyle, WehStyle, BruAndereStyle, BruNlwknStyle, DueStyle, QueStyle, getStyleForArtEin, getStyleForArtSonPun, getStyleForArtSonLin, getStyleForArtGewInfo, Km10scalStyle, Km100scalStyle, Km500scalStyle } from './utils.js';
+import LayerGroup from 'ol/layer/Group';
+import { TileWMS } from 'ol/source.js';
 
 
 
 
-/* export function createGewLayer() {
+
+export function createGewLayer() {
   return new VectorLayer({
     source: new VectorSource({
       format: new GeoJSON(),
       url: function (extent) {
         return '/myLayers/gew.geojson?bbox=' + extent.join(',');
       },
-      //strategy: bboxStrategy
+      strategy: bboxStrategy
     }),
     title: 'gew',
     name: 'gew',
@@ -42,8 +37,8 @@ import Stroke from 'ol/style/Stroke';
     visible: true
   });
 }
- */
-/* //Luftbilder Layer
+
+//Luftbilder Layer
 export function creategnAtlas2023Layer() {
 return new TileLayer({
   title: 'NI2023',
@@ -86,6 +81,7 @@ return new TileLayer({
   visible: false,
 });
 }
+
 export function creategnAtlas2014Layer() {
 return new TileLayer({
   title: 'NI2014',
@@ -100,9 +96,9 @@ return new TileLayer({
   visible: false,
 });
 }
- */
 
-/* 
+
+
 // Station (Kilometrierung) Layer
 export function createKm10scalLayer() {
  return new VectorLayer({
@@ -139,9 +135,9 @@ export function createKm500scalLayer() {
  
  });
 }
- */
 
-/* // Basiskarten
+
+// Basiskarten
 export function creategoogleHybLayer() {
 return new TileLayer({
   title: 'GoogleHybrid',
@@ -200,9 +196,7 @@ return new TileLayer({
   opacity: 1,
   visible: false,  
 });
-} */
-
-/* 
+}
 export function createDop20niLayer() {
   return new TileLayer({
   title: 'DOP20 NI',
@@ -291,10 +285,10 @@ export function createbaseDEGrLayer() {
     
   });
 }
- */
 
 
-/* 
+
+
 // Bauwerke Punkte
 export function createExpBwSleLayer() {
   return new VectorLayer({
@@ -460,14 +454,13 @@ export function createExpGewInfoLayer() {
   });
 }
 
- 
 export function createLayerStructure() {
 
   // Basiskarten
-  /* const ESRIGrey = createESRIWorldGreyLayer();
+  const ESRIGrey = createESRIWorldGreyLayer();
   const ESRISat = createEsriWorldImageryLayer();
   const googleHyb = creategoogleHybLayer();
-  const googleSat = creategoogleSatLayer(); 
+  const googleSat = creategoogleSatLayer();
   const dop20ni = createDop20niLayer();
   const baseDEGr = createbaseDEGrLayer();
   const baseDECr = createbaseDECrLayer();
@@ -478,13 +471,13 @@ export function createLayerStructure() {
   const NI2014 = creategnAtlas2014Layer();
   const NI2017 = creategnAtlas2017Layer();
   const NI2020 = creategnAtlas2020Layer();
-  const NI2023 = creategnAtlas2023Layer(); 
+  const NI2023 = creategnAtlas2023Layer();
   
 
   // Gewässernetz
   const gew = createGewLayer();
 
-   //Thematische Layer
+  //Thematische Layer
   const sle = createExpBwSleLayer();
   const weh = createExpBwWehLayer();
   const bruAndere = createExpBwBruAndereLayer();
@@ -495,12 +488,12 @@ export function createLayerStructure() {
   const sonPun = createExpBwSonPunLayer();
   const sonLin = createExpBwSonLinLayer();
   const gewInfo = createExpGewInfoLayer();
- 
+
   //Kilometrierung
   const Km10scal = createKm10scalLayer();
   const Km100scal = createKm100scalLayer();
   const Km500scal = createKm500scalLayer();
- 
+
 
   return [
     // 🗺️ Basiskarten
@@ -510,18 +503,15 @@ export function createLayerStructure() {
         ESRIGrey,
         ESRISat,
         googleHyb,
-        googleSat, 
-       
-         dop20ni,
+        googleSat,
+        dop20ni,
         baseDEGr,
         baseDECr,
         osmGrey,
         osmColor
-         
       ]
     }),
-
-    // 🏗️ Luftbilder
+     // 🏗️ Luftbilder
     new LayerGroup({
       title: 'Luftbilder',
       layers: [
@@ -532,10 +522,9 @@ export function createLayerStructure() {
         
       ],
       visible: false
-    }), 
+    }),
     // 👉 GEW Layer 
     gew,
-
          // 🏗️ WMS-Layer
     new LayerGroup({
       title: 'WMS-Layer',
@@ -544,30 +533,26 @@ export function createLayerStructure() {
         
       ]
     }),
-
-
-     // 🏗️ km
+    // 🏗️ km
     new LayerGroup({
       title: 'Station',
       layers: [
       Km10scal,
       Km100scal,
       Km500scal
-        ]
+        
+      ]
     }),
- 
-   
-   // 🌊 Bauwerke Linien
+
+     // 🌊 Bauwerke Linien
     new LayerGroup({
       title: 'Bauw.(L)',
       layers: [
         sonLin,
         gewInfo
       ]
-    }), 
-
-
-     // 🏗️ Bauwerke Punkte
+    }),
+    // 🏗️ Bauwerke Punkte
     new LayerGroup({
       title: 'Bauw.(P)',
       layers: [
@@ -581,7 +566,6 @@ export function createLayerStructure() {
         sonPun
         
       ]
-    }), 
+    }),
   ];
 }
-  */

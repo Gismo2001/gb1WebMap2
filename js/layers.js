@@ -97,8 +97,6 @@ return new TileLayer({
 });
 }
 
-
-
 // Station (Kilometrierung) Layer
 export function createKm10scalLayer() {
  return new VectorLayer({
@@ -285,8 +283,6 @@ export function createbaseDEGrLayer() {
     
   });
 }
-
-
 
 
 // Bauwerke Punkte
@@ -569,3 +565,4 @@ export function createLayerStructure() {
     }),
   ];
 }
+

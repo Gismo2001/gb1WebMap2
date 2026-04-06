@@ -1,8 +1,5 @@
 import LayerSwitcher from 'ol-ext/control/LayerSwitcher';
 import Bar from 'ol-ext/control/Bar';
-import EditBar from 'ol-ext/control/EditBar';
-import TextButton from 'ol-ext/control/TextButton';
-import Button from 'ol-ext/control/Button';
 import Toggle from 'ol-ext/control/Toggle';
 
 export function createLayerSwitcher() {
@@ -32,37 +29,76 @@ export function createMainToolbar(map) {
 
   const bar = new Bar();
 
-  // 🔘 einfacher Button
-  const zoomToExtentBtn = new Button({
+  // 🔘 Toggle Button1
+    const toggleBtn1 = new Toggle({
     html: '🏠',
-    title: 'Zoom to extent',
-    handleClick: function () {
-      map.getView().fit([0, 0, 1000000, 1000000]); // Beispiel!
-    }
-  });
-
-  // 🔘 Toggle Button
-  const toggleBtn = new Toggle({
-    html: '⚙️',
-    title: 'Toggle Beispiel',
+    title: 'Toggle Button 1',
+    bar: createSubBar3(),
     onToggle: function (active) {
-      console.log('Toggle:', active);
+        if (active) { 
+          console.log('Toggle1 aktiviert');
+          toggleBtn2.setActive(false); // Deaktiviert Toggle Button 2
+          toggleBtn3.setActive(false); // Deaktiviert Toggle Button 3
+        } else {
+          console.log('Toggle1 deaktiviert');
+        } 
     }
   });
 
-  // 🔘 TextButton
-  const textBtn = new TextButton({
-    html: 'Info',
-    title: 'Info anzeigen',
-    handleClick: function () {
-      alert('Info Button geklickt');
+  // 🔘 Toggle Button2
+  const toggleBtn2 = new Toggle({
+    html: '⚙️',
+    title: 'Toggle Button 2',
+    onToggle: function (active) {
+      if (active) { 
+          console.log('Toggle2 aktiviert');
+          toggleBtn1.setActive(false); // Deaktiviert Toggle Button 1
+          toggleBtn3.setActive(false); // Deaktiviert Toggle Button 3
+
+        } else {
+          console.log('Toggle2 deaktiviert');
+        } 
     }
   });
+
+  // 🔘 Toggle Button3
+  const toggleBtn3 = new Toggle({
+    html: '⚙️',
+    title: 'Toggle Button 3',
+    onToggle: function (active) {
+      if (active) { 
+          console.log('Toggle3 aktiviert');
+          toggleBtn1.setActive(false); // Deaktiviert Toggle Button 1
+          toggleBtn2.setActive(false); // Deaktiviert Toggle Button 2
+        } else {
+          console.log('Toggle3 deaktiviert');
+        } 
+    }
+  });
+
 
   // Buttons zur Bar hinzufügen
-  bar.addControl(zoomToExtentBtn);
-  bar.addControl(toggleBtn);
-  bar.addControl(textBtn);
+  
+  bar.addControl(toggleBtn1);
+  bar.addControl(toggleBtn2);
+  bar.addControl(toggleBtn3);
+
 
   return bar;
 }
+
+export function createSubBar3() {
+  const bar = new Bar({
+    toggleOne: true,
+    controls: [
+      // Tabelle anzeigen
+      new Toggle({
+        html: '<i class="fa fa-table" aria-hidden="true"></i>',
+        title: "Tabelle anzeigen",
+        onToggle: function (active) {}
+      })
+    ]
+  });
+  return bar;
+};
+

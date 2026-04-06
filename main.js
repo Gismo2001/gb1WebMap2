@@ -1,9 +1,7 @@
 import './style.css';
 import 'ol/ol.css';
 import 'ol-ext/dist/ol-ext.css';   // 👈 unbedingt notwendig!
-import './style.css';
-import 'ol/ol.css';
-import 'ol-ext/dist/ol-ext.css';
+
 
 import { createMap } from './js/map.js';
 import { createLayerStructure } from './js/layers.js';
@@ -11,6 +9,7 @@ import { createLayerSwitcher } from './js/controls.js';
 import { registerProjections } from './js/projection.js';
 
 import { createMainToolbar } from './js/controls.js';
+
 
 
 

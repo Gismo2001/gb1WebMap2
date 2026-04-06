@@ -1,6 +1,6 @@
-import TileLayer from 'ol/layer/Tile';
+/* import TileLayer from 'ol/layer/Tile';
 import OSM from 'ol/source/OSM';
-import XYZ from 'ol/source/XYZ';
+import XYZ from 'ol/source/XYZ'; */
 
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
@@ -11,13 +11,15 @@ import Style from 'ol/style/Style';
 import Fill from 'ol/style/Fill';
 import Stroke from 'ol/style/Stroke';
 
-import {SleStyle, WehStyle, BruAndereStyle, BruNlwknStyle, DueStyle, QueStyle, getStyleForArtEin, getStyleForArtSonPun, getStyleForArtSonLin, getStyleForArtGewInfo , 
-/*   Km10scalStyle, 
+/*  import {SleStyle, WehStyle, BruAndereStyle, BruNlwknStyle, DueStyle, QueStyle, getStyleForArtEin, getStyleForArtSonPun, getStyleForArtSonLin, getStyleForArtGewInfo , 
+   Km10scalStyle, 
   Km100scalStyle, 
   Km500scalStyle 
- */} from './utils.js';
+ } from './utils.js'; 
+ */
+
 import LayerGroup from 'ol/layer/Group';
-import { TileWMS } from 'ol/source.js';
+/* import { TileWMS } from 'ol/source.js'; */
 
 
 
@@ -292,7 +294,7 @@ export function createbaseDEGrLayer() {
  */
 
 
-
+/* 
 // Bauwerke Punkte
 export function createExpBwSleLayer() {
   return new VectorLayer({
@@ -458,6 +460,7 @@ export function createExpGewInfoLayer() {
   });
 }
 
+ */
 export function createLayerStructure() {
 
   // Basiskarten
@@ -481,7 +484,7 @@ export function createLayerStructure() {
   // Gewässernetz
   const gew = createGewLayer();
 
-  //Thematische Layer
+/*   //Thematische Layer
   const sle = createExpBwSleLayer();
   const weh = createExpBwWehLayer();
   const bruAndere = createExpBwBruAndereLayer();
@@ -492,7 +495,7 @@ export function createLayerStructure() {
   const sonPun = createExpBwSonPunLayer();
   const sonLin = createExpBwSonLinLayer();
   const gewInfo = createExpGewInfoLayer();
-
+ */
   /* //Kilometrierung
   const Km10scal = createKm10scalLayer();
   const Km100scal = createKm100scalLayer();
@@ -533,6 +536,7 @@ export function createLayerStructure() {
 
     // 👉 GEW Layer 
     gew,
+
          // 🏗️ WMS-Layer
     new LayerGroup({
       title: 'WMS-Layer',
@@ -553,15 +557,18 @@ export function createLayerStructure() {
         ]
     }),
  */
-     // 🌊 Bauwerke Linien
+   
+ /*    // 🌊 Bauwerke Linien
     new LayerGroup({
       title: 'Bauw.(L)',
       layers: [
         sonLin,
         gewInfo
       ]
-    }),
-    // 🏗️ Bauwerke Punkte
+    }), */
+
+
+/*     // 🏗️ Bauwerke Punkte
     new LayerGroup({
       title: 'Bauw.(P)',
       layers: [
@@ -575,6 +582,8 @@ export function createLayerStructure() {
         sonPun
         
       ]
-    }),
+    }), */
+
+
   ];
 }

@@ -1,7 +1,7 @@
-import {Circle as CircleStyle, Fill,  Icon, Stroke, Style, Text} from 'ol/style';
-import MultiPoint from 'ol/geom/MultiPoint';
+/* import {Circle as CircleStyle, Fill,  Icon, Stroke, Style, Text} from 'ol/style';
+import MultiPoint from 'ol/geom/MultiPoint'; */
 
-
+/* 
 // BW-Style Punkte
 const BruAndereStyle = new Style({
     image: new Icon({
@@ -217,7 +217,7 @@ function getStyleForArtGewInfo(feature) {
             })
         })
     ];
-}
+} */
 
 /* // Style für Kilomtrierung
 const Km10scalStyle = new Style({
@@ -276,7 +276,7 @@ const Km500scalStyle = function(feature, km, resolution) {
 };
 
  */
-
+/* 
 export {
     SleStyle,
     WehStyle,
@@ -288,8 +288,8 @@ export {
     QueStyle,
     getStyleForArtSonLin,
     getStyleForArtGewInfo,
-   /*  Km10scalStyle,
+    Km10scalStyle,
     Km100scalStyle,
-    Km500scalStyle */
+    Km500scalStyle 
 
-};
+}; */

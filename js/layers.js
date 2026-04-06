@@ -5,7 +5,7 @@ import XYZ from 'ol/source/XYZ';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import GeoJSON from 'ol/format/GeoJSON';
-//import {bbox as bboxStrategy} from 'ol/loadingstrategy';
+import {bbox as bboxStrategy} from 'ol/loadingstrategy';
 
 import Style from 'ol/style/Style';
 import Fill from 'ol/style/Fill';

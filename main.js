@@ -5,13 +5,16 @@ import 'ol-ext/dist/ol-ext.css';   // 👈 unbedingt notwendig!
 
 import { createMap } from './js/map.js';
 import { createLayerStructure } from './js/layers.js';
-import { createLayerSwitcher } from './js/controls.js';
+import { createDataTable, createLayerSwitcher } from './js/controls.js';
 import { registerProjections } from './js/projection.js';
+
 
 import { createMainToolbar } from './js/controls.js';
 
 
 
+
+let splitInstance = null;
 
 // Projektionen registrieren
 registerProjections();
@@ -29,3 +32,5 @@ map.addControl(layerSwitcher);
 // Toolbar erstellen
 const toolbar = createMainToolbar(map);
 map.addControl(toolbar);
+
+map.updateSize();

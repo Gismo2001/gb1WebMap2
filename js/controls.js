@@ -1,24 +1,21 @@
 import LayerSwitcher from 'ol-ext/control/LayerSwitcher';
 import Bar from 'ol-ext/control/Bar';
 import Toggle from 'ol-ext/control/Toggle';
+import { TabulatorFull as Tabulator } from 'tabulator-tables';
+import 'tabulator-tables/dist/css/tabulator.min.css';
+
 
 export function createLayerSwitcher() {
   return new LayerSwitcher(
     {
-   activationMode: 'click', 
+  activationMode: 'click', 
   reverse: true, 
   trash: true, 
   tipLabel: 'Legende',
   onchangeCheck: function(layer, checked) {
-     // console.log('Layer:', layer);  // Das gesamte Layer-Objekt
-      //console.log('Layer Name:', layer.get('name')); // Den Namen des Layers abrufen
-
+  
       if (checked) {
-      //    console.log('Layer wurde aktiviert:', layer.get('name'));
-          // Hier  weitere Aktionen
       } else {
-         // console.log('Layer wurde deaktiviert:', layer.get('name'));
-          // Hier weitere Aktionen
       }
   }
   }
@@ -31,9 +28,8 @@ export function createMainToolbar(map) {
 
   // 🔘 Toggle Button1
     const toggleBtn1 = new Toggle({
-    html: '🏠',
+    html: "I",
     title: 'Toggle Button 1',
-    bar: createSubBar3(),
     onToggle: function (active) {
         if (active) { 
           console.log('Toggle1 aktiviert');
@@ -47,8 +43,8 @@ export function createMainToolbar(map) {
 
   // 🔘 Toggle Button2
   const toggleBtn2 = new Toggle({
-    html: '⚙️',
-    title: 'Toggle Button 2',
+    html: 'W',
+    title: 'Dateien',
     onToggle: function (active) {
       if (active) { 
           console.log('Toggle2 aktiviert');
@@ -63,8 +59,9 @@ export function createMainToolbar(map) {
 
   // 🔘 Toggle Button3
   const toggleBtn3 = new Toggle({
-    html: '⚙️',
-    title: 'Toggle Button 3',
+    html: 'T',
+    title: 'Tabelle',
+    bar: createSubBar3(),
     onToggle: function (active) {
       if (active) { 
           console.log('Toggle3 aktiviert');
@@ -82,23 +79,46 @@ export function createMainToolbar(map) {
   bar.addControl(toggleBtn1);
   bar.addControl(toggleBtn2);
   bar.addControl(toggleBtn3);
-
+  // 👉 Position setzen
+  bar.setPosition('bottom-left');
+  // 👉 Feintuning Abstand
+  setTimeout(() => { bar.element.style.bottom = '60px'; }, 0);
 
   return bar;
 }
 
 export function createSubBar3() {
+  // Tabelle anzeigen
+  const tableToggleBtn = new Toggle({
+    html: '<i class="fa fa-table" aria-hidden="true"></i>',
+    title: "Tabelle anzeigen",
+    onToggle: function (active) {}
+  });
+
   const bar = new Bar({
     toggleOne: true,
-    controls: [
-      // Tabelle anzeigen
-      new Toggle({
-        html: '<i class="fa fa-table" aria-hidden="true"></i>',
-        title: "Tabelle anzeigen",
-        onToggle: function (active) {}
-      })
-    ]
+    controls: [tableToggleBtn]
   });
+  
   return bar;
 };
+
+export function createDataTable() {
+  let table = new Tabulator("#wms_data_table", {
+    height: "100%",        // Wichtig für den internen Scroll-Container
+    layout: "fitData",     // ÄNDERUNG: Spalten behalten ihre natürliche Breite
+    autoColumns: true,
+    columnDefaults:{
+        tooltip:true,      // Zeigt Inhalt beim Drüberfahren
+    },
+  });
+
+  
+// WICHTIG die Karte sich neu berechnen:
+map.updateSize();
+  return table;
+}
+
+
+
 

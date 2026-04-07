@@ -3,13 +3,55 @@ html, body {
   height: 100%;
 }
 
+
+
+
+#main-layout {
+    display: flex;
+    flex-direction: column;
+    width: 100vw;
+    height: 100vh;
+}
+
+
 #map {
-  width: 100vw;
-  height: 100vh;
+    flex: 1; /* Nimmt 100% ein, solange die Tabelle 'none' ist */
+    width: 100%;
+    position: relative; /* Wichtig für OpenLayers Controls */
+}
+/* Der äußere Container darf NICHT scrollen, sonst verschwindet der Header */
+#wms-table-container {
+    display: none;
+    flex-direction: column;
+    height: 40vh;
+    overflow: hidden; /* WICHTIG: Kein Scrollen hier! */
 }
 
-.ol-bar {
-  top: 1em;
-  left: 1em;
+/* Das Div, in dem Tabulator sitzt */
+#wms_data_table {
+    width: 100%;
+    flex-grow: 1;
+    overflow: hidden; /* Tabulator regelt das Scrollen intern */
 }
 
+
+
+/* Optional: Verhindert, dass die Karte beim ersten Laden zu klein ist */
+#map .ol-viewport {
+    height: 100% !important;
+    width: 100% !important;
+}
+
+.gutter {
+    background-color: #eee;
+    background-repeat: no-repeat;
+    background-position: 50%;
+}
+
+.gutter.gutter-vertical {
+    background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAFAQMAAABo7865AAAABlBMVEVHcEzMzMzy7u4AAAAAXRSTlMAQObYZgAAAA1JREFUeNoWw6EBADAIAlBPHcH/X9HVYTXgByEbCkPreV5IAAAAAElFTkSuQmCC');
+    cursor: row-resize;
+    height: 10px; /* Dicke der Trennlinie */
+    border-top: 1px solid #ccc;
+    border-bottom: 1px solid #ccc;
+}

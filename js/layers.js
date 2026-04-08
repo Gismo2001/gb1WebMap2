@@ -452,7 +452,8 @@ export function createExpGewInfoLayer() {
 
 
 //WMS-Layer
-export function createwGewWmsFgLayer() {
+
+export function createGewWmsFgLayer() {
   return new TileLayer({
   source: new TileWMS({
     url:  'https://www.umweltkarten-niedersachsen.de/arcgis/services/Hydro_wms/MapServer/WMSServer',
@@ -462,8 +463,6 @@ export function createwGewWmsFgLayer() {
       'TRANSPARENT': true,
       'TILED': true,
     },
-
-  
   }),
   title: 'gewWms',
   name: 'Gewaesser',
@@ -472,6 +471,131 @@ export function createwGewWmsFgLayer() {
   opacity: 1,
 });
 }
+
+export function createWmsWrrlFgLayer() {
+  return new TileLayer({
+  source: new TileWMS({
+    url:  'https://www.umweltkarten-niedersachsen.de/arcgis/services/WRRL_wms/MapServer/WMSServer',
+    params: {
+      'LAYERS': 'Natuerliche_erheblich_veraenderte_und_kuenstliche_Fliessgewaesser',
+      'FORMAT': 'image/png',
+      'TRANSPARENT': true,
+      'TILED': true,
+    },
+  }),
+  title: 'Fließgew.',
+  name: 'Fließgew',
+  permalink:'Fließgew',
+  visible: true,
+  opacity: 1,
+});
+}
+
+export function createwmsUesgLayer() {
+  return new TileLayer({
+  source: new TileWMS({
+    url:  'https://www.umweltkarten-niedersachsen.de/arcgis/services/HWSchutz_wms/MapServer/WMSServer',
+    params: {
+      'LAYERS': 'Überschwemmungsgebiete_Verordnungsfläechen_Niedersachsen11182',
+      'FORMAT': 'image/png',
+      'TRANSPARENT': true,
+      'TILED': true,
+    },
+  }),  
+  title: 'ÜSG',
+  name: 'UESG',
+  permalink:'UESG',
+  visible: false,
+  opacity: .5,
+
+});
+}
+
+export function createwmsNsgLayer() {
+  return new TileLayer({
+
+  title: "NSG",
+  name: "NSG",
+  permalink:'NSG',  
+  source: new TileWMS({
+    url: 'https://www.umweltkarten-niedersachsen.de/arcgis/services/Natur_wms/MapServer/WMSServer',
+    params: {
+      'LAYERS': 'Naturschutzgebiet',
+      'FORMAT': 'image/png',
+      'TRANSPARENT': true,
+      'TILED': true,
+    },
+  }),
+  visible: false,
+  opacity: .5,
+});
+}
+
+
+export function createwmsLsgLayer() {
+  return new TileLayer({
+
+  title: "LSG",
+  name: "LSG",
+  permalink:'LSG',  
+  source: new TileWMS({
+    url: 'https://www.umweltkarten-niedersachsen.de/arcgis/services/Natur_wms/MapServer/WMSServer',
+    params: {
+      'LAYERS': 'Landschaftsschutzgebiet',
+      'FORMAT': 'image/png',
+      'TRANSPARENT': true,
+      'TILED': true,
+    },
+  }),
+  
+  visible: false,
+  opacity: .5,
+});
+}
+
+
+export function createwmsNibisLayer() {
+  return new TileLayer({
+  title: "Nibis Bohrdaten", // Für die Anzeige im LayerSwitcher
+  permalink: 'nibis_bohrdaten', 
+  visible: false,
+  opacity: 0.5,
+  source: new TileWMS({
+    url: 'https://nibis.lbeg.de/net3/public/ogc.ashx?PkgId=37',
+    params: {
+      'LAYERS': 'group_817',
+      'FORMAT': 'image/png',
+      'TRANSPARENT': true,
+      'TILED': true,
+      'VERSION': '1.3.0' // Sicherstellen, dass die Koordinatenordnung stimmt
+    },
+    // Die Attribution gehört hierhin:
+    attributions: '© LBEG Niedersachsen',
+    crossOrigin: 'anonymous' // Wichtig, falls du später Export-Funktionen nutzt
+  })
+});
+}
+
+export function createwmsAlkisLayer() {
+  return new TileLayer({
+  title: 'ALKIS',
+  name: 'ALKIS',
+  permalink:'ALKIS',
+  type: 'base',
+  source: new TileWMS({
+    url: "https://opendata.lgln.niedersachsen.de/doorman/noauth/alkis_wms?",
+    attributions: '© LGLN',
+    params: {
+      "LAYERS": "ALKIS",
+      "TILED": true, // "true" sollte ohne Anführungszeichen sein
+      "VERSION": "1.3.0"
+    },
+  }),
+  opacity: 1,
+  visible: false,  
+});
+}
+
 
 
 export function createLayerStructure() {
@@ -499,7 +623,13 @@ export function createLayerStructure() {
   const gew = createGewLayer();
 
   //WMS-Layer
-  const gewWms = createwGewWmsFgLayer();
+  const gewWms = createGewWmsFgLayer();
+  const fgWrrlWms = createWmsWrrlFgLayer();
+  const uesgWms = createwmsUesgLayer();
+  const nsgWms = createwmsNsgLayer();
+  const lsgWms = createwmsLsgLayer() ;
+  const nibisWms = createwmsNibisLayer();
+  const alkisWms = createwmsAlkisLayer();
 
   //Kilometrierung
   const Km10scal = createKm10scalLayer();
@@ -559,8 +689,16 @@ export function createLayerStructure() {
          // 🏗️ WMS-Layer
     new LayerGroup({
       title: 'WMS-Layer',
+      visible: false,
       layers: [
-       gewWms
+        alkisWms,
+        nibisWms,
+        nsgWms,
+        lsgWms,
+        uesgWms,
+        fgWrrlWms,
+        gewWms
+
        ]
     }),
     // 🏗️ Station

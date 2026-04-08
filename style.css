@@ -40,8 +40,6 @@ html, body {
     flex-grow: 1;
     overflow: hidden; /* Tabulator regelt das Scrollen intern */
 }
-
-
 /* Optional: Verhindert, dass die Karte beim ersten Laden zu klein ist */
 #map .ol-viewport {
     height: 100% !important;

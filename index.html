@@ -21,12 +21,14 @@
             <div id="table-header" style="...">
               <div style="display: flex; align-items: center; gap: 10px;">
               <strong style="...">Ebene:</strong>
-              <select id="layer-selector" onchange="switchLayerData()" style="padding: 2px 5px; border-radius: 4px; border: 1px solid #ccc;">
-              <!-- Optionen werden dynamisch per JavaScript gefüllt -->
+              <!--<select id="layer-selector" onchange="switchLayerData()" style="padding: 2px 5px; border-radius: 4px; border: 1px solid #ccc;">-->
+              <select id="layer-selector"></select>
+                <!-- Optionen werden dynamisch per JavaScript gefüllt -->
               </select>
             </div>
             <!--<button onclick="closeTable()" style="...">✕ Schließen</button>-->
-            <button id="closeTableBtn">✕ Schließen</button>
+            <!--<button id="closeTableBtn">✕ Schließen</button>-->
+            <button id="close-table-btn">✕ Schließen</button>
           </div>
             <!-- Die eigentliche Tabelle (füllt den Rest aus) -->
             <div id="wms_data_table" style="flex: 1; width: 100%; overflow: hidden;"></div>

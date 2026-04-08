@@ -13,10 +13,13 @@ import { registerProjections } from './js/projection.js';
 import { createMainToolbar } from './js/controls.js';
 
 import { initMapClick } from './js/mapEvents.js';
-import { switchLayerData } from './js/table.js';
 import { getClickResults } from './js/mapEvents.js';
 
 import { initTable } from './js/table.js';
+import { closeTable } from './js/table.js';
+import { switchLayerData } from './js/table.js';
+
+
 
 
 
@@ -43,11 +46,14 @@ initMapClick(map);
 
 map.updateSize();
 
-
 document.getElementById('layer-selector')
   .addEventListener('change', () => {
     switchLayerData(getClickResults());
-});
+  });
+
 
 // nach map-Erstellung
 initTable(map);
+
+document.getElementById('close-table-btn')
+  .addEventListener('click', closeTable);

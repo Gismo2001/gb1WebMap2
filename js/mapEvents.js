@@ -31,7 +31,7 @@ export function initMapClick(map) {
     allLayers.forEach(layer => {
       if (layer.getVisible() && layer.getSource()?.getFeatureInfoUrl) {
         const name = layer.get('name');
-        console.log(name);
+        
         const url = layer.getSource().getFeatureInfoUrl(
           evt.coordinate,
           viewResolution,

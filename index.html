@@ -9,13 +9,13 @@
 </head>
 <body>
   
-   <div id="map" style="height: 100vh; display: flex; flex-direction: column; overflow: hidden;">
+  <div id="main-layout" style="height: 100vh; display: flex; flex-direction: column; overflow: hidden;">
         
         <!-- Oberer Teil: Die Karte -->
         <div id="map" class="split" style="width: 100%; position: relative;"></div>
 
         <!-- Unterer Teil: Der Tabellen-Bereich -->
-        <div id="wms-table-container" class="split" style="display: none; flex-direction: column; background: white; border-top: 1px solid #ccc;">
+        <div id="wms-table-container" class="split" style="display: none; flex-direction: column; height: 200px; background: white; border-top: 1px solid #ccc;">
             
             <!-- Fixierter Header mit Schließen-Button -->
             <div id="table-header" style="...">
@@ -25,7 +25,8 @@
               <!-- Optionen werden dynamisch per JavaScript gefüllt -->
               </select>
             </div>
-            <button onclick="closeTable()" style="...">✕ Schließen</button>
+            <!--<button onclick="closeTable()" style="...">✕ Schließen</button>-->
+            <button id="closeTableBtn">✕ Schließen</button>
           </div>
             <!-- Die eigentliche Tabelle (füllt den Rest aus) -->
             <div id="wms_data_table" style="flex: 1; width: 100%; overflow: hidden;"></div>
@@ -36,4 +37,5 @@
 
   <script type="module" src="/main.js"></script>
 </body>
+
 </html>

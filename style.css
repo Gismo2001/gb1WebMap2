@@ -1,10 +1,18 @@
+@import "node_modules/ol/ol.css";
+@import "node_modules/ol-ext/dist/ol-ext.css";
+*{
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
 html, body {
   margin: 0;
   height: 100%;
+   padding: 0;
+  overflow: hidden;
+  z-index: 1;
 }
-
-
-
 
 #main-layout {
     display: flex;
@@ -12,7 +20,6 @@ html, body {
     width: 100vw;
     height: 100vh;
 }
-
 
 #map {
     flex: 1; /* Nimmt 100% ein, solange die Tabelle 'none' ist */
@@ -33,7 +40,6 @@ html, body {
     flex-grow: 1;
     overflow: hidden; /* Tabulator regelt das Scrollen intern */
 }
-
 
 
 /* Optional: Verhindert, dass die Karte beim ersten Laden zu klein ist */

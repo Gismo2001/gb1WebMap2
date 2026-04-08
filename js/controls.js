@@ -22,103 +22,74 @@ export function createLayerSwitcher() {
 );
 }
 
-export function createMainToolbar(map) {
+// Oben die Imports lassen...
 
+export function createMainToolbar(map) {
   const bar = new Bar();
 
-  // 🔘 Toggle Button1
-    const toggleBtn1 = new Toggle({
-    html: "I",
-    title: 'Toggle Button 1',
-    onToggle: function (active) {
-        if (active) { 
-          console.log('Toggle1 aktiviert');
-          toggleBtn2.setActive(false); // Deaktiviert Toggle Button 2
-          toggleBtn3.setActive(false); // Deaktiviert Toggle Button 3
-        } else {
-          console.log('Toggle1 deaktiviert');
-        } 
-    }
+  // 1. Zuerst alle Buttons definieren (ohne Logik, die andere Buttons braucht)
+  const toggleBtn1 = new Toggle({ html: "I", title: 'Info' });
+  const toggleBtn2 = new Toggle({ html: 'W', title: 'Dateien' });
+  const toggleBtn3 = new Toggle({ 
+    html: 'T', 
+    title: 'Tabelle', 
+    // Wir übergeben die Map an die SubBar-Erstellung
+    bar: createSubBar3(map) 
   });
 
-  // 🔘 Toggle Button2
-  const toggleBtn2 = new Toggle({
-    html: 'W',
-    title: 'Dateien',
-    onToggle: function (active) {
-      if (active) { 
-          console.log('Toggle2 aktiviert');
-          toggleBtn1.setActive(false); // Deaktiviert Toggle Button 1
-          toggleBtn3.setActive(false); // Deaktiviert Toggle Button 3
-
-        } else {
-          console.log('Toggle2 deaktiviert');
-        } 
-    }
+  // 2. Logik nachträglich hinzufügen, damit alle Buttons einander kennen
+  const allBtns = [toggleBtn1, toggleBtn2, toggleBtn3];
+  allBtns.forEach(btn => {
+    btn.on('change:active', (e) => {
+      if (e.active) {
+        // Alle anderen deaktivieren
+        allBtns.filter(b => b !== btn).forEach(b => b.setActive(false));
+      }
+    });
   });
 
-  // 🔘 Toggle Button3
-  const toggleBtn3 = new Toggle({
-    html: 'T',
-    title: 'Tabelle',
-    bar: createSubBar3(),
-    onToggle: function (active) {
-      if (active) { 
-          console.log('Toggle3 aktiviert');
-          toggleBtn1.setActive(false); // Deaktiviert Toggle Button 1
-          toggleBtn2.setActive(false); // Deaktiviert Toggle Button 2
-        } else {
-          console.log('Toggle3 deaktiviert');
-        } 
-    }
-  });
-
-
-  // Buttons zur Bar hinzufügen
-  
   bar.addControl(toggleBtn1);
   bar.addControl(toggleBtn2);
   bar.addControl(toggleBtn3);
-  // 👉 Position setzen
   bar.setPosition('bottom-left');
-  // 👉 Feintuning Abstand
-  setTimeout(() => { bar.element.style.bottom = '60px'; }, 0);
-
+  
   return bar;
 }
 
-export function createSubBar3() {
-  // Tabelle anzeigen
+export function createSubBar3(map) {
   const tableToggleBtn = new Toggle({
     html: '<i class="fa fa-table" aria-hidden="true"></i>',
     title: "Tabelle anzeigen",
-    onToggle: function (active) {}
+    onToggle: function (active) {
+      // WICHTIG: ID muss mit HTML übereinstimmen!
+      const tableContainer = document.getElementById('wms-table-container'); 
+      
+      if (active) { 
+          tableContainer.style.display = 'flex';
+          createDataTable(map); // Map mitgeben!
+      } else {
+          tableContainer.style.display = 'none';
+          // Nach dem Ausblenden Karte wieder groß machen
+          setTimeout(() => map.updateSize(), 10);
+      } 
+    }
   });
 
-  const bar = new Bar({
-    toggleOne: true,
-    controls: [tableToggleBtn]
-  });
-  
-  return bar;
-};
-
-export function createDataTable() {
-  let table = new Tabulator("#wms_data_table", {
-    height: "100%",        // Wichtig für den internen Scroll-Container
-    layout: "fitData",     // ÄNDERUNG: Spalten behalten ihre natürliche Breite
-    autoColumns: true,
-    columnDefaults:{
-        tooltip:true,      // Zeigt Inhalt beim Drüberfahren
-    },
-  });
-
-  
-// WICHTIG die Karte sich neu berechnen:
-map.updateSize();
-  return table;
+  return new Bar({ toggleOne: true, controls: [tableToggleBtn] });
 }
 
+export function createDataTable(map) {
+  const table = new Tabulator("#wms_data_table", {
+    height: "100%",
+    layout: "fitData",
+    autoColumns: true,
+    columnDefaults: { tooltip: true },
+  });
+
+  // Karte an den neuen Platz anpassen
+  setTimeout(() => map.updateSize(), 50);
+  return table;
+}
 
 
 

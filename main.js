@@ -1,6 +1,7 @@
 import './style.css';
 import 'ol/ol.css';
 import 'ol-ext/dist/ol-ext.css';   // 👈 unbedingt notwendig!
+import 'tabulator-tables/dist/css/tabulator.min.css';
 
 
 import { createMap } from './js/map.js';
@@ -11,6 +12,11 @@ import { registerProjections } from './js/projection.js';
 
 import { createMainToolbar } from './js/controls.js';
 
+import { initMapClick } from './js/mapEvents.js';
+import { switchLayerData } from './js/table.js';
+import { getClickResults } from './js/mapEvents.js';
+
+import { initTable } from './js/table.js';
 
 
 
@@ -33,4 +39,15 @@ map.addControl(layerSwitcher);
 const toolbar = createMainToolbar(map);
 map.addControl(toolbar);
 
+initMapClick(map);
+
 map.updateSize();
+
+
+document.getElementById('layer-selector')
+  .addEventListener('change', () => {
+    switchLayerData(getClickResults());
+});
+
+// nach map-Erstellung
+initTable(map);

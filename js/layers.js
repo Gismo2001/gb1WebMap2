@@ -434,7 +434,7 @@ export function createExpBwSonLinLayer() {
   });
 }
 export function createExpGewInfoLayer() {
-  return new VectorLayer({
+  return new TileLayer({
     source: new VectorSource({
       format: new GeoJSON(),
       url: function (extent) {
@@ -442,13 +442,37 @@ export function createExpGewInfoLayer() {
       },
       strategy: bboxStrategy
     }),
-    title: 'Gew, Info', 
+  title: 'Gew, Info', 
   name: 'gew_info',
   permalink: 'gew_info', 
   style: getStyleForArtGewInfo,
   visible: false
   });
 }
+
+
+//WMS-Layer
+export function createwGewWmsFgLayer() {
+  return new TileLayer({
+  source: new TileWMS({
+    url:  'https://www.umweltkarten-niedersachsen.de/arcgis/services/Hydro_wms/MapServer/WMSServer',
+    params: {
+      'LAYERS': 'Gewässernetz',
+      'FORMAT': 'image/png',
+      'TRANSPARENT': true,
+      'TILED': true,
+    },
+
+  
+  }),
+  title: 'gewWms',
+  name: 'Gewaesser',
+  permalink:'Gewaesser',
+  visible: false,
+  opacity: 1,
+});
+}
+
 
 export function createLayerStructure() {
 
@@ -469,11 +493,24 @@ export function createLayerStructure() {
   const NI2020 = creategnAtlas2020Layer();
   const NI2023 = creategnAtlas2023Layer();
   
+  //FSK-Layer
 
   // Gewässernetz
   const gew = createGewLayer();
 
-  //Thematische Layer
+  //WMS-Layer
+  const gewWms = createwGewWmsFgLayer();
+
+  //Kilometrierung
+  const Km10scal = createKm10scalLayer();
+  const Km100scal = createKm100scalLayer();
+  const Km500scal = createKm500scalLayer();
+
+   //Linien Thematische Layer
+  const sonLin = createExpBwSonLinLayer();
+  const gewInfo = createExpGewInfoLayer();
+
+  //Punkte Thematische Layer
   const sle = createExpBwSleLayer();
   const weh = createExpBwWehLayer();
   const bruAndere = createExpBwBruAndereLayer();
@@ -482,14 +519,8 @@ export function createLayerStructure() {
   const que = createExpBwQueLayer();
   const ein = createExpBwEinLayer();
   const sonPun = createExpBwSonPunLayer();
-  const sonLin = createExpBwSonLinLayer();
-  const gewInfo = createExpGewInfoLayer();
-
-  //Kilometrierung
-  const Km10scal = createKm10scalLayer();
-  const Km100scal = createKm100scalLayer();
-  const Km500scal = createKm500scalLayer();
-
+ 
+   
 
   return [
     // 🗺️ Basiskarten
@@ -511,7 +542,7 @@ export function createLayerStructure() {
     new LayerGroup({
       title: 'Luftbilder',
       layers: [
-       NI2014,
+        NI2014,
         NI2017,
         NI2020,
         NI2023
@@ -519,17 +550,20 @@ export function createLayerStructure() {
       ],
       visible: false
     }),
+    
+    // 🏗️ FSK-Layer
+
+
     // 👉 GEW Layer 
     gew,
          // 🏗️ WMS-Layer
     new LayerGroup({
       title: 'WMS-Layer',
       layers: [
-       
-        
-      ]
+       gewWms
+       ]
     }),
-    // 🏗️ km
+    // 🏗️ Station
     new LayerGroup({
       title: 'Station',
       layers: [

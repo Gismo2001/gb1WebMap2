@@ -42,8 +42,14 @@ export function showTable(data) {
       gutterSize: 5,
 
       onDrag: () => {
-        mapRef.updateSize();   // 👈 jetzt sauber!
-       table.redraw();   // Tabulator anpassen
+      if (mapRef) {
+        mapRef.updateSize();
+      }
+  
+      // Prüfen, ob die Tabelle existiert UND ein DOM-Element hat
+      if (table && table.element && table.element.offsetWidth > 0) {
+      table.redraw();
+      }
       }
     });
   } else {

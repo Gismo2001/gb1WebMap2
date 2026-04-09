@@ -1,35 +1,49 @@
 // js/mapEvents.js
 
 import { updateSelector, showTable, closeTable } from './table.js';
+import { isTableEnabled } from './controls.js';
+
+
+
 
 let currentClickResults = {};
 
-function getAllLayers(layerGroup) {
+export function getAllLayers(layerGroup, parentVisible = true, groupTitle = null) {
   let layers = [];
+  
+  // Falls die aktuelle layerGroup selbst ein Titel hat, merken wir uns den
+  const currentTitle = layerGroup.get('title') || groupTitle;
 
   layerGroup.getLayers().forEach(layer => {
+    const isVisible = parentVisible && layer.getVisible();
+    
     if (layer.getLayers) {
-      // 👉 LayerGroup
-      layers = layers.concat(getAllLayers(layer));
+      // 👉 Es ist eine Gruppe: Wir gehen tiefer und geben den Titel weiter
+      layers = layers.concat(getAllLayers(layer, isVisible, currentTitle));
     } else {
-      layers.push(layer);
+      // 👉 Es ist ein echter Layer: Wir speichern den Titel seiner Gruppe mit ab
+      layers.push({
+        layer: layer,
+        visible: isVisible,
+        groupTitle: currentTitle // 👈 Hier speichern wir den Gruppennamen
+      });
     }
   });
 
   return layers;
 }
-
-
 export function initMapClick(map) {
 
   map.on('singleclick', function (evt) {
+    
+    if (!isTableEnabled()) return;
     const promises = [];
     const viewResolution = map.getView().getResolution();
     currentClickResults = {};
     const allLayers = getAllLayers(map);
-    
-    allLayers.forEach(layer => {
-      if (layer.getVisible() && layer.getSource()?.getFeatureInfoUrl) {
+    allLayers.forEach(obj => {
+      const layer = obj.layer;
+      if (obj.visible && layer.getSource()?.getFeatureInfoUrl) {
         const name = layer.get('name');
         
         const url = layer.getSource().getFeatureInfoUrl(
@@ -42,15 +56,12 @@ export function initMapClick(map) {
             'LAYERS': layer.getSource().getParams().LAYERS
           }
         );
-
         if (url) {
-          
           promises.push(
             fetch(url)
               .then(res => res.text())
               .then(xml => {
                 const data = parseArcGISXml(xml, name);
-                console.log(data)
                 if (data.length > 0) currentClickResults[name] = data;
               })
           );
@@ -59,24 +70,28 @@ export function initMapClick(map) {
     });
 
     Promise.all(promises).then(() => {
-
-      const layerNames = Object.keys(currentClickResults);
-
-      if (layerNames.length > 0) {
-        
-        updateSelector(layerNames);
-        showTable(currentClickResults[layerNames[0]]);
-      } else {
-        closeTable();
-      }
+    // 👉 Vector-Daten hinzufügen
+    const vectorResults = getVectorFeaturesAtClick(map, evt);
+    // 👉 zusammenführen
+    Object.keys(vectorResults).forEach(layerName => {
+      currentClickResults[layerName] = vectorResults[layerName];
     });
-
+    const layerNames = Object.keys(currentClickResults);
+    if (layerNames.length > 0) {
+      if (isTableEnabled()) {
+        updateSelector(layerNames);
+        showTable(currentClickResults[layerNames[0]]);  
+      }
+    } else {
+      if (isTableEnabled()) {
+        //closeTable();
+      }
+    }
   });
+});
 }
 
-
-// 👇 bleibt hier (gehört zur Datenlogik)
-function parseArcGISXml(xmlString, layerName) {
+export function parseArcGISXml(xmlString, layerName) {
 
   const parser = new DOMParser();
   const xmlDoc = parser.parseFromString(xmlString, "text/xml");
@@ -103,3 +118,82 @@ function parseArcGISXml(xmlString, layerName) {
 export function getClickResults() {
   return currentClickResults;
 }
+
+export function getVectorFeaturesAtClick(map, evt) {
+
+  const results = {};
+
+  map.forEachFeatureAtPixel(evt.pixel, function(feature, layer) {
+
+    const layerName = layer?.get('name') || 'Vector';
+
+    if (!results[layerName]) {
+      results[layerName] = [];
+    }
+
+    const props = feature.getProperties();
+
+    // Geometry entfernen (sonst Müll in Tabelle)
+    const cleanProps = { ...props };
+    delete cleanProps.geometry;
+
+    results[layerName].push(cleanProps);
+  });
+
+  return results;
+}
+
+export function getVisibleVectorFeatures(map) {
+  const extent = map.getView().calculateExtent(map.getSize());
+  const results = {};
+  const allLayers = getAllLayers(map);
+  
+  const allowedGroups = ['Bauw.(L)', 'Bauw.(P)']; // 👈 Deine Zielgruppen
+
+  allLayers.forEach(obj => {
+    const { layer, visible, groupTitle } = obj;
+    
+    // 1. Sichtbarkeit prüfen
+    if (!visible) return;
+    
+    // 2. Filter: Nur Layer aus den spezifischen Gruppen berücksichtigen
+    if (!groupTitle || !allowedGroups.includes(groupTitle)) return;
+
+    const name = layer.get('name');
+    const source = typeof layer.getSource === 'function' ? layer.getSource() : null;
+    
+    if (!source || typeof source.getFeaturesInExtent !== 'function') return;
+
+    const features = source.getFeaturesInExtent(extent);
+    if (features.length === 0) return;
+
+    results[name || 'Unbenannter Layer'] = features.map(f => {
+      const props = { ...f.getProperties() };
+      delete props.geometry; // 👈 Bereinigen
+      return props;
+    });
+  });
+
+  return results;
+}
+
+
+
+
+export function updateTableFromVisibleLayers(map) {
+
+  if (!isTableEnabled()) return;
+  
+  const results = getVisibleVectorFeatures(map);
+  
+  const layerNames = Object.keys(results);
+  
+
+  if (layerNames.length > 0) {
+    updateSelector(layerNames);
+    showTable(results[layerNames[0]]);
+  } else {
+    closeTable();
+  }
+}
+

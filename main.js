@@ -6,7 +6,7 @@ import 'tabulator-tables/dist/css/tabulator.min.css';
 
 import { createMap } from './js/map.js';
 import { createLayerStructure } from './js/layers.js';
-import { createDataTable, createLayerSwitcher } from './js/controls.js';
+import { createLayerSwitcher } from './js/controls.js';
 import { registerProjections } from './js/projection.js';
 
 
@@ -18,6 +18,7 @@ import { getClickResults } from './js/mapEvents.js';
 import { initTable } from './js/table.js';
 import { closeTable } from './js/table.js';
 import { switchLayerData } from './js/table.js';
+import { updateTableFromVisibleLayers } from './js/mapEvents.js';
 
 
 
@@ -35,7 +36,7 @@ const layers = createLayerStructure();
 const map = createMap('map', layers);
 
 // 👉 LayerSwitcher hinzufügen
-const layerSwitcher = createLayerSwitcher();
+const layerSwitcher = createLayerSwitcher(map);
 map.addControl(layerSwitcher);
 
 // Toolbar erstellen
@@ -57,3 +58,10 @@ initTable(map);
 
 document.getElementById('close-table-btn')
   .addEventListener('click', closeTable);
+
+
+
+map.on('moveend', () => {
+  
+  updateTableFromVisibleLayers(map);
+});

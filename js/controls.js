@@ -3,23 +3,46 @@ import Bar from 'ol-ext/control/Bar';
 import Toggle from 'ol-ext/control/Toggle';
 import { TabulatorFull as Tabulator } from 'tabulator-tables';
 import 'tabulator-tables/dist/css/tabulator.min.css';
+import { getVisibleVectorFeatures } from './mapEvents.js';
+import { updateTableFromVisibleLayers } from './mapEvents.js';
 
 
-export function createLayerSwitcher() {
-  return new LayerSwitcher(
-    {
-  activationMode: 'click', 
-  reverse: true, 
-  trash: true, 
-  tipLabel: 'Legende',
-  onchangeCheck: function(layer, checked) {
-  
-      if (checked) {
-      } else {
+let isTableActive = false;
+
+
+
+
+export function createLayerSwitcher(map) {
+  return new LayerSwitcher({
+    activationMode: 'click',
+    reverse: true,
+    trash: true,
+    tipLabel: 'Legende',
+
+    onchangeCheck: function(layer, checked) {
+
+      if (isTableEnabled()) {
+        
+        updateTableFromVisibleLayers(map);
       }
+
+      
+    }
+  });
+}
+
+function showAllVisibleData(map) {
+
+  const results = getVisibleVectorFeatures(map);
+
+  const layerNames = Object.keys(results);
+
+  if (layerNames.length > 0) {
+    updateSelector(layerNames);
+    showTable(results[layerNames[0]]);
+  } else {
+    closeTable();
   }
-  }
-);
 }
 
 // Oben die Imports lassen...
@@ -57,23 +80,23 @@ export function createMainToolbar(map) {
 }
 
 export function createSubBar3(map) {
-  const tableToggleBtn = new Toggle({
-    html: '<i class="fa fa-table" aria-hidden="true"></i>',
-    title: "Tabelle anzeigen",
-    onToggle: function (active) {
-      // WICHTIG: ID muss mit HTML übereinstimmen!
-      const tableContainer = document.getElementById('wms-table-container'); 
-      
-      if (active) { 
-          tableContainer.style.display = 'flex';
-          createDataTable(map); // Map mitgeben!
-      } else {
-          tableContainer.style.display = 'none';
-          // Nach dem Ausblenden Karte wieder groß machen
-          setTimeout(() => map.updateSize(), 10);
-      } 
-    }
-  });
+ const tableToggleBtn = new Toggle({
+  html: '<i class="fa fa-table" aria-hidden="true"></i>',
+  title: "Tabelle anzeigen",
+  onToggle: function (active) {
+
+    isTableActive = active;   // 👈 wichtig!
+
+    const tableContainer = document.getElementById('wms-table-container'); 
+    
+    if (active) { 
+        tableContainer.style.display = 'flex';
+    } else {
+        tableContainer.style.display = 'none';
+        setTimeout(() => map.updateSize(), 10);
+    } 
+  }
+});
 
   return new Bar({ toggleOne: true, controls: [tableToggleBtn] });
 }
@@ -91,5 +114,7 @@ export function createDataTable(map) {
   return table;
 }
 
-
+export function isTableEnabled() {
+  return isTableActive;
+}
 

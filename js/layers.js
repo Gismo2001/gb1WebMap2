@@ -654,7 +654,7 @@ export function createLayerStructure() {
 
   return [
     // 🗺️ Basiskarten
-    new LayerGroup({
+      new LayerGroup({
       title: 'Base',
       layers: [
         ESRIGrey,

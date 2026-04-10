@@ -30,7 +30,7 @@ html, body {
 #wms-table-container {
     display: none;
     flex-direction: column;
-    height: 40vh;
+    height: 50vh;
     overflow: hidden; /* WICHTIG: Kein Scrollen hier! */
 }
 
@@ -47,9 +47,10 @@ html, body {
 }
 
 .gutter {
-    background-color: #eee;
+    background-color: #050505;
     background-repeat: no-repeat;
     background-position: 50%;
+    cursor: row-resize; /* Bei 'vertical' (oben/unten) */
 }
 
 .gutter.gutter-vertical {
@@ -59,3 +60,4 @@ html, body {
     border-top: 1px solid #ccc;
     border-bottom: 1px solid #ccc;
 }
+

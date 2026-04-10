@@ -18,6 +18,7 @@
     "ol-ext": "^4.0.38",
     "proj4": "^2.20.6",
     "split": "^1.0.1",
+    "split-grid": "^1.0.11",
     "split.js": "^1.6.5",
     "tabulator": "^0.2.40",
     "tabulator-tables": "^6.4.0"

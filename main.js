@@ -3,12 +3,10 @@ import 'ol/ol.css';
 import 'ol-ext/dist/ol-ext.css';   // 👈 unbedingt notwendig!
 import 'tabulator-tables/dist/css/tabulator.min.css';
 
-
 import { createMap } from './js/map.js';
 import { createLayerStructure } from './js/layers.js';
 import { createLayerSwitcher } from './js/controls.js';
 import { registerProjections } from './js/projection.js';
-
 
 import { createMainToolbar } from './js/controls.js';
 
@@ -18,9 +16,11 @@ import { getClickResults } from './js/mapEvents.js';
 import { initTable } from './js/table.js';
 import { closeTable } from './js/table.js';
 import { switchLayerData } from './js/table.js';
-import { updateTableFromVisibleLayers } from './js/mapEvents.js';
+import { updateTableFromVisibleLayers  } from './js/mapEvents.js';
+import { getTableActive } from './js/table.js';  
 
 
+import { getVisibleVectorFeatures } from './js/mapEvents.js';
 
 
 
@@ -47,11 +47,19 @@ initMapClick(map);
 
 map.updateSize();
 
-document.getElementById('layer-selector')
-  .addEventListener('change', () => {
-    switchLayerData(getClickResults());
-  });
+document.getElementById('layer-selector').addEventListener('change', () => {
+  // 1. Hole WMS Klick-Daten
+  const clickResults = getClickResults();
+  
+  // 2. Hole aktuelle Vektor-Daten (Bauw. L/P etc.)
+  const vectorResults = getVisibleVectorFeatures(map); // map muss hier verfügbar sein
 
+  // 3. Kombiniere beide
+  const combinedResults = { ...clickResults, ...vectorResults };
+  
+  // 4. Update Tabelle
+  switchLayerData(combinedResults);
+});
 
 // nach map-Erstellung
 initTable(map);
@@ -62,6 +70,8 @@ document.getElementById('close-table-btn')
 
 
 map.on('moveend', () => {
-  
-  updateTableFromVisibleLayers(map);
+  // Nur wenn der User die Tabelle offen hat, führen wir das Update aus
+  if (getTableActive()) {
+    updateTableFromVisibleLayers(map);
+  }
 });

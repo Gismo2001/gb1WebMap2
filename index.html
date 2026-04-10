@@ -10,31 +10,19 @@
 <body>
   
   <div id="main-layout" style="height: 100vh; display: flex; flex-direction: column; overflow: hidden;">
-        
-        <!-- Oberer Teil: Die Karte -->
-        <div id="map" class="split" style="width: 100%; position: relative;"></div>
-
-        <!-- Unterer Teil: Der Tabellen-Bereich -->
-        <div id="wms-table-container" class="split" style="display: none; flex-direction: column; height: 200px; background: white; border-top: 1px solid #ccc;">
-            
-            <!-- Fixierter Header mit Schließen-Button -->
-            <div id="table-header" style="...">
-              <div style="display: flex; align-items: center; gap: 10px;">
-              <strong style="...">Ebene:</strong>
-              <!--<select id="layer-selector" onchange="switchLayerData()" style="padding: 2px 5px; border-radius: 4px; border: 1px solid #ccc;">-->
-              <select id="layer-selector"></select>
-                <!-- Optionen werden dynamisch per JavaScript gefüllt -->
-              </select>
-            </div>
-            <!--<button onclick="closeTable()" style="...">✕ Schließen</button>-->
-            <!--<button id="closeTableBtn">✕ Schließen</button>-->
-            <button id="close-table-btn">✕ Schließen</button>
-          </div>
-            <!-- Die eigentliche Tabelle (füllt den Rest aus) -->
-            <div id="wms_data_table" style="flex: 1; width: 100%; overflow: hidden;"></div>
-            
+    <div id="map" class="split" style="width: 100%; position: relative;"></div>
+    <div id="wms-table-container" class="split" style="display: none; flex-direction: column; height: 200px; background: white; border-top: 1px solid #ccc;">
+      <div id="table-header" style="...">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <strong style="...">Ebene:</strong>
+          <select id="layer-selector"></select>
+          
         </div>
+        <button id="close-table-btn">✕ Schließen</button>
+      </div>
+      <div id="wms_data_table" style="flex: 1; width: 100%; overflow: hidden;"></div>
     </div>
+  </div>
 
 
   <script type="module" src="/main.js"></script>

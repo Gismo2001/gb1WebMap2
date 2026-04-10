@@ -5,9 +5,11 @@ import { TabulatorFull as Tabulator } from 'tabulator-tables';
 import 'tabulator-tables/dist/css/tabulator.min.css';
 import { getVisibleVectorFeatures } from './mapEvents.js';
 import { updateTableFromVisibleLayers } from './mapEvents.js';
+import { closeTable } from './table.js';
 
 
 let isTableActive = false;
+let tableToggleBtnInstance = null;
 
 
 
@@ -49,7 +51,7 @@ function showAllVisibleData(map) {
 
 export function createMainToolbar(map) {
   const bar = new Bar();
-
+  
   // 1. Zuerst alle Buttons definieren (ohne Logik, die andere Buttons braucht)
   const toggleBtn1 = new Toggle({ html: "I", title: 'Info' });
   const toggleBtn2 = new Toggle({ html: 'W', title: 'Dateien' });
@@ -74,32 +76,32 @@ export function createMainToolbar(map) {
   bar.addControl(toggleBtn1);
   bar.addControl(toggleBtn2);
   bar.addControl(toggleBtn3);
-  bar.setPosition('bottom-left');
+  bar.setPosition('top-left');
   
   return bar;
 }
 
 export function createSubBar3(map) {
- const tableToggleBtn = new Toggle({
-  html: '<i class="fa fa-table" aria-hidden="true"></i>',
-  title: "Tabelle anzeigen",
-  onToggle: function (active) {
+  const tableToggleBtn = new Toggle({
+    html: '<i class="fa fa-table" aria-hidden="true"></i>',
+    title: "Tabelle anzeigen",
+    onToggle: function (active) {
+      isTableActive = active; // Status-Variable in controls.js setzen
 
-    isTableActive = active;   // 👈 wichtig!
+      if (active) {
+        // 👉 Startet die Kette: Daten sammeln -> Selector füllen -> showTable()
+        updateTableFromVisibleLayers(map);
+      } else {
+        // 👉 Räumt Split.js auf und versteckt den Container
+        closeTable();
+      }
+    }
+  });
 
-    const tableContainer = document.getElementById('wms-table-container'); 
-    
-    if (active) { 
-        tableContainer.style.display = 'flex';
-    } else {
-        tableContainer.style.display = 'none';
-        setTimeout(() => map.updateSize(), 10);
-    } 
-  }
-});
-
+  tableToggleBtnInstance = tableToggleBtn;
   return new Bar({ toggleOne: true, controls: [tableToggleBtn] });
 }
+
 
 export function createDataTable(map) {
   const table = new Tabulator("#wms_data_table", {
@@ -116,5 +118,12 @@ export function createDataTable(map) {
 
 export function isTableEnabled() {
   return isTableActive;
+}
+
+// Funktion zum Deaktivieren von außen
+export function deactivateTableToggle() {
+  if (tableToggleBtnInstance) {
+    tableToggleBtnInstance.setActive(false);
+  }
 }
 

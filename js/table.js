@@ -1,20 +1,14 @@
 import { TabulatorFull as Tabulator } from 'tabulator-tables';
 import 'tabulator-tables/dist/css/tabulator.min.css';
 import Split from 'split.js';
-
+import { deactivateTableToggle } from './controls';
 
 let splitInstance = null;
-let mapRef = null;   // 👈 Referenz auf map
 
- // 1. Tabelle initialisieren (außerhalb des Klicks)
-let table = new Tabulator("#wms_data_table", {
-    height: "100%",        // Wichtig für den internen Scroll-Container
-    layout: "fitData",     // ÄNDERUNG: Spalten behalten ihre natürliche Breite
-    autoColumns: true,
-    columnDefaults:{
-        tooltip:true,      // Zeigt Inhalt beim Drüberfahren
-    },
-});
+let isTableActive = false; 
+let mapRef = null;   // 👈 Referenz auf map
+let table = null;
+
 
 
 // 👉 Map setzen (wichtig!)
@@ -30,75 +24,77 @@ export function updateSelector(names) {
 }
 
 export function showTable(data) {
-
+  isTableActive = true;
   const container = document.getElementById("wms-table-container");
+  
+  // 1. Container sichtbar machen
   container.style.display = "flex";
 
-  if (!splitInstance) {
-    splitInstance = Split(['#map', '#wms-table-container'], {
-      sizes: [85, 15],
-      minSize: [150, 100],
-      direction: 'vertical',
-      gutterSize: 5,
-
-      onDrag: () => {
-      if (mapRef) {
-        mapRef.updateSize();
-      }
-  
-      // Prüfen, ob die Tabelle existiert UND ein DOM-Element hat
-      if (table && table.element && table.element.offsetWidth > 0) {
-      table.redraw();
-      }
-      }
-    });
-  } else {
-    splitInstance.setSizes([85, 15]);
-  }
-   if (data && data.length > 0) {
-        if (table) table.destroy(); // Harter Reset
-        
-        table = new Tabulator("#wms_data_table", {
-            data: data,
-            height: "100%",
-            layout: "fitData",
-            autoColumns: true,
-            // Verhindert, dass Tabulator Platz für Header-Filter reserviert, 
-            // wenn diese nicht aktiv sind:
-            headerVisible: true, 
-            renderVertical: "basic", // Deaktiviert Virtual DOM für kleine Datenmengen (stabiler)
-        });
-
-        // Ein kleiner "Nachstoß", um das Layout zu fixieren
-        setTimeout(() => {
-            table.redraw(true);
-        }, 10);
+  // 2. Ein minimaler Timeout gibt dem Browser Zeit für das Layout-Rendering
+  setTimeout(() => {
+    
+    // 3. Split.js initialisieren
+    if (!splitInstance) {
+      splitInstance = Split(['#map', '#wms-table-container'], {
+        sizes: [85, 15],
+        minSize: [150, 100],
+        direction: 'vertical',
+        gutterSize: 10,
+        onDrag: () => {
+          if (mapRef) mapRef.updateSize();
+          if (table && table.element) table.redraw();
+        }
+      });
     }
 
-  mapRef.updateSize();
-}
-export function closeTable() {
-  console.log('aufgerufen');
+    // 4. Tabelle erst HIER erstellen, wenn sie noch nicht existiert
+    if (!table) {
+      table = new Tabulator("#wms_data_table", {
+        height: "100%",
+        layout: "fitData",
+        autoColumns: true,
+        columnDefaults: { tooltip: true }
+      });
+    }
 
+    // 5. Daten setzen
+    if (data && data.length > 0) {
+      table.setData(data)
+        .then(() => {
+          table.redraw(true);
+        })
+        .catch(err => console.warn("Tabulator Redraw Error:", err));
+    }
+
+    if (mapRef) mapRef.updateSize();
+  }, 10); // 10ms reichen meistens aus
+}
+
+export function closeTable() {
+  isTableActive = false;
   if (splitInstance) {
     splitInstance.destroy();
     splitInstance = null;
   }
-
   document.getElementById("wms-table-container").style.display = "none";
+  deactivateTableToggle();
+  if (mapRef) mapRef.updateSize();
+}
 
-  if (mapRef) {
-    mapRef.updateSize();
+export function switchLayerData(results) {
+  const selector = document.getElementById('layer-selector');
+  if (!selector) return;
+
+  const selectedLayer = selector.value;
+  const data = results[selectedLayer];
+
+  if (data && data.length > 0) {
+    // Wir rufen showTable auf. 
+    // Da table schon existiert, wird darin nur setData() ausgeführt.
+    showTable(data);
   }
 }
 
-export function switchLayerData(currentClickResults) {
-
-  const selectedLayer = document.getElementById('layer-selector').value;
-  const data = currentClickResults[selectedLayer];
-
-  if (data && data.length > 0) {
-    console.log('aufgerufen');
-    showTable(data);
-  }
+export function getTableActive() {
+  return isTableActive;
 }

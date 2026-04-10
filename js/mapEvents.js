@@ -177,14 +177,13 @@ export function getVisibleVectorFeatures(map) {
   return results;
 }
 
-
-
-
 export function updateTableFromVisibleLayers(map) {
 
   if (!isTableEnabled()) return;
   
   const results = getVisibleVectorFeatures(map);
+  // TEST: Schauen, was in results steht
+  console.log("Gefundene Vektor-Features:", results);
   
   const layerNames = Object.keys(results);
   

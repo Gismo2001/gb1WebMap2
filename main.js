@@ -4,25 +4,23 @@ import 'ol-ext/dist/ol-ext.css';   // 👈 unbedingt notwendig!
 import 'tabulator-tables/dist/css/tabulator.min.css';
 
 import { createMap } from './js/map.js';
-import { createLayerStructure } from './js/layers.js';
-import { createLayerSwitcher } from './js/controls.js';
-import { registerProjections } from './js/projection.js';
 
+import { createLayerStructure } from './js/layers.js';
+
+import { createLayerSwitcher } from './js/controls.js';
 import { createMainToolbar } from './js/controls.js';
 
-import { initMapClick } from './js/mapEvents.js';
-import { getClickResults } from './js/mapEvents.js';
+import { registerProjections } from './js/projection.js';
 
 import { initTable } from './js/table.js';
 import { closeTable } from './js/table.js';
 import { switchLayerData } from './js/table.js';
-import { updateTableFromVisibleLayers  } from './js/mapEvents.js';
 import { getTableActive } from './js/table.js';  
 
-
+import { initMapClick } from './js/mapEvents.js';
+import { getClickResults } from './js/mapEvents.js';
+import { updateTableFromVisibleLayers  } from './js/mapEvents.js';
 import { getVisibleVectorFeatures } from './js/mapEvents.js';
-
-
 
 let splitInstance = null;
 

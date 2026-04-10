@@ -11,7 +11,7 @@ import Style from 'ol/style/Style';
 import Fill from 'ol/style/Fill';
 import Stroke from 'ol/style/Stroke';
 
-import {SleStyle, WehStyle, BruAndereStyle, BruNlwknStyle, DueStyle, QueStyle, getStyleForArtEin, getStyleForArtSonPun, getStyleForArtSonLin, getStyleForArtGewInfo, Km10scalStyle, Km100scalStyle, Km500scalStyle } from './utils.js';
+import {SleStyle, WehStyle, BruAndereStyle, BruNlwknStyle, DueStyle, QueStyle, getStyleForArtEin, getStyleForArtSonPun, getStyleForArtSonLin, getStyleForArtGewInfo, getStyleForArtUmn, Km10scalStyle, Km100scalStyle, Km500scalStyle } from './utils.js';
 import LayerGroup from 'ol/layer/Group';
 import { TileWMS } from 'ol/source.js';
 
@@ -39,7 +39,7 @@ export function createGewLayer() {
 }
 
 //Luftbilder Layer
-export function creategnAtlas2023Layer() {
+export function creategnAtlasNI2023Layer() {
 return new TileLayer({
   title: 'NI2023',
   name: 'NI2023',
@@ -53,7 +53,7 @@ return new TileLayer({
   visible: true,
 });
 }
-export function creategnAtlas2020Layer() {
+export function creategnAtlasNI2020Layer() {
 return new TileLayer({
   title: 'NI2020',
   name: 'NI2020',
@@ -67,7 +67,7 @@ return new TileLayer({
   visible: false,
 });
 }
-export function creategnAtlas2017Layer() {
+export function creategnAtlasNI2017Layer() {
 return new TileLayer({
   title: 'NI2017',
   name: 'NI2017',
@@ -81,8 +81,7 @@ return new TileLayer({
   visible: false,
 });
 }
-
-export function creategnAtlas2014Layer() {
+export function creategnAtlasNI2014Layer() {
 return new TileLayer({
   title: 'NI2014',
   name: 'NI2014',
@@ -92,6 +91,178 @@ return new TileLayer({
     attributions: ' ',
     params: {"LAYERS": "ni_dop20h_rgb_2014", "TILED": "true", "VERSION": "1.3.0"},
   })),
+  opacity: 1,
+  visible: false,
+});
+}
+
+export function creategnAtlasNOH2012Layer() {
+return new TileLayer({
+  title: 'NOH2012',
+  name: 'NOH2012',
+  permalink:'NOH2012',
+  source: new TileWMS(({
+      url: "https://geo.grafschaft.de/arcgis/services/Migratrion_Okt_2020/BAS_Luftbilder_2/MapServer/WMSServer",
+      attributions: ' ',
+     params: {"LAYERS": "9", "TILED": "true", "VERSION": "1.3.0"},
+    })),
+  opacity: 1,
+  visible: false,
+});
+}
+
+export function creategnAtlasNI2011Layer() {
+return new TileLayer({
+  title: 'NI2011',
+  name: 'NI2011',
+  permalink:'NNI2011',
+  source: new TileWMS(({
+    url: "https://opendata.lgln.niedersachsen.de/doorman/noauth/doph_wms?",
+    attributions: ' ',
+    params: {"LAYERS": "ni_dop20h_rgb_2011", "TILED": "true", "VERSION": "1.3.0"},
+  })),
+  opacity: 1,
+  visible: false,
+});
+}
+
+export function creategnAtlasNOH2010Layer () {
+return new TileLayer({
+  title: 'NOH2010',
+  name: 'NOH2010',
+  permalink:'NOH2010',
+  source: new TileWMS(({
+      url: "https://geo.grafschaft.de/arcgis/services/Migratrion_Okt_2020/BAS_Luftbilder_2/MapServer/WMSServer",
+      attributions: ' ',
+     params: {"LAYERS": "8", "TILED": "true", "VERSION": "1.3.0"},
+    })),
+  opacity: 1,
+  visible: false,
+});
+}
+
+export function creategnAtlasNI2009Layer () {
+return new TileLayer({
+  title: 'NI2009',
+  name: 'NI2009',
+  permalink:'NI2009',
+   source: new TileWMS(({
+    url: "https://opendata.lgln.niedersachsen.de/doorman/noauth/doph_wms?",
+    attributions: ' ',
+    params: {"LAYERS": "ni_dop20h_rgb_2009", "TILED": "true", "VERSION": "1.3.0"},
+  })),
+  opacity: 1,
+  visible: false,
+});
+}
+
+export function creategnAtlasNOH2009Layer () {
+return new TileLayer({
+  title: 'NOH2009',
+  name: 'NOH2009',
+  permalink:'NOH2009',
+  source: new TileWMS(({
+      url: "https://geo.grafschaft.de/arcgis/services/Migratrion_Okt_2020/BAS_Luftbilder_2/MapServer/WMSServer",
+      attributions: ' ',
+     params: {"LAYERS": "7", "TILED": "true", "VERSION": "1.3.0"},
+    })),
+  opacity: 1,
+  visible: false,
+});
+}
+
+
+export function creategnAtlasNOH2002Layer() {
+return new TileLayer({
+  title: 'NOH2002',
+  name: 'NOH2002',
+  permalink:'NOH2002',
+  source: new TileWMS(({
+      url: "https://geo.grafschaft.de/arcgis/services/Migratrion_Okt_2020/BAS_Luftbilder_2/MapServer/WMSServer",
+      attributions: ' ',
+     params: {"LAYERS": "6", "TILED": "true", "VERSION": "1.3.0"},
+    })),
+  opacity: 1,
+  visible: false,
+});
+}
+
+
+
+export function creategnAtlasNOH1990Layer() {
+return new TileLayer({
+  title: 'NOH1990',
+  name: 'NOH1990',
+  permalink:'NOH1990',
+  source: new TileWMS(({
+      url: "https://geo.grafschaft.de/arcgis/services/Migratrion_Okt_2020/BAS_Luftbilder_2/MapServer/WMSServer",
+      attributions: ' ',
+     params: {"LAYERS": "5", "TILED": "true", "VERSION": "1.3.0"},
+    })),
+  opacity: 1,
+  visible: false,
+});
+}
+
+
+export function creategnAtlasNOH1980Layer() {
+return new TileLayer({
+  title: 'NOH1980',
+  name: 'NOH1980',
+  permalink:'NOH1980',
+  source: new TileWMS(({
+      url: "https://geo.grafschaft.de/arcgis/services/Migratrion_Okt_2020/BAS_Luftbilder_2/MapServer/WMSServer",
+      attributions: ' ',
+     params: {"LAYERS": "4", "TILED": "true", "VERSION": "1.3.0"},
+    })),
+  opacity: 1,
+  visible: false,
+});
+}
+
+
+export function creategnAtlasNOH1970Layer() {
+return new TileLayer({
+  title: 'NOH1970',
+  name: 'NOH1970',
+  permalink:'NOH1970',
+  source: new TileWMS(({
+      url: "https://geo.grafschaft.de/arcgis/services/Migratrion_Okt_2020/BAS_Luftbilder_2/MapServer/WMSServer",
+      attributions: ' ',
+     params: {"LAYERS": "3", "TILED": "true", "VERSION": "1.3.0"},
+    })),
+  opacity: 1,
+  visible: false,
+});
+}
+
+
+
+export function creategnAtlasNOH1957Layer() {
+return new TileLayer({
+  title: 'NOH1957',
+  name: 'NOH1957',
+  permalink:'NOH1957',
+  source: new TileWMS(({
+      url: "https://geo.grafschaft.de/arcgis/services/Migratrion_Okt_2020/BAS_Luftbilder_2/MapServer/WMSServer",
+      attributions: ' ',
+     params: {"LAYERS": "2", "TILED": "true", "VERSION": "1.3.0"},
+    })),
+  opacity: 1,
+  visible: false,
+});
+}
+
+export function creategnAtlasNOH1937Layer () {
+return new TileLayer({
+  title: 'NOH1937',
+  name: 'NOH1937',
+  permalink:'NOH1937',
+  source: new TileWMS(({
+      url: "https://geo.grafschaft.de/arcgis/services/Migratrion_Okt_2020/BAS_Luftbilder_2/MapServer/WMSServer",
+      attributions: ' ',
+     params: {"LAYERS": "1", "TILED": "true", "VERSION": "1.3.0"},
+    })),
   opacity: 1,
   visible: false,
 });
@@ -399,8 +570,6 @@ export function createExpBwEinLayer() {
   });
 }
 
-
-// Bauwerke Linien
 export function createExpBwSonPunLayer() {
   return new VectorLayer({
     source: new VectorSource({
@@ -415,8 +584,11 @@ export function createExpBwSonPunLayer() {
   permalink:'son_pun', 
   style: getStyleForArtSonPun,
   visible: false
-  });
+   });
 }
+
+
+// Bauwerke Linien
 export function createExpBwSonLinLayer() {
   return new VectorLayer({
     source: new VectorSource({
@@ -426,13 +598,14 @@ export function createExpBwSonLinLayer() {
       },
       strategy: bboxStrategy
     }),
-   title: 'Sonstige, Linien', 
+  title: 'Sonstige, Linien', 
   name: 'son_lin', 
   permalink:'son_lin', 
   style: getStyleForArtSonLin,
   visible: false 
   });
 }
+
 export function createExpGewInfoLayer() {
   return new TileLayer({
     source: new VectorSource({
@@ -451,8 +624,24 @@ export function createExpGewInfoLayer() {
 }
 
 
-//WMS-Layer
+export function createExpBwUMassnLayer() {
+  return new VectorLayer({
+    source: new VectorSource({
+      format: new GeoJSON(), 
+      url: function (extent) {
+        return './myLayers/exp_gew_umn.geojson' + '?bbox=' + extent.join(','); 
+      }, 
+      strategy: bboxStrategy
+    }),
+  title: 'U-Maßnahmen', 
+  name: 'gew_umn',
+  permalink: 'gew_umn',
+  style: getStyleForArtUmn,
+  visible: false
+  });
+}
 
+//WMS-Layer
 export function createGewWmsFgLayer() {
   return new TileLayer({
   source: new TileWMS({
@@ -612,10 +801,21 @@ export function createLayerStructure() {
   const osmColor = createOsmTileCr();
 
   //Luftbilder Layer
-  const NI2014 = creategnAtlas2014Layer();
-  const NI2017 = creategnAtlas2017Layer();
-  const NI2020 = creategnAtlas2020Layer();
-  const NI2023 = creategnAtlas2023Layer();
+  const NOH1937 = creategnAtlasNOH1937Layer();
+  const NOH1957 = creategnAtlasNOH1957Layer ();
+  const NOH1970 = creategnAtlasNOH1970Layer();
+  const NOH1980 = creategnAtlasNOH1980Layer();
+  const NOH1990 = creategnAtlasNOH1990Layer();
+  const NOH2002 = creategnAtlasNOH2002Layer();
+  const NI2009 = creategnAtlasNI2009Layer();
+  const NOH2009 = creategnAtlasNOH2009Layer();
+  const NOH2010 = creategnAtlasNOH2010Layer();
+  const NI2011 = creategnAtlasNI2011Layer();
+  const NOH2012 = creategnAtlasNOH2012Layer();
+  const NI2014 = creategnAtlasNI2014Layer();
+  const NI2017 = creategnAtlasNI2017Layer();
+  const NI2020 = creategnAtlasNI2020Layer();
+  const NI2023 = creategnAtlasNI2023Layer();
   
   //FSK-Layer
 
@@ -637,6 +837,7 @@ export function createLayerStructure() {
   const Km500scal = createKm500scalLayer();
 
    //Linien Thematische Layer
+  const umnLin = createExpBwUMassnLayer();
   const sonLin = createExpBwSonLinLayer();
   const gewInfo = createExpGewInfoLayer();
 
@@ -672,6 +873,17 @@ export function createLayerStructure() {
     new LayerGroup({
       title: 'Luftbilder',
       layers: [
+        NOH1937, 
+        NOH1957,
+        NOH1970,
+        NOH1980,
+        NOH1990,
+        NOH2002,
+        NOH2009,
+        NI2009,
+        NOH2010,
+        NI2011,
+        NOH2012,
         NI2014,
         NI2017,
         NI2020,
@@ -716,6 +928,7 @@ export function createLayerStructure() {
     new LayerGroup({
       title: 'Bauw.(L)',
       layers: [
+        umnLin,
         sonLin,
         gewInfo
       ]

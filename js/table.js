@@ -63,7 +63,7 @@ export function showTable(data) {
         .then(() => {
           table.redraw(true);
         })
-        .catch(err => console.warn("Tabulator Redraw Error:", err));
+       
     }
 
     if (mapRef) mapRef.updateSize();

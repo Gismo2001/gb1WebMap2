@@ -154,6 +154,8 @@ function getStyleForArtSonLin(feature) {
     });
 };
 
+
+
 const QueStyle = new Style({
     image: new Icon({
     src: '/data/que.svg',
@@ -218,6 +220,75 @@ function getStyleForArtGewInfo(feature) {
         })
     ];
 }
+
+function getStyleForArtUmn(feature) {
+    const mnIdValue = feature.get('Massn_ID');
+    let strokeColor;
+  
+    switch (mnIdValue) {
+        // keine Mahd
+        case 3:
+        case 4:
+        case 5:
+            strokeColor = 'blue';
+            break;
+        // zweimalige Mahd
+        case 6:
+        case 7:
+        case 8:
+        case 9:
+        case 10:
+            strokeColor = 'black';
+            break;
+        // einmalige Mahd
+        case 11:
+        case 12:
+        case 13:
+        case 14:
+        case 15:
+        case 16:
+        case 17:
+        case 18:
+        case 26:
+        case 27:
+            strokeColor = 'green';
+            break;
+        // Schilfsaum belassen
+        case 22:
+        case 23:
+            strokeColor = 'rgba(255, 190, 190, 0.5)';
+            break;
+        // keine Mahd am der unteren Böschung
+        case 24:
+        case 50:
+        case 2:
+            strokeColor = 'rgba(230, 152, 0, 0.5)';
+            break;
+        // Mahd an Bauwerken
+        case 200:
+        case 201:
+            strokeColor = 'rgba(205, 205, 205, 1)';
+            break;
+        // Schilfkrautung
+        case 300:
+            strokeColor = 'rgba(230, 230, 0, 0.5)';
+            break;
+        // Bauwerksunterhaltung
+        case 400:
+            strokeColor = 'rgba(130, 130, 130, 1)';
+            break;
+        // beobachtende Unterhaltung
+        default:
+            strokeColor = 'grey';
+    }
+    return new Style({
+        stroke: new Stroke({
+            color: strokeColor,
+            width: 5
+        })
+    });
+};
+
 
 // Style für Kilomtrierung
 const Km10scalStyle = new Style({
@@ -313,6 +384,7 @@ export {
     QueStyle,
     getStyleForArtSonLin,
     getStyleForArtGewInfo,
+    getStyleForArtUmn,
     Km10scalStyle,
     Km100scalStyle,
     Km500scalStyle,

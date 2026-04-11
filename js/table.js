@@ -22,9 +22,13 @@ export function updateSelector(names) {
   // 1. Den aktuell ausgewählten Wert zwischenspeichern
   const previousSelection = selector.value;
 // 2. Das Dropdown neu aufbauen
-  selector.innerHTML = names.map(name =>
-    `<option value="${name}">${name}</option>`
-  ).join('');
+  selector.replaceChildren();
+  names.forEach((name) => {
+    const option = document.createElement('option');
+    option.value = name;
+    option.textContent = name;
+    selector.appendChild(option);
+  });
   // 3. Prüfen, ob der alte Wert in der neuen Liste noch existiert
   if (names.includes(previousSelection)) {
     selector.value = previousSelection;
@@ -44,6 +48,13 @@ export function showTable(data) {
   const container = document.getElementById("wms-table-container");
   const tableElement = document.getElementById("wms_data_table");
   if (!container || !tableElement) return;
+
+  if (!data || data.length === 0) {
+    console.warn("Keine Daten fÃ¼r die Tabelle Ã¼bergeben.");
+    closeTable();
+    return;
+  }
+
   container.style.display = "flex";
   if (!splitInstance) {
     splitInstance = Split(['#map', '#wms-table-container'], {
@@ -67,7 +78,7 @@ export function showTable(data) {
   }
 
   const uniqueData = data.filter((item, index, self) => {
-    if (!item.ID_con) return true;
+    if (item.ID_con === null || item.ID_con === undefined) return true;
     return index === self.findIndex((t) => t.ID_con === item.ID_con);
   });
 
@@ -194,7 +205,9 @@ function zoomToFeature(layerName, rowData) {
   const foundFeature = features.find(f => {
     const props = f.getProperties();
     // String-Vergleich um Typ-Konflikte (Zahl vs Text) zu vermeiden
-    return props.ID_con && String(props.ID_con) === String(rowData.ID_con);
+    return props.ID_con !== null &&
+      props.ID_con !== undefined &&
+      String(props.ID_con) === String(rowData.ID_con);
   });
 
   if (foundFeature) {

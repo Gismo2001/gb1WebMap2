@@ -47,7 +47,9 @@ export function createLayerSwitcher(map) {
 
 
 export function createMainToolbar(map) {
-  const bar = new Bar();
+  const bar = new Bar({
+     className: 'main-toolbar'
+  });
 
   // 1. Buttons definieren
   const toggleBtn1 = new Toggle({ html: "I", title: 'Info' });

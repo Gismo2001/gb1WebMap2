@@ -47,6 +47,32 @@ html, body {
     width: 100% !important;
 }
 
+
+
+.ol-control.ol-layerswitcher button {
+  margin: 1px;
+  padding: 0;
+  width: 1.375em;
+  height: 1.375em;
+  border-radius: 2px;
+  font-size: inherit;
+}
+
+.ol-layerswitcher .panel {
+  font-size: 12px;
+}
+
+.ol-layerswitcher .panel label,
+.ol-layerswitcher .panel li,
+.ol-layerswitcher .panel button {
+  font-size: 12px;
+}
+
+.ol-control.ol-bar.main-toolbar.ol-top.ol-left {
+  top: 7.0em !important;
+}
+
+
 .gutter {
     background-color: #050505;
     background-repeat: no-repeat;

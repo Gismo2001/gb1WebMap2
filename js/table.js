@@ -7,6 +7,9 @@ let splitInstance = null;
 let isTableActive = false; 
 let mapRef = null;
 let table = null;
+let resizeObserver = null;
+let tableReady = false;
+let showTableTimeout;
 
 export function initTable(map) {
   mapRef = map;
@@ -31,16 +34,17 @@ export function updateSelector(names) {
     console.log("Vorheriger Layer nicht mehr in der Liste.");
   }
 }
+
+
+// 👇 außerhalb der Funktion!
+let clickTimeout = null;
+
 export function showTable(data) {
   isTableActive = true;
   const container = document.getElementById("wms-table-container");
   const tableElement = document.getElementById("wms_data_table");
-  
   if (!container || !tableElement) return;
-  
   container.style.display = "flex";
-
-  // 2. Split.js initialisieren (nur wenn noch nicht vorhanden)
   if (!splitInstance) {
     splitInstance = Split(['#map', '#wms-table-container'], {
       sizes: [70, 30],
@@ -49,55 +53,47 @@ export function showTable(data) {
       gutterSize: 10,
       onDrag: () => {
         if (mapRef) mapRef.updateSize();
-        if (table && table.element && table.element.offsetWidth > 0) {
-          table.redraw();
-        }
       }
     });
+  } else {
+    //splitInstance.setSizes([70, 30]);
   }
 
-  // 3. Karte an die neue Größe anpassen
   if (mapRef) mapRef.updateSize();
 
-  // 4. Radikaler Aufräumprozess für Tabulator
+  if (!data || data.length === 0) {
+    console.warn("Keine Daten für die Tabelle übergeben.");
+    return;
+  }
+
+  const uniqueData = data.filter((item, index, self) => {
+    if (!item.ID_con) return true;
+    return index === self.findIndex((t) => t.ID_con === item.ID_con);
+  });
+
   if (table) {
     table.destroy();
     table = null;
   }
-  tableElement.innerHTML = ""; // Löscht alle alten Event-Reste aus dem DOM
 
-  // 5. Kurze Verzögerung, damit das DOM sich beruhigen kann
-  setTimeout(() => {
-    if (!data || data.length === 0) {
-      console.warn("Keine Daten für die Tabelle übergeben.");
-      return;
+  tableReady = false;
+  tableElement.innerHTML = "";
+
+  table = new Tabulator("#wms_data_table", {
+    data: uniqueData,
+    height: "100%",
+    layout: "fitData",
+    autoColumns: true,
+    headerVisible: true,
+   
+  });
+
+  table.on("tableBuilt", () => {
+    tableReady = true;
+    if (!resizeObserver) {
+      initResizeObserver();
     }
-
-    // 6. Tabelle neu erstellen
-    table = new Tabulator("#wms_data_table", {
-      data: data,
-      height: "100%",
-      layout: "fitData",
-      autoColumns: true,
-      headerVisible: true,
-      renderVertical: "basic",
-    });
-
-    // 7. Sobald die Tabelle fertig gebaut ist...
-    table.on("tableBuilt", () => {
-      // 👉 FIX: requestAnimationFrame verhindert "offsetWidth of null"
-      requestAnimationFrame(() => {
-        if (table && table.element && table.element.offsetWidth > 0) {
-          try {
-            table.redraw(true);
-            console.log("Tabulator Built & Redraw erfolgreich.");
-          } catch (e) {
-            // Verhindert den Error-Log in der Konsole
-          }
-        }
-      });
-
-      // 👉 MANUELLER DOPPELKLICK-BYPASS
+    // 👉 MANUELLER DOPPELKLICK-BYPASS
       const tableHolder = tableElement.querySelector(".tabulator-tableholder");
       if (tableHolder) {
         tableHolder.ondblclick = (e) => {
@@ -116,23 +112,20 @@ export function showTable(data) {
             }
           }
         };
-      }
-    });
-
-  }, 100); 
+        }
+  });
 }
-
 export function closeTable() {
   isTableActive = false;
   if (splitInstance) {
     splitInstance.destroy();
     splitInstance = null;
   }
-  
-  if (table) {
-    table.destroy();
-    table = null;
+  if (resizeObserver) {
+  resizeObserver.disconnect();
+  resizeObserver = null;
   }
+  
 
   document.getElementById("wms-table-container").style.display = "none";
   deactivateTableToggle();
@@ -155,12 +148,21 @@ export function switchLayerData(results) {
   if (data) {
     // Da sich beim Layer-Wechsel die Spalten ändern, 
     // nutzen wir showTable, um die Tabelle sauber neu zu initialisieren.
-    showTable(data);
+    showTableDebounced(data);
   }
 }
 
 export function getTableActive() {
   return isTableActive;
+}
+
+export function showTableDebounced(data) {
+
+  clearTimeout(showTableTimeout);
+
+  showTableTimeout = setTimeout(() => {
+    showTable(data);
+  }, 150);  // 👈 150ms perfekt
 }
 
 function zoomToFeature(layerName, rowData) {
@@ -209,4 +211,29 @@ function zoomToFeature(layerName, rowData) {
       console.log("Beispiel-ID aus erstem Feature:", features[0].get('ID_con'));
     }
   }
+}
+
+function initResizeObserver() {
+
+  const tableContainer = document.getElementById("wms_data_table");
+
+  if (!tableContainer) return;
+
+  resizeObserver = new ResizeObserver(() => {
+    if (!tableReady) return; 
+    if (!table || !table.element) return;
+    if (table.element.offsetParent === null) return;
+    if (table && table.element) {
+      try {
+        table.redraw(true);   // sanft + stabil
+      } catch (e) {}
+    }
+
+    if (mapRef) {
+      mapRef.updateSize();
+    }
+
+  });
+
+  resizeObserver.observe(tableContainer);
 }

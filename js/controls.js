@@ -38,7 +38,7 @@ function showAllVisibleData(map) {
 
   if (layerNames.length > 0) {
     updateSelector(layerNames);
-    showTable(results[layerNames[0]]);
+    showTableDebounced(results[layerNames[0]]);
   } else {
     closeTable();
   }

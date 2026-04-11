@@ -347,32 +347,6 @@ const Km500scalStyle = function(feature, km, resolution) {
 };
 
 
-function showTable(data) {
-    const container = document.getElementById("wms-table-container");
-    container.style.display = "flex";
-    // Split.js initialisieren, falls noch nicht geschehen
-    if (!splitInstance) {
-        splitInstance = Split(['#map', '#wms-table-container'], {
-            sizes: [85, 15], // Startverteilung in %
-            minSize: [150, 100], // Mindesthöhen
-            direction: 'vertical',
-            gutterSize: 5,
-            onDrag: () => {
-                map.updateSize(); // Karte anpassen
-                table.redraw();   // Tabulator anpassen
-            }
-        });
-    } else {
-        // Falls schon da, nur Größe auf Standard zurücksetzen
-        splitInstance.setSizes([85, 15]);
-    }
-
-    table.setData(data);
-    map.updateSize();
-}
-
-
-
 export {
     SleStyle,
     WehStyle,
@@ -389,5 +363,5 @@ export {
     Km100scalStyle,
     Km500scalStyle,
 
-    showTable
+    
 };

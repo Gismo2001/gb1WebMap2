@@ -1,6 +1,6 @@
 // js/mapEvents.js
 
-import { updateSelector, showTable, closeTable } from './table.js';
+import { updateSelector, showTableDebounced, closeTable } from './table.js';
 import { isTableEnabled } from './controls.js';
 
 
@@ -80,7 +80,7 @@ export function initMapClick(map) {
     if (layerNames.length > 0) {
       if (isTableEnabled()) {
         updateSelector(layerNames);
-        showTable(currentClickResults[layerNames[0]]);  
+        showTableDebounced(currentClickResults[layerNames[0]]);  
       }
     } else {
       if (isTableEnabled()) {
@@ -204,7 +204,7 @@ export function updateTableFromVisibleLayers(map) {
     }
 
     // 5. Tabelle mit dem richtigen Layer-Datensatz füttern
-    showTable(results[layerToShow]);
+    showTableDebounced(results[layerToShow]);
 
   } else {
     closeTable();

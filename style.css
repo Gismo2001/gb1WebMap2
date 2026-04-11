@@ -47,6 +47,14 @@ html, body {
     width: 100% !important;
 }
 
+@media (max-width: 768px) {
+  .ol-touch .ol-control button,
+  .ol-touch .ol-control.ol-layerswitcher button {
+    width: 30px;
+    height: 30px;
+    font-size: 1.50em;
+  }
+}
 
 
 .ol-control.ol-layerswitcher button {
@@ -58,19 +66,33 @@ html, body {
   font-size: inherit;
 }
 
-.ol-layerswitcher .panel {
-  font-size: 12px;
-}
-
-.ol-layerswitcher .panel label,
-.ol-layerswitcher .panel li,
-.ol-layerswitcher .panel button {
-  font-size: 12px;
-}
-
 .ol-control.ol-bar.main-toolbar.ol-top.ol-left {
-  top: 7.0em !important;
+  top: 8em !important;
 }
+
+
+
+.ol-controls {
+  font-size: 12px; /* Hier kannst du die gewünschte Größe für alle Elemente innerhalb des Div-Containers angeben */
+}
+.ol-controls {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1003;
+  background-color: white;
+  padding: 5px;
+  border-radius: 5px;
+  box-shadow: 0 0 5px rgba(167, 164, 164, 0.412);
+}
+.ol-controls {
+  display: flex; /* Verwende Flexbox für die Ausrichtung der Elemente */
+  align-items: center; /* Zentriere die Elemente vertikal */
+}
+
+
+
 
 
 .gutter {

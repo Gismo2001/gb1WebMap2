@@ -11,6 +11,33 @@ let resizeObserver = null;
 let tableReady = false;
 let showTableTimeout;
 
+
+import Style from 'ol/style/Style';
+import Stroke from 'ol/style/Stroke';
+import Fill from 'ol/style/Fill';
+import CircleStyle from 'ol/style/Circle';
+
+let highlightedFeature = null;
+
+const hoverHighlightStyle = new Style({
+  stroke: new Stroke({
+    color: '#ff9900',
+    width: 4,
+  }),
+  fill: new Fill({
+    color: 'rgba(255, 153, 0, 0.2)',
+  }),
+  image: new CircleStyle({
+    radius: 8,
+    fill: new Fill({ color: '#ff9900' }),
+    stroke: new Stroke({ color: '#ffffff', width: 2 }),
+  }),
+});
+
+
+
+
+
 export function initTable(map) {
   mapRef = map;
 }
@@ -91,6 +118,7 @@ export function showTable(data) {
   tableElement.innerHTML = "";
 
   table = new Tabulator("#wms_data_table", {
+    
     data: uniqueData,
     height: "100%",
     layout: "fitData",
@@ -125,9 +153,20 @@ export function showTable(data) {
         };
         }
   });
+
+table.on("rowMouseOver", function (e, row) {
+  const rowData = row.getData();
+  highlightFeatureForRow(rowData);
+});
+
+table.on("rowMouseOut", function () {
+  clearHighlightedFeature();
+});
 }
+
 export function closeTable() {
   isTableActive = false;
+  clearHighlightedFeature();
   if (splitInstance) {
     splitInstance.destroy();
     splitInstance = null;
@@ -249,4 +288,48 @@ function initResizeObserver() {
   });
 
   resizeObserver.observe(tableContainer);
+}
+
+function clearHighlightedFeature() {
+  if (highlightedFeature) {
+    highlightedFeature.setStyle(undefined);
+    highlightedFeature = null;
+  }
+}
+
+function highlightFeatureForRow(rowData) {
+  clearHighlightedFeature();
+  if (!mapRef) return;
+
+  const selector = document.getElementById('layer-selector');
+  const layerName = selector ? selector.value : null;
+  if (!layerName) return;
+
+  let targetLayer = null;
+  mapRef.getLayers().getArray().forEach((l) => {
+    if (l.get('name') === layerName) targetLayer = l;
+    if (!targetLayer && l.getLayers) {
+      l.getLayers().getArray().forEach((subL) => {
+        if (subL.get('name') === layerName) targetLayer = subL;
+      });
+    }
+  });
+
+  if (!targetLayer) return;
+
+  const source = targetLayer.getSource();
+  if (!source || typeof source.getFeatures !== 'function') return;
+
+  const features = source.getFeatures();
+  const feature = features.find((f) => {
+    const props = f.getProperties();
+    return props.ID_con !== null &&
+      props.ID_con !== undefined &&
+      String(props.ID_con) === String(rowData.ID_con);
+  });
+
+  if (!feature) return;
+
+  feature.setStyle(hoverHighlightStyle);
+  highlightedFeature = feature;
 }

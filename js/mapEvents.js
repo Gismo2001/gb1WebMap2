@@ -178,21 +178,35 @@ export function getVisibleVectorFeatures(map) {
 }
 
 export function updateTableFromVisibleLayers(map) {
-
   if (!isTableEnabled()) return;
   
   const results = getVisibleVectorFeatures(map);
-  // TEST: Schauen, was in results steht
-  //console.log("Gefundene Vektor-Features:", results);
-  
   const layerNames = Object.keys(results);
-  
 
   if (layerNames.length > 0) {
+    // 1. Selector-Element holen
+    const selector = document.getElementById('layer-selector');
+    
+    // 2. Den aktuell gewählten Layer VOR dem Update merken
+    const currentSelection = selector ? selector.value : null;
+
+    // 3. Die Liste im Dropdown aktualisieren (deine updateSelector Funktion)
     updateSelector(layerNames);
-    showTable(results[layerNames[0]]);
+
+    // 4. Prüfen, welcher Layer jetzt angezeigt werden soll
+    // Priorität: 
+    // a) Die bisherige Auswahl (falls sie in den neuen Ergebnissen noch da ist)
+    // b) Der erste Layer in der neuen Liste (als Fallback)
+    let layerToShow = layerNames[0]; 
+    
+    if (currentSelection && results[currentSelection]) {
+      layerToShow = currentSelection;
+    }
+
+    // 5. Tabelle mit dem richtigen Layer-Datensatz füttern
+    showTable(results[layerToShow]);
+
   } else {
     closeTable();
   }
 }
-

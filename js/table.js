@@ -15,17 +15,31 @@ export function initTable(map) {
 export function updateSelector(names) {
   const selector = document.getElementById('layer-selector');
   if (!selector) return;
+
+  // 1. Den aktuell ausgewählten Wert zwischenspeichern
+  const previousSelection = selector.value;
+// 2. Das Dropdown neu aufbauen
   selector.innerHTML = names.map(name =>
     `<option value="${name}">${name}</option>`
   ).join('');
+  // 3. Prüfen, ob der alte Wert in der neuen Liste noch existiert
+  if (names.includes(previousSelection)) {
+    selector.value = previousSelection;
+  } else {
+    // Optional: Falls der alte Layer weg ist, beim ersten bleiben 
+    // oder eine Standardaktion ausführen.
+    console.log("Vorheriger Layer nicht mehr in der Liste.");
+  }
 }
-
 export function showTable(data) {
   isTableActive = true;
   const container = document.getElementById("wms-table-container");
   const tableElement = document.getElementById("wms_data_table");
+  
   if (!container || !tableElement) return;
+  
   container.style.display = "flex";
+
   // 2. Split.js initialisieren (nur wenn noch nicht vorhanden)
   if (!splitInstance) {
     splitInstance = Split(['#map', '#wms-table-container'], {
@@ -35,24 +49,30 @@ export function showTable(data) {
       gutterSize: 10,
       onDrag: () => {
         if (mapRef) mapRef.updateSize();
-        if (table) table.redraw();
+        if (table && table.element && table.element.offsetWidth > 0) {
+          table.redraw();
+        }
       }
     });
   }
+
   // 3. Karte an die neue Größe anpassen
   if (mapRef) mapRef.updateSize();
+
   // 4. Radikaler Aufräumprozess für Tabulator
   if (table) {
     table.destroy();
     table = null;
   }
   tableElement.innerHTML = ""; // Löscht alle alten Event-Reste aus dem DOM
+
   // 5. Kurze Verzögerung, damit das DOM sich beruhigen kann
   setTimeout(() => {
     if (!data || data.length === 0) {
       console.warn("Keine Daten für die Tabelle übergeben.");
       return;
     }
+
     // 6. Tabelle neu erstellen
     table = new Tabulator("#wms_data_table", {
       data: data,
@@ -65,27 +85,32 @@ export function showTable(data) {
 
     // 7. Sobald die Tabelle fertig gebaut ist...
     table.on("tableBuilt", () => {
-      console.log("Tabulator Built erfolgreich.");
-      table.redraw(true);
+      // 👉 FIX: requestAnimationFrame verhindert "offsetWidth of null"
+      requestAnimationFrame(() => {
+        if (table && table.element && table.element.offsetWidth > 0) {
+          try {
+            table.redraw(true);
+            console.log("Tabulator Built & Redraw erfolgreich.");
+          } catch (e) {
+            // Verhindert den Error-Log in der Konsole
+          }
+        }
+      });
 
       // 👉 MANUELLER DOPPELKLICK-BYPASS
-      // Wir suchen den Bereich, in dem die Datenzeilen liegen
       const tableHolder = tableElement.querySelector(".tabulator-tableholder");
       if (tableHolder) {
-        // Sicherstellen, dass wir keine alten Listener mitschleifen
         tableHolder.ondblclick = (e) => {
-          // Finde das Zeilen-Element (Row), das angeklickt wurde
           const rowElement = e.target.closest(".tabulator-row");
           if (rowElement) {
-            // Hole die Daten der Zeile über die Tabulator-Instanz
             const row = table.getRow(rowElement);
             if (row) {
               const rowData = row.getData();
               const selector = document.getElementById('layer-selector');
               const layerName = selector ? selector.value : null;
+
               console.log("Manueller Doppelclick auf ID_con:", rowData.ID_con);
               if (mapRef && layerName) {
-                // Hier rufst du deine Zoom-Funktion auf
                 zoomToFeature(layerName, rowData);
               }
             }
@@ -94,7 +119,7 @@ export function showTable(data) {
       }
     });
 
-  }, 100); // 100ms Timeout für maximale Stabilität
+  }, 100); 
 }
 
 export function closeTable() {

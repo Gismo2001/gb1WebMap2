@@ -1,0 +1,16 @@
+<svg width="20px" height="20px" style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision" version="1.1" viewBox="0 0 1.74 1.74" xml:space="preserve" xmlns="http://www.w3.org/2000/svg"><title>sonBoot</title>
+ <defs>
+  <style type="text/css">
+   <![CDATA[
+    .str0 {stroke:#000CB5;stroke-width:0.17;stroke-miterlimit:22.9256}
+    .fil0 {fill:none}
+    .fil1 {fill:#000CB5}
+   ]]>
+  </style>
+ </defs>
+ <g id="a" transform="matrix(1.004 0 0 1.5247 -7.4198e-5 -.45649)" style="stroke-width:.80822">
+  
+  
+  
+ <rect x="7.3692e-5" y=".29939" width="1.733" height="1.1412" style="clip-rule:evenodd;fill-rule:evenodd;fill:#fff;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;stroke-width:.070315"/><rect x=".0435" y=".4772" width="1.6627" height=".78558" style="clip-rule:evenodd;fill:none;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;stroke-width:.070315;stroke:#b90000"/><path d="m0.018323 0.47445 1.7034 0.79108" style="fill:none;stroke-width:.070315;stroke:#a50000"/><path d="m0.018348 1.2655 1.7034-0.79109" style="fill:#f00;stroke-width:.070315;stroke:#a60000"/></g>
+</svg>

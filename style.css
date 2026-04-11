@@ -28,10 +28,11 @@ html, body {
 }
 /* Der äußere Container darf NICHT scrollen, sonst verschwindet der Header */
 #wms-table-container {
+    width: 100%;
+    overflow: hidden; /* WICHTIG: Kein Scrollen hier! */
     display: none;
     flex-direction: column;
     height: 50vh;
-    overflow: hidden; /* WICHTIG: Kein Scrollen hier! */
 }
 
 /* Das Div, in dem Tabulator sitzt */

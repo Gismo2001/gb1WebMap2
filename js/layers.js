@@ -18,7 +18,6 @@ import { TileWMS } from 'ol/source.js';
 
 
 
-
 export function createGewLayer() {
   return new VectorLayer({
     source: new VectorSource({
@@ -95,7 +94,6 @@ return new TileLayer({
   visible: false,
 });
 }
-
 export function creategnAtlasNOH2012Layer() {
 return new TileLayer({
   title: 'NOH2012',
@@ -110,7 +108,6 @@ return new TileLayer({
   visible: false,
 });
 }
-
 export function creategnAtlasNI2011Layer() {
 return new TileLayer({
   title: 'NI2011',
@@ -125,7 +122,6 @@ return new TileLayer({
   visible: false,
 });
 }
-
 export function creategnAtlasNOH2010Layer () {
 return new TileLayer({
   title: 'NOH2010',
@@ -140,7 +136,6 @@ return new TileLayer({
   visible: false,
 });
 }
-
 export function creategnAtlasNI2009Layer () {
 return new TileLayer({
   title: 'NI2009',
@@ -155,7 +150,6 @@ return new TileLayer({
   visible: false,
 });
 }
-
 export function creategnAtlasNOH2009Layer () {
 return new TileLayer({
   title: 'NOH2009',
@@ -170,8 +164,6 @@ return new TileLayer({
   visible: false,
 });
 }
-
-
 export function creategnAtlasNOH2002Layer() {
 return new TileLayer({
   title: 'NOH2002',
@@ -186,9 +178,6 @@ return new TileLayer({
   visible: false,
 });
 }
-
-
-
 export function creategnAtlasNOH1990Layer() {
 return new TileLayer({
   title: 'NOH1990',
@@ -203,8 +192,6 @@ return new TileLayer({
   visible: false,
 });
 }
-
-
 export function creategnAtlasNOH1980Layer() {
 return new TileLayer({
   title: 'NOH1980',
@@ -219,8 +206,6 @@ return new TileLayer({
   visible: false,
 });
 }
-
-
 export function creategnAtlasNOH1970Layer() {
 return new TileLayer({
   title: 'NOH1970',
@@ -235,9 +220,6 @@ return new TileLayer({
   visible: false,
 });
 }
-
-
-
 export function creategnAtlasNOH1957Layer() {
 return new TileLayer({
   title: 'NOH1957',
@@ -252,7 +234,6 @@ return new TileLayer({
   visible: false,
 });
 }
-
 export function creategnAtlasNOH1937Layer () {
 return new TileLayer({
   title: 'NOH1937',
@@ -569,7 +550,6 @@ export function createExpBwEinLayer() {
   visible: false
   });
 }
-
 export function createExpBwSonPunLayer() {
   return new VectorLayer({
     source: new VectorSource({
@@ -605,7 +585,6 @@ export function createExpBwSonLinLayer() {
   visible: false 
   });
 }
-
 export function createExpGewInfoLayer() {
   return new TileLayer({
     source: new VectorSource({
@@ -622,8 +601,6 @@ export function createExpGewInfoLayer() {
   visible: false
   });
 }
-
-
 export function createExpBwUMassnLayer() {
   return new VectorLayer({
     source: new VectorSource({
@@ -660,7 +637,6 @@ export function createGewWmsFgLayer() {
   opacity: 1,
 });
 }
-
 export function createWmsWrrlFgLayer() {
   return new TileLayer({
   source: new TileWMS({
@@ -679,7 +655,6 @@ export function createWmsWrrlFgLayer() {
   opacity: 1,
 });
 }
-
 export function createwmsUesgLayer() {
   return new TileLayer({
   source: new TileWMS({
@@ -699,7 +674,6 @@ export function createwmsUesgLayer() {
 
 });
 }
-
 export function createwmsNsgLayer() {
   return new TileLayer({
 
@@ -719,8 +693,6 @@ export function createwmsNsgLayer() {
   opacity: .5,
 });
 }
-
-
 export function createwmsLsgLayer() {
   return new TileLayer({
 
@@ -741,8 +713,6 @@ export function createwmsLsgLayer() {
   opacity: .5,
 });
 }
-
-
 export function createwmsNibisLayer() {
   return new TileLayer({
   title: "Nibis Bohrdaten", // Für die Anzeige im LayerSwitcher
@@ -764,7 +734,6 @@ export function createwmsNibisLayer() {
   })
 });
 }
-
 export function createwmsAlkisLayer() {
   return new TileLayer({
   title: 'ALKIS',
@@ -784,8 +753,6 @@ export function createwmsAlkisLayer() {
   visible: false,  
 });
 }
-
-
 
 export function createLayerStructure() {
 

@@ -183,7 +183,7 @@ export function updateTableFromVisibleLayers(map) {
   
   const results = getVisibleVectorFeatures(map);
   // TEST: Schauen, was in results steht
-  console.log("Gefundene Vektor-Features:", results);
+  //console.log("Gefundene Vektor-Features:", results);
   
   const layerNames = Object.keys(results);
   

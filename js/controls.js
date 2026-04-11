@@ -11,9 +11,6 @@ import { closeTable } from './table.js';
 let isTableActive = false;
 let tableToggleBtnInstance = null;
 
-
-
-
 export function createLayerSwitcher(map) {
   return new LayerSwitcher({
     activationMode: 'click',
@@ -47,8 +44,6 @@ function showAllVisibleData(map) {
   }
 }
 
-// Oben die Imports lassen...
-
 export function createMainToolbar(map) {
   const bar = new Bar();
   
@@ -57,9 +52,10 @@ export function createMainToolbar(map) {
   const toggleBtn2 = new Toggle({ html: 'W', title: 'Dateien' });
   const toggleBtn3 = new Toggle({ 
     html: 'T', 
-    title: 'Tabelle', 
-    // Wir übergeben die Map an die SubBar-Erstellung
-    bar: createSubBar3(map) 
+    title: 'Tabelle Haupt', 
+    className: 'TabelleHaupt',
+    active: false,
+    bar: createSubBarT(map) 
   });
 
   // 2. Logik nachträglich hinzufügen, damit alle Buttons einander kennen
@@ -81,13 +77,12 @@ export function createMainToolbar(map) {
   return bar;
 }
 
-export function createSubBar3(map) {
+export function createSubBarT(map) {
   const tableToggleBtn = new Toggle({
     html: '<i class="fa fa-table" aria-hidden="true"></i>',
     title: "Tabelle anzeigen",
     onToggle: function (active) {
       isTableActive = active; // Status-Variable in controls.js setzen
-
       if (active) {
         // 👉 Startet die Kette: Daten sammeln -> Selector füllen -> showTable()
         updateTableFromVisibleLayers(map);
@@ -101,7 +96,6 @@ export function createSubBar3(map) {
   tableToggleBtnInstance = tableToggleBtn;
   return new Bar({ toggleOne: true, controls: [tableToggleBtn] });
 }
-
 
 export function createDataTable(map) {
   const table = new Tabulator("#wms_data_table", {
@@ -124,6 +118,7 @@ export function isTableEnabled() {
 export function deactivateTableToggle() {
   if (tableToggleBtnInstance) {
     tableToggleBtnInstance.setActive(false);
+    
   }
 }
 

@@ -11,6 +11,7 @@ import { closeTable } from './table.js';
 let isTableActive = false;
 let tableToggleBtnInstance = null;
 
+
 export function createLayerSwitcher(map) {
   return new LayerSwitcher({
     activationMode: 'click',
@@ -30,7 +31,7 @@ export function createLayerSwitcher(map) {
   });
 }
 
-function showAllVisibleData(map) {
+/* function showAllVisibleData(map) {
 
   const results = getVisibleVectorFeatures(map);
 
@@ -38,18 +39,20 @@ function showAllVisibleData(map) {
 
   if (layerNames.length > 0) {
     updateSelector(layerNames);
-    showTableDebounced(results[layerNames[0]]);
+    showTableDebounced((results[layerNames[0]]);
   } else {
     closeTable();
   }
-}
+} */
+
 
 export function createMainToolbar(map) {
   const bar = new Bar();
-  
-  // 1. Zuerst alle Buttons definieren (ohne Logik, die andere Buttons braucht)
+
+  // 1. Buttons definieren
   const toggleBtn1 = new Toggle({ html: "I", title: 'Info' });
   const toggleBtn2 = new Toggle({ html: 'W', title: 'Dateien' });
+
   const toggleBtn3 = new Toggle({ 
     html: 'T', 
     title: 'Tabelle Haupt', 
@@ -58,13 +61,27 @@ export function createMainToolbar(map) {
     bar: createSubBarT(map) 
   });
 
-  // 2. Logik nachträglich hinzufügen, damit alle Buttons einander kennen
   const allBtns = [toggleBtn1, toggleBtn2, toggleBtn3];
+
+  // 2. Logik hinzufügen
   allBtns.forEach(btn => {
     btn.on('change:active', (e) => {
       if (e.active) {
-        // Alle anderen deaktivieren
+        // Alle anderen Haupt-Buttons deaktivieren
         allBtns.filter(b => b !== btn).forEach(b => b.setActive(false));
+
+        // 👉 SPEZIAL-LOGIK: Wenn Info-Button (toggleBtn1) aktiviert wird
+        if (btn === toggleBtn1) {
+          
+          // A) Den kleinen Tabellen-Button in der Sub-Bar deaktivieren
+          // (tableToggleBtnInstance muss dafür exportiert/global in der Datei sein)
+          if (typeof tableToggleBtnInstance !== 'undefined' && tableToggleBtnInstance) {
+            tableToggleBtnInstance.setActive(false);
+          }
+
+          // B) Die Tabelle physisch schließen und Split.js zerstören
+          closeTable();
+        }
       }
     });
   });
@@ -76,7 +93,6 @@ export function createMainToolbar(map) {
   
   return bar;
 }
-
 export function createSubBarT(map) {
   const tableToggleBtn = new Toggle({
     html: '<i class="fa fa-table" aria-hidden="true"></i>',

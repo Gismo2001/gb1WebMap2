@@ -66,100 +66,149 @@ export function updateSelector(names) {
 let clickTimeout = null;
 
 export function showTable(data) {
+  console.log("showTable aufgerufen mit", data ? data.length : 0, "Zeilen");
+  
   isTableActive = true;
   const container = document.getElementById("wms-table-container");
   const tableElement = document.getElementById("wms_data_table");
-  if (!container || !tableElement) return;
+  
+  if (!container || !tableElement) {
+    console.error("Tabellen-Container im HTML nicht gefunden!");
+    return;
+  }
 
+  // 1. Daten-Check
   if (!data || data.length === 0) {
-    console.warn("Keine Daten fÃ¼r die Tabelle Uebergeben.");
+    console.warn("Keine Daten geliefert.");
     closeTable();
     return;
   }
 
+  // 2. Container SOFORT anzeigen (damit die App nicht hängen bleibt)
   container.style.display = "flex";
+
+  // 3. ID-Key sicher bestimmen
+  const selector = document.getElementById('layer-selector');
+  const layerName = selector ? selector.value : "unknown";
+  const idKey = (layerName === 'fsk') ? 'OBJECTID' : 'ID_con';
+  
+  console.log(`Nutze Layer: ${layerName}, ID-Feld: ${idKey}`);
+
+  // 4. Dubletten-Filter (mit Sicherheits-Check)
+  const uniqueData = data.filter((item, index, self) => {
+    const val = item[idKey];
+    if (val === null || val === undefined) return true; // Ohne ID immer behalten
+    return index === self.findIndex((t) => t[idKey] === val);
+  });
+
+  // 5. Split.js (nur falls nötig)
   if (!splitInstance) {
     splitInstance = Split(['#map', '#wms-table-container'], {
       sizes: [70, 30],
       minSize: [150, 100],
       direction: 'vertical',
       gutterSize: 10,
-      onDrag: () => {
-        if (mapRef) mapRef.updateSize();
-      }
+      onDrag: () => { if (mapRef) mapRef.updateSize(); }
     });
-  } else {
-    //splitInstance.setSizes([70, 30]);
   }
 
   if (mapRef) mapRef.updateSize();
 
-  if (!data || data.length === 0) {
-    console.warn("Keine Daten für die Tabelle uebergeben.");
-    return;
-  }
-
-  
-  const uniqueData = data.filter((item, index, self) => {
-    if (item.ID_con === null || item.ID_con === undefined) return true;
-    return index === self.findIndex((t) => t.ID_con === item.ID_con);
-  });
-
+  // 6. Alte Tabelle sauber löschen
   if (table) {
     table.destroy();
     table = null;
   }
-
-  tableReady = false;
   tableElement.innerHTML = "";
 
-  table = new Tabulator("#wms_data_table", {
-    
-    data: uniqueData,
-    height: "100%",
-    layout: "fitData",
-    autoColumns: true,
-    headerVisible: true,
-   
-  });
+  // 7. Neue Tabelle erstellen
+  try {
+    table = new Tabulator("#wms_data_table", {
+      data: uniqueData,
+      height: "100%",
+      layout: "fitData",
+      autoColumns: true,
+      headerVisible: true,
+      selectable: 1, // Wichtig für Pfeiltasten!
+      scrollToRowIfVisible: false, // Verhindert, dass Tabulator eigenmächtig scrollt
+    });
 
-  table.on("tableBuilt", () => {
-    tableReady = true;
-    if (!resizeObserver) {
-      initResizeObserver();
-    }
-    // 👉 MANUELLER DOPPELKLICK-BYPASS
+    table.on("tableBuilt", () => {
+      console.log("Tabulator ist bereit.");
+      
+      // Fokus für Pfeiltasten
+      requestAnimationFrame(() => {
+        tableElement.focus();
+      });
+
       const tableHolder = tableElement.querySelector(".tabulator-tableholder");
       if (tableHolder) {
+        // DOPPELKLICK
         tableHolder.ondblclick = (e) => {
           const rowElement = e.target.closest(".tabulator-row");
           if (rowElement) {
             const row = table.getRow(rowElement);
-            if (row) {
-              const rowData = row.getData();
-              const selector = document.getElementById('layer-selector');
-              const layerName = selector ? selector.value : null;
-
-              console.log("Manueller Doppelclick auf ID_con:", rowData.ID_con);
-              if (mapRef && layerName) {
-                zoomToFeature(layerName, rowData);
-              }
-            }
+            if (row && mapRef) zoomToFeature(layerName, row.getData());
           }
         };
-        }
-  });
 
-table.on("rowMouseOver", function (e, row) {
-  const rowData = row.getData();
-  highlightFeatureForRow(rowData);
-});
+        // TASTATUR-STEUERUNG
+        tableElement.setAttribute("tabindex", "0");
+        // TASTATUR-STEUERUNG (korrigiert)
+        // TASTATUR-STEUERUNG (Horizontaler Sprung fixiert)
+        tableElement.onkeydown = (e) => {
+          if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+          e.preventDefault();
+          const selected = table.getSelectedRows();
+          let next;
+            if (selected.length > 0) {
+              next = (e.key === "ArrowDown") ? selected[0].getNextRow() : selected[0].getPrevRow();
+            } else {
+              next = table.getRows()[0];
+            }
 
-table.on("rowMouseOut", function () {
-  clearHighlightedFeature();
+            if (next) {
+              table.deselectRow();
+              next.select();
+      
+              // FIX: Statt table.scrollToRow nutzen wir die native Funktion:
+              const rowElement = next.getElement();
+              rowElement.scrollIntoView({ 
+                block: "nearest",   // Vertikal: So wenig wie möglich bewegen
+                inline: "nearest",  // Horizontal: Nur springen, wenn das Feld gar nicht im Bild ist!
+                behavior: "auto"    // "smooth" könnte bei schnellem Tippen ruckeln
+              });
+              const rowData = next.getData();
+              highlightFeatureForRow(rowData);
+            }
+          }
+        };  
+        // Beim Klick auf eine Zeile: Selektieren, Fokus setzen und Karte highlighten
+table.on("rowClick", function(e, row) {
+    // 1. Zeile in der Tabelle selektieren (macht Tabulator bei selectable:1 oft selbst, 
+    // aber wir gehen sicher)
+    table.deselectRow();
+    row.select();
+
+    // 2. Den Fokus auf das Tabellen-Element erzwingen, 
+    // damit die Pfeiltasten sofort funktionieren
+    tableElement.focus();
+
+    // 3. Highlight auf der Karte setzen
+    const rowData = row.getData();
+    highlightFeatureForRow(rowData);
 });
+      }
+    });
+
+    // MOUSE OVER
+    table.on("rowMouseOver", (e, row) => highlightFeatureForRow(row.getData()));
+    table.on("rowMouseOut", () => clearHighlightedFeature());
+
+  } catch (err) {
+    console.error("Fehler beim Erstellen der Tabulator-Instanz:", err);
+  }
 }
-
 export function closeTable() {
   isTableActive = false;
   clearHighlightedFeature();

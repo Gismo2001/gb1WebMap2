@@ -99,6 +99,7 @@ export function showTable(data) {
     return;
   }
 
+  
   const uniqueData = data.filter((item, index, self) => {
     if (item.ID_con === null || item.ID_con === undefined) return true;
     return index === self.findIndex((t) => t.ID_con === item.ID_con);
@@ -300,6 +301,7 @@ function highlightFeatureForRow(rowData) {
   const layerName = selector ? selector.value : null;
   if (!layerName) return;
 
+  // 1. Layer suchen (wie gehabt)
   let targetLayer = null;
   mapRef.getLayers().getArray().forEach((l) => {
     if (l.get('name') === layerName) targetLayer = l;
@@ -315,16 +317,30 @@ function highlightFeatureForRow(rowData) {
   const source = targetLayer.getSource();
   if (!source || typeof source.getFeatures !== 'function') return;
 
+  // 2. Den richtigen ID-Schlüssel bestimmen
+  // Wenn der Layer 'fsk' heißt, nutze 'OBJECTID', sonst 'ID_con'
+  const idKey = (layerName === 'fsk') ? 'OBJECTID' : 'ID_con';
+
+  // 3. Feature suchen
   const features = source.getFeatures();
   const feature = features.find((f) => {
     const props = f.getProperties();
-    return props.ID_con !== null &&
-      props.ID_con !== undefined &&
-      String(props.ID_con) === String(rowData.ID_con);
+    
+    // Wir vergleichen dynamisch den Wert des jeweiligen Keys
+    const featId = props[idKey];
+    const rowId = rowData[idKey];
+
+    return featId !== null && 
+           featId !== undefined && 
+           String(featId) === String(rowId);
   });
 
-  if (!feature) return;
+  if (!feature) {
+    console.warn(`Feature mit ${idKey} ${rowData[idKey]} in Layer ${layerName} nicht gefunden.`);
+    return;
+  }
 
+  // 4. Highlight setzen
   feature.setStyle(hoverHighlightStyle);
   highlightedFeature = feature;
 }

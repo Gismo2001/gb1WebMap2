@@ -151,14 +151,24 @@ export function getVisibleVectorFeatures(map) {
 
   allLayers.forEach((obj) => {
     const { layer, visible, groupTitle } = obj;
-
-    if (!visible) return;
-    if (!groupTitle || !allowedGroups.includes(groupTitle)) return;
-
     const name = layer.get('name');
-    //console.log ('name');
-    const source = typeof layer.getSource === 'function' ? layer.getSource() : null;
+    
+    // 1. Grundvoraussetzung: Layer muss sichtbar sein
+    if (!visible) return;
 
+    // 2. Bedingungs-Logik:
+    // Wir lassen den Layer zu, WENN er in einer erlaubten Gruppe ist
+    const isInAllowedGroup = groupTitle && allowedGroups.includes(groupTitle);
+    // ODER wenn sein Name "fsk" ist
+    const isFSKLayer = (name === 'fsk');
+
+    // Wenn beides NICHT zutrifft, wird der Layer übersprungen
+    if (!isInAllowedGroup && !isFSKLayer) return;
+
+    // Ab hier läuft die gewohnte Logik für die gültigen Layer
+    console.log("Verarbeite Layer:", name);
+    
+    const source = typeof layer.getSource === 'function' ? layer.getSource() : null;
     if (!source || typeof source.getFeaturesInExtent !== 'function') return;
 
     const features = source.getFeaturesInExtent(extent);
@@ -173,7 +183,6 @@ export function getVisibleVectorFeatures(map) {
 
   return results;
 }
-
 export function updateTableFromVisibleLayers(map) {
   if (!isTableEnabled()) return;
 

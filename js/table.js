@@ -128,6 +128,33 @@ export function showTable(data) {
       height: "100%",
       layout: "fitData",
       autoColumns: true,
+      autoColumns: true, // Wir lassen Tabulator die Arbeit machen...
+  
+  autoColumnsDefinitions: function(definitions) {
+    // ...und sortieren das Ergebnis um, wenn es nicht der fsk Layer ist
+    if (layerName !== 'fsk') {
+      const idKey = "ID_con";
+      const statKey = "stat_von";
+
+      // Wir extrahieren unsere Wunsch-Spalten aus dem Array
+      const idCol = definitions.find(col => col.field === idKey);
+      const statCol = definitions.find(col => col.field === statKey);
+
+      // Wir filtern diese beiden aus dem ursprünglichen Array heraus
+      const remainingCols = definitions.filter(col => col.field !== idKey && col.field !== statKey);
+
+      // Wir setzen das Array neu zusammen: ID zuerst, dann stat_von, dann der Rest
+      const newOrder = [];
+      if (idCol) newOrder.push(idCol);
+      if (statCol) newOrder.push(statCol);
+      
+      return newOrder.concat(remainingCols);
+    }
+    return definitions; // Bei fsk einfach so lassen
+  },
+  
+  
+
       headerVisible: true,
       selectable: 1, // Wichtig für Pfeiltasten!
       scrollToRowIfVisible: false, // Verhindert, dass Tabulator eigenmächtig scrollt
@@ -138,7 +165,11 @@ export function showTable(data) {
       
       // Fokus für Pfeiltasten
       requestAnimationFrame(() => {
-        tableElement.focus();
+        const isMobile = window.innerWidth <= 768;
+        if (!isMobile) {
+          // Nur am PC fokussieren, um Auto-Scrolling am Handy zu vermeiden
+          tableElement.focus({ preventScroll: true }); 
+        }
       });
 
       const tableHolder = tableElement.querySelector(".tabulator-tableholder");
@@ -185,16 +216,15 @@ export function showTable(data) {
         };  
         // Beim Klick auf eine Zeile: Selektieren, Fokus setzen und Karte highlighten
 table.on("rowClick", function(e, row) {
-    // 1. Zeile in der Tabelle selektieren (macht Tabulator bei selectable:1 oft selbst, 
-    // aber wir gehen sicher)
     table.deselectRow();
     row.select();
 
-    // 2. Den Fokus auf das Tabellen-Element erzwingen, 
-    // damit die Pfeiltasten sofort funktionieren
-    tableElement.focus();
+    // PRÜFUNG: Nur fokussieren, wenn wir NICHT auf einem Mobilgerät sind
+    const isMobile = window.innerWidth <= 768;
+    if (!isMobile) {
+        tableElement.focus({ preventScroll: true }); 
+    }
 
-    // 3. Highlight auf der Karte setzen
     const rowData = row.getData();
     highlightFeatureForRow(rowData);
 });

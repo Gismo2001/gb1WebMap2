@@ -8,8 +8,8 @@
 
 html, body {
   margin: 0;
-  height: 100%;
-   padding: 0;
+  height: 100dvh;
+  padding: 0;
   overflow: hidden;
   z-index: 1;
 }
@@ -18,7 +18,7 @@ html, body {
     display: flex;
     flex-direction: column;
     width: 100vw;
-    height: 100vh;
+    height: 100dvh;
 }
 
 #map {

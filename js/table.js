@@ -34,10 +34,6 @@ const hoverHighlightStyle = new Style({
   }),
 });
 
-
-
-
-
 export function initTable(map) {
   mapRef = map;
 }
@@ -65,7 +61,6 @@ export function updateSelector(names) {
     console.log("Vorheriger Layer nicht mehr in der Liste.");
   }
 }
-
 
 // 👇 außerhalb der Funktion!
 let clickTimeout = null;

@@ -43,22 +43,22 @@ function getStyleForArtEin(feature) {
     let iconSrc;
     switch (artValue) {
         case '1. Ordnung':
-            iconSrc = './data/einErsterOrdnung.svg';
+            iconSrc = '/data/einErsterOrdnung.svg';
             break;
         case '2. Ordnung':
-            iconSrc = './data/einZweiterOrdnung.svg';
+            iconSrc = '/data/einZweiterOrdnung.svg';
             break;
         case '3. Ordnung':
-            iconSrc = './data/einDritterOrdnung.svg';
+            iconSrc = '/data/einDritterOrdnung.svg';
             break;
         case 'Einleitung':
-            iconSrc = './data/einEinleitung.svg';
+            iconSrc = '/data/einEinleitung.svg';
             break;
         case 'Sonstige':
-            iconSrc = './data/einSonstige.svg';
+            iconSrc = '/data/einSonstige.svg';
             break;
         default:
-            iconSrc = './data/einSonstige.svg';
+            iconSrc = '/data/einSonstige.svg';
     }
 
     return new Style({
@@ -75,28 +75,28 @@ function getStyleForArtSonPun(feature) {
     let iconSrc;
 
     if (/boots/i.test(artValue)) {
-        iconSrc = './data/bwSonPun_Anleger.svg';
+        iconSrc = '/data/bwSonPun_Anleger.svg';
     
     }else if (/betriebs/i.test(artValue)) {
-        iconSrc = './data/sonPunBetrieb.svg';
+        iconSrc = '/data/sonPunBetrieb.svg';
     
     }else if (/steg/i.test(artValue)) {
-        iconSrc = './data/bwSonPun_Anleger.svg';   
+        iconSrc = '/data/bwSonPun_Anleger.svg';   
         
     } else if (artValue === 'Infotafel') {
-        iconSrc = './data/sonPunInfo.svg';
+        iconSrc = '/data/sonPunInfo.svg';
     } else if (artValue === 'Auskolkung') {
-        iconSrc = './data/sonPunKolk.svg';
+        iconSrc = '/data/sonPunKolk.svg';
     } else if (artValue === 'Furt') {
-        iconSrc = './data/bwSonPun_Furt.svg';
+        iconSrc = '/data/bwSonPun_Furt.svg';
     } else if (artValue === 'Tor') {
-        iconSrc = './data/bwSonPun_Tor.svg';
+        iconSrc = '/data/bwSonPun_Tor.svg';
     } else if (artValue === 'Überfahrt') {
-        iconSrc = './data/bwSonPun_Ueberfahrt.svg';
+        iconSrc = '/data/bwSonPun_Ueberfahrt.svg';
     } else if (artValue === 'Betriebspegel') {
-        iconSrc = './data/bwSonPun_Betriebspegel.svg';
+        iconSrc = '/data/bwSonPun_Betriebspegel.svg';
     } else {
-        iconSrc = './data/sonPunSonstige.svg';
+        iconSrc = '/data/sonPunSonstige.svg';
     }
 
     return new Style({
@@ -164,63 +164,56 @@ const QueStyle = new Style({
 });
 
 
+
 function getStyleForArtGewInfo(feature) {
     const uArt = feature.get('Kat');
-    const txtIdUabschn = feature.get('IDUabschn')
-    let strokeColor;
-    let lineDash = [10, 15]; // Gilt für alle Linien
+    const txtIdUabschn = String(feature.get('IDUabschn') || ''); // Sicherstellen, dass es ein String ist
+    
+    let strokeColor = (uArt === 'E') ? 'green' : 'red';
+    let lineDash = [10, 15];
 
-    // Linienfarbe festlegen abhängig von uArt
-    if (uArt === 'E') {
-        strokeColor = 'green'; // Grün für "E"
-    } else {
-        strokeColor = 'red'; // Rot für alles andere
-    }
-
-    // Stil zurückgeben, der Linien und Punkte für Linienenden definiert
-    return [
+    const styles = [
+        // 1. Die Hauptlinie
         new Style({
             stroke: new Stroke({
                 color: strokeColor,
-                width: 5, // Feste Breite
+                width: 5,
                 lineDash: lineDash
-            }),
-            fill: new Fill({
-                color: strokeColor // Füllung abhängig von der Linienfarbe
             })
         }),
-        // Stil für die Kreise an den Linienenden
+        // 2. Start- und Endpunkte
         new Style({
             geometry: function(feature) {
-                const coordinates = feature.getGeometry().getCoordinates(); // Koordinaten der Geometrie
-                return new MultiPoint([coordinates[0], coordinates[coordinates.length - 1]]); // Start- und Endpunkt
+                const geom = feature.getGeometry();
+                if (geom.getType() === 'LineString') {
+                    const coords = geom.getCoordinates();
+                    return new MultiPoint([coords[0], coords[coords.length - 1]]);
+                }
+                return null;
             },
             image: new CircleStyle({
-                radius: 5, // Größe des Kreises
-                fill: new Fill({
-                    color: 'black' // Schwarzer gefüllter Kreis
-                })
-            })
-        }),
-        new Style({
-            text: new Text({
-                text: txtIdUabschn, // Text ist der Wert von IDUabschn
-                font: 'bold 14px Arial',
-                fill: new Fill({
-                    color: '#000' // Schwarze Schriftfarbe
-                }),
-                stroke: new Stroke({
-                    color: '#fff', // Weißer Rand um den Text
-                    width: 3
-                }),
-                overflow: true, // Text wird auch außerhalb des Features angezeigt
-                placement: 'point', // Text wird an einem Punkt und nicht entlang der Linie platziert
-                rotation: 0, // Rotation auf 0 setzen, damit der Text waagerecht bleibt
+                radius: 5,
+                fill: new Fill({ color: 'black' })
             })
         })
     ];
-}
 
+    // 3. Text-Label (nur hinzufügen, wenn Text vorhanden ist)
+    if (txtIdUabschn) {
+        styles.push(new Style({
+            text: new Text({
+                text: txtIdUabschn,
+                font: 'bold 14px Arial',
+                fill: new Fill({ color: '#000' }),
+                stroke: new Stroke({ color: '#fff', width: 3 }),
+                overflow: true,
+                placement: 'point'
+            })
+        }));
+    }
+
+    return styles;
+}
 function getStyleForArtUmn(feature) {
     const mnIdValue = feature.get('Massn_ID');
     let strokeColor;

@@ -252,7 +252,7 @@ return new TileLayer({
 // Station (Kilometrierung) Layer
 export function createKm10scalLayer() {
  return new VectorLayer({
-  source: new VectorSource({format: new GeoJSON(), url: function (extent) {return './myLayers/km_10_scal.geojson' + '?bbox=' + extent.join(','); }, strategy: bboxStrategy }),
+  source: new VectorSource({format: new GeoJSON(), url: function (extent) {return '/myLayers/km_10_scal.geojson' + '?bbox=' + extent.join(','); }, strategy: bboxStrategy }),
   title: 'Km10scal',
   name: 'Km10scal',
   permalink:'Km10scal',
@@ -276,7 +276,7 @@ export function createKm100scalLayer() {
 }
 export function createKm500scalLayer() {
  return new VectorLayer({
- source: new VectorSource({format: new GeoJSON(), url: function (extent) {return './myLayers/km_500_scal.geojson' + '?bbox=' + extent.join(','); }, strategy: bboxStrategy }),
+ source: new VectorSource({format: new GeoJSON(), url: function (extent) {return '/myLayers/km_500_scal.geojson' + '?bbox=' + extent.join(','); }, strategy: bboxStrategy }),
   title: 'Km500scal',
   name: 'Km500scal',
   permalink:'Km500scal',
@@ -586,7 +586,7 @@ export function createExpBwSonLinLayer() {
   });
 }
 export function createExpGewInfoLayer() {
-  return new TileLayer({
+  return new VectorLayer({
     source: new VectorSource({
       format: new GeoJSON(),
       url: function (extent) {
@@ -606,7 +606,7 @@ export function createExpBwUMassnLayer() {
     source: new VectorSource({
       format: new GeoJSON(), 
       url: function (extent) {
-        return './myLayers/exp_gew_umn.geojson' + '?bbox=' + extent.join(','); 
+        return '/myLayers/exp_gew_umn.geojson' + '?bbox=' + extent.join(','); 
       }, 
       strategy: bboxStrategy
     }),
@@ -803,12 +803,12 @@ export function createLayerStructure() {
   const Km100scal = createKm100scalLayer();
   const Km500scal = createKm500scalLayer();
 
-   //Linien Thematische Layer
+   //Linien  Layer
   const umnLin = createExpBwUMassnLayer();
   const sonLin = createExpBwSonLinLayer();
   const gewInfo = createExpGewInfoLayer();
 
-  //Punkte Thematische Layer
+  //Punkte  Layer
   const sle = createExpBwSleLayer();
   const weh = createExpBwWehLayer();
   const bruAndere = createExpBwBruAndereLayer();

@@ -18,9 +18,12 @@ import { switchLayerData } from './js/table.js';
 import { getTableActive } from './js/table.js';  
 
 import { initMapClick } from './js/mapEvents.js';
+import {switcherDrawList} from './js/mapEvents.js';
+import {switcherToggle} from './js/mapEvents.js';
 import { getClickResults } from './js/mapEvents.js';
 import { updateTableFromVisibleLayers  } from './js/mapEvents.js';
 import { getVisibleVectorFeatures } from './js/mapEvents.js';
+
 
 let splitInstance = null;
 
@@ -42,6 +45,8 @@ const toolbar = createMainToolbar(map);
 map.addControl(toolbar);
 
 initMapClick(map);
+switcherDrawList(layerSwitcher);
+switcherToggle(layerSwitcher);
 
 map.updateSize();
 

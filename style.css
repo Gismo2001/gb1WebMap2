@@ -56,15 +56,23 @@ html, body {
   }
 }
 
-
 .ol-control.ol-layerswitcher button {
   margin: 1px;
   padding: 0;
   width: 1.375em;
   height: 1.375em;
-  border-radius: 2px;
+  border-radius: 5px;
   font-size: inherit;
 }
+
+.ol-control.ol-layerswitcher .panel-container {
+  margin: 1px;
+  padding-right: 0;
+  font-size: 13px;
+  
+  
+}
+
 
 .ol-control.ol-bar.main-toolbar.ol-top.ol-left {
   top: 8em !important;

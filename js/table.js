@@ -72,7 +72,7 @@ export function showTable(data) {
   if (!container || !tableElement) return;
 
   if (!data || data.length === 0) {
-    console.warn("Keine Daten fÃ¼r die Tabelle Ã¼bergeben.");
+    console.warn("Keine Daten fÃ¼r die Tabelle Uebergeben.");
     closeTable();
     return;
   }
@@ -95,7 +95,7 @@ export function showTable(data) {
   if (mapRef) mapRef.updateSize();
 
   if (!data || data.length === 0) {
-    console.warn("Keine Daten für die Tabelle übergeben.");
+    console.warn("Keine Daten für die Tabelle uebergeben.");
     return;
   }
 
@@ -211,8 +211,8 @@ export function showTableDebounced(data) {
 }
 
 function zoomToFeature(layerName, rowData) {
-  console.log("--- Zoom-Vorgang gestartet ---");
-  console.log("Layer:", layerName, "ID_con gesucht:", rowData.ID_con);
+  //console.log("--- Zoom-Vorgang gestartet ---");
+  //console.log("Layer:", layerName, "ID_con gesucht:", rowData.ID_con);
   if (!mapRef) return;
   // Layer finden
   let targetLayer = null;
@@ -233,7 +233,7 @@ function zoomToFeature(layerName, rowData) {
 
   const source = targetLayer.getSource();
   const features = source.getFeatures();
-  console.log("Anzahl Features im Source:", features.length);
+  //console.log("Anzahl Features im Source:", features.length);
 
   // Suche nach ID_con
   const foundFeature = features.find(f => {
@@ -253,9 +253,9 @@ function zoomToFeature(layerName, rowData) {
       maxZoom: 20
     });
   } else {
-    console.warn("ID_con '" + rowData.ID_con + "' nicht in den Source-Features gefunden.");
+    //console.warn("ID_con '" + rowData.ID_con + "' nicht in den Source-Features gefunden.");
     if (features.length > 0) {
-      console.log("Beispiel-ID aus erstem Feature:", features[0].get('ID_con'));
+      //console.log("Beispiel-ID aus erstem Feature:", features[0].get('ID_con'));
     }
   }
 }

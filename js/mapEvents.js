@@ -156,7 +156,7 @@ export function getVisibleVectorFeatures(map) {
     if (!groupTitle || !allowedGroups.includes(groupTitle)) return;
 
     const name = layer.get('name');
-    console.log ('name');
+    //console.log ('name');
     const source = typeof layer.getSource === 'function' ? layer.getSource() : null;
 
     if (!source || typeof source.getFeaturesInExtent !== 'function') return;
@@ -202,7 +202,7 @@ layerSwitcher.on('drawlist', (evt) => {
   var layer = evt.layer;
   // Klick-Listener auf den Label-Text hinzufügen
   evt.li.querySelector('label').addEventListener('click', () => {
-    console.log(layer.get('title') +' Sichtbarkeit: '+ layer.getVisible());
+    //console.log(layer.get('title') +' Sichtbarkeit: '+ layer.getVisible());
   });
 });
 }
@@ -212,7 +212,7 @@ layerSwitcher.on('drawlist', (evt) => {
   var layer = evt.layer;
   // Klick-Listener auf den Label-Text hinzufügen
   evt.li.querySelector('label').addEventListener('click', () => {
-    console.log(layer.get('title') +' Toggle: '+ layer.getVisible());
+    //console.log(layer.get('title') +' Toggle: '+ layer.getVisible());
   });
 });
 }

@@ -11,7 +11,7 @@ import Style from 'ol/style/Style';
 import Fill from 'ol/style/Fill';
 import Stroke from 'ol/style/Stroke';
 
-import {SleStyle, WehStyle, BruAndereStyle, BruNlwknStyle, DueStyle, QueStyle, getStyleForArtEin, getStyleForArtSonPun, getStyleForArtSonLin, getStyleForArtGewInfo, getStyleForArtUmn, Km10scalStyle, Km100scalStyle, Km500scalStyle } from './utils.js';
+import {SleStyle, WehStyle, BruAndereStyle, BruNlwknStyle, DueStyle, QueStyle, getStyleForArtEin, getStyleForArtSonPun, getStyleForArtSonLin, getStyleForArtGewInfo, getStyleForArtUmn, Km10scalStyle, Km100scalStyle, Km500scalStyle, getStyleForArtFSK } from './utils.js';
 import LayerGroup from 'ol/layer/Group';
 import { TileWMS } from 'ol/source.js';
 
@@ -567,6 +567,27 @@ export function createExpBwSonPunLayer() {
    });
 }
 
+export function createFskLayer(){
+return  new VectorLayer({
+  source: new VectorSource({
+    format: new GeoJSON(), 
+    url: function (extent) 
+    {return './myLayers/exp_allgm_fsk.geojson?bbox=' + extent.join(',');
+
+     }, 
+    strategy: bboxStrategy
+    }),
+  title: 'fsk',
+  name: 'fsk', 
+  permalink:'fsk', 
+  style: getStyleForArtFSK,
+  visible: false,
+  minResolution: 0,
+  maxResolution: 4
+})
+
+
+}
 
 // Bauwerke Linien
 export function createExpBwSonLinLayer() {
@@ -617,6 +638,8 @@ export function createExpBwUMassnLayer() {
   visible: false
   });
 }
+
+// FSK-Layer
 
 //WMS-Layer
 export function createGewWmsFgLayer() {
@@ -785,6 +808,7 @@ export function createLayerStructure() {
   const NI2023 = creategnAtlasNI2023Layer();
   
   //FSK-Layer
+  const fsk = createFskLayer();
 
   // Gewässernetz
   const gew = createGewLayer();
@@ -861,7 +885,7 @@ export function createLayerStructure() {
     }),
     
     // 🏗️ FSK-Layer
-
+    fsk,
 
     // 👉 GEW Layer 
     gew,

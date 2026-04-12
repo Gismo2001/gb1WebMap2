@@ -20,7 +20,7 @@ export function createLayerSwitcher(map) {
     tipLabel: 'Legende',
     onchangeCheck: function () {
       if (isTableEnabled()) {
-        console.log ('layerswitcher event');
+        //console.log ('layerswitcher event');
         updateTableFromVisibleLayers(map);
       }
     },
@@ -59,12 +59,21 @@ export function createMainToolbar(map) {
     btn.on('change:active', (e) => {
       if (!e.active) return;
 
-      allBtns.filter((b) => b !== btn).forEach((b) => b.setActive(false));
+      // --- GEÄNDERTE LOGIK ---
+      allBtns.filter((b) => b !== btn).forEach((b) => {
+        // Ausnahme: Wenn "I" geklickt wird, soll "T" nicht deaktiviert werden.
+        // Und wenn "T" geklickt wird, soll "I" nicht deaktiviert werden.
+        const isInfoTableCombo = (btn === toggleBtn1 && b === toggleBtn3) || 
+                                 (btn === toggleBtn3 && b === toggleBtn1);
 
-      if (btn === toggleBtn1 && tableToggleBtnInstance) {
-        tableToggleBtnInstance.setActive(false);
-        closeTable();
-      }
+        if (!isInfoTableCombo) {
+          b.setActive(false);
+        }
+      });
+
+      // Der Block, der tableToggleBtnInstance deaktiviert und closeTable() aufruft,
+      // wurde entfernt, damit die Tabelle offen bleibt.
+      console.log('Button aktiviert:', btn.get('title'));
     });
   });
 

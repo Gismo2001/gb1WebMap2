@@ -102,15 +102,25 @@ export function showTable(data) {
   });
 
   // 5. Split.js (nur falls nötig)
-  if (!splitInstance) {
-    splitInstance = Split(['#map', '#wms-table-container'], {
-      sizes: [70, 30],
-      minSize: [150, 100],
-      direction: 'vertical',
-      gutterSize: 10,
-      onDrag: () => { if (mapRef) mapRef.updateSize(); }
-    });
-  }
+if (!splitInstance) {
+  splitInstance = Split(['#map', '#wms-table-container'], {
+    sizes: [70, 30],
+    minSize: [100, 0], // WICHTIG: minSize der Tabelle auf 0 setzen, damit man sie ganz runterschieben kann
+    direction: 'vertical',
+    gutterSize: 10,
+    onDrag: () => {
+      if (mapRef) mapRef.updateSize();
+    },
+    // 👉 Hier die neue Logik beim Loslassen des Balkens:
+    onDragEnd: (sizes) => {
+      // sizes[1] ist die Prozentzahl des zweiten Elements (#wms-table-container)
+      if (sizes[1] <= 5) { 
+        console.log("Tabelle zu klein gezogen, schließe automatisch...");
+        closeTable(); 
+      }
+    }
+  });
+}
 
   if (mapRef) mapRef.updateSize();
 

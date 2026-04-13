@@ -5,12 +5,15 @@ import { TabulatorFull as Tabulator } from 'tabulator-tables';
 import 'tabulator-tables/dist/css/tabulator.min.css';
 import { updateTableFromVisibleLayers } from './mapEvents.js';
 import { closeTable } from './table.js';
+
 import { isGpsTrackingActive, startGpsTracking, stopGpsTracking } from './gps.js';
+import { handleCRSChange, ptnDelFindCoord, initPtn } from './ptn.js';
 
 let isTableActive = false;
 
 let tableToggleBtnInstance = null;
 let gpsToggleBtnInstance = null;
+let ptnToogleBtnInstance = null;
 
 export function createLayerSwitcher(map) {
   return new LayerSwitcher({
@@ -105,6 +108,7 @@ export function createSubBarT(map) {
 }
 
 export function createSubBarI(map) {
+  
   const gpsToggleBtn = new Toggle({
     html: '<i class="fa fa-map-marker"></i>',
     title: 'GPS Position anzeigen',
@@ -130,9 +134,24 @@ export function createSubBarI(map) {
       }
     },
   });
-
   gpsToggleBtnInstance = gpsToggleBtn;
-  return new Bar({ toggleOne: true, controls: [gpsToggleBtn] });
+  
+  
+  const ptnToogleBtn = new Toggle({
+    html: '<i class="fa fa-circle"></i>',
+    title: 'Punkt setzen',
+    onToggle: function (active) { 
+      if (active) {
+        // WICHTIG: Karte und Source übergeben (sourceEdit ist deine Source)
+        initPtn(map); 
+        handleCRSChange(); // Kein 'e' mehr nötig
+      } else {  
+        ptnDelFindCoord();
+      }
+    },
+});
+  ptnToogleBtnInstance = ptnToogleBtn;
+  return new Bar({ toggleOne: true, controls: [gpsToggleBtn, ptnToogleBtn] });
 }
 
 export function createDataTable(map) {

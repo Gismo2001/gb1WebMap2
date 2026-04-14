@@ -202,7 +202,11 @@ export function updateTableFromVisibleLayers(map) {
 
     showTableDebounced(results[layerToShow]);
   } else {
-    closeTable();
+    // STATT closeTable(): 
+    // Wir senden ein leeres Array an die Tabelle. 
+    // Die Tabelle versteckt sich dann (laut unserer neuen Logik), 
+    // aber der Toggle bleibt aktiv!
+    showTableDebounced([]); 
   }
 }
 

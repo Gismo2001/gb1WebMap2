@@ -18,6 +18,8 @@ import Fill from 'ol/style/Fill';
 import CircleStyle from 'ol/style/Circle';
 
 let highlightedFeature = null;
+let clickTimeout = null;
+
 
 const hoverHighlightStyle = new Style({
   stroke: new Stroke({
@@ -61,124 +63,120 @@ export function updateSelector(names) {
     console.log("Vorheriger Layer nicht mehr in der Liste.");
   }
 }
-
-// 👇 außerhalb der Funktion!
-let clickTimeout = null;
+// ... (Deine Imports bleiben gleich)
 
 export function showTable(data) {
-  console.log("showTable aufgerufen mit", data ? data.length : 0, "Zeilen");
-  
-  isTableActive = true;
+  isTableActive = true; 
   const container = document.getElementById("wms-table-container");
   const tableElement = document.getElementById("wms_data_table");
-  
-  if (!container || !tableElement) {
-    console.error("Tabellen-Container im HTML nicht gefunden!");
-    return;
-  }
 
-  // 1. Daten-Check
+  if (!container || !tableElement) return;
+
+  // 1. FALL: Keine Daten -> Verstecken
   if (!data || data.length === 0) {
-    console.warn("Keine Daten geliefert.");
-    closeTable();
-    return;
+    container.style.display = "none";
+    if (mapRef) {
+      document.getElementById("map").style.height = "100%";
+      mapRef.updateSize();
+    }
+    return; 
   }
 
-  // 2. Container SOFORT anzeigen (damit die App nicht hängen bleibt)
+  // 2. FALL: Daten sind da! -> Sichtbar machen (WICHTIG!)
+  container.style.display = "flex"; // Das muss VOR dem restlichen Code stehen
+  
+  const mapElement = document.getElementById("map");
+  if (mapElement) {
+    mapElement.style.height = ""; // Karte wieder Platz für Tabelle lassen
+  }
+
+  // --- DATEN VORHANDEN: TABELLE ANZEIGEN ---
   container.style.display = "flex";
 
-  // 3. ID-Key sicher bestimmen
   const selector = document.getElementById('layer-selector');
   const layerName = selector ? selector.value : "unknown";
   const idKey = (layerName === 'fsk') ? 'OBJECTID' : 'ID_con';
   
-  console.log(`Nutze Layer: ${layerName}, ID-Feld: ${idKey}`);
-
-  // 4. Dubletten-Filter (mit Sicherheits-Check)
   const uniqueData = data.filter((item, index, self) => {
     const val = item[idKey];
-    if (val === null || val === undefined) return true; // Ohne ID immer behalten
+    if (val === null || val === undefined) return true;
     return index === self.findIndex((t) => t[idKey] === val);
   });
 
-  // 5. Split.js (nur falls nötig)
-if (!splitInstance) {
-  splitInstance = Split(['#map', '#wms-table-container'], {
-    sizes: [70, 30],
-    minSize: [100, 0], // WICHTIG: minSize der Tabelle auf 0 setzen, damit man sie ganz runterschieben kann
-    direction: 'vertical',
-    gutterSize: 10,
-    onDrag: () => {
-      if (mapRef) mapRef.updateSize();
-    },
-    // 👉 Hier die neue Logik beim Loslassen des Balkens:
-    onDragEnd: (sizes) => {
-      // sizes[1] ist die Prozentzahl des zweiten Elements (#wms-table-container)
-      if (sizes[1] <= 5) { 
-        console.log("Tabelle zu klein gezogen, schließe automatisch...");
-        closeTable(); 
+  // Split.js initialisieren oder wiederherstellen
+  if (!splitInstance) {
+    splitInstance = Split(['#map', '#wms-table-container'], {
+      sizes: [70, 30],
+      minSize: [100, 0],
+      direction: 'vertical',
+      gutterSize: 10,
+      onDrag: () => { if (mapRef) mapRef.updateSize(); },
+      onDragEnd: (sizes) => {
+        if (sizes[1] <= 5) { 
+          closeTable(); // Nur hier wird der Toggle wirklich deaktiviert
+        }
       }
-    }
-  });
-}
+    });
+  } else {
+    // Falls Split existiert, stellen wir sicher, dass die Höhen wieder stimmen
+    // (da wir oben bei leeren Daten die Karte auf 100% gesetzt hatten)
+    const mapElement = document.getElementById("map");
+    if (mapElement) mapElement.style.height = ""; // Split.js übernimmt wieder
+  }
 
   if (mapRef) mapRef.updateSize();
 
-  // 6. Alte Tabelle sauber löschen
+  // Tabulator aktualisieren oder neu erstellen
   if (table) {
+    // Wenn die Tabelle schon da ist, reicht oft ein Austausch der Daten
+    // Aber wegen potenziell wechselnder Spalten (Layer-Wechsel) ist dein Destroy-Ansatz sicherer:
     table.destroy();
     table = null;
   }
   tableElement.innerHTML = "";
 
-  // 7. Neue Tabelle erstellen
   try {
     table = new Tabulator("#wms_data_table", {
       data: uniqueData,
       height: "100%",
       layout: "fitData",
       autoColumns: true,
-      autoColumns: true, // Wir lassen Tabulator die Arbeit machen...
-  
-  autoColumnsDefinitions: function(definitions) {
-    // ...und sortieren das Ergebnis um, wenn es nicht der fsk Layer ist
-    if (layerName !== 'fsk') {
-      const idKey = "ID_con";
-      const statKey = "stat_von";
-
-      // Wir extrahieren unsere Wunsch-Spalten aus dem Array
-      const idCol = definitions.find(col => col.field === idKey);
-      const statCol = definitions.find(col => col.field === statKey);
-
-      // Wir filtern diese beiden aus dem ursprünglichen Array heraus
-      const remainingCols = definitions.filter(col => col.field !== idKey && col.field !== statKey);
-
-      // Wir setzen das Array neu zusammen: ID zuerst, dann stat_von, dann der Rest
-      const newOrder = [];
-      if (idCol) newOrder.push(idCol);
-      if (statCol) newOrder.push(statCol);
-      
-      return newOrder.concat(remainingCols);
-    }
-    return definitions; // Bei fsk einfach so lassen
-  },
-  
-  
-
+      autoColumnsDefinitions: function(definitions) {
+        if (layerName !== 'fsk') {
+          const statKey = "stat_von";
+          const idCol = definitions.find(col => col.field === idKey);
+          const statCol = definitions.find(col => col.field === statKey);
+          const remainingCols = definitions.filter(col => col.field !== idKey && col.field !== statKey);
+          const newOrder = [];
+          if (idCol) newOrder.push(idCol);
+          if (statCol) newOrder.push(statCol);
+          return newOrder.concat(remainingCols);
+        }
+        return definitions;
+      },
       headerVisible: true,
-      selectable: 1, // Wichtig für Pfeiltasten!
-      scrollToRowIfVisible: false, // Verhindert, dass Tabulator eigenmächtig scrollt
+      selectable: 1,
+      scrollToRowIfVisible: false,
+    });
+
+    table.on("tableBuilt", () => {
+      tableReady = true;
+      // ... (Dein Fokus- und Tastatur-Code bleibt gleich)
+    });
+
+    // 2. Mouse Out Clear
+    table.on("rowMouseOut", () => {
+        clearHighlightedFeature();
     });
 
     table.on("tableBuilt", () => {
       console.log("Tabulator ist bereit.");
-      
       // Fokus für Pfeiltasten
       requestAnimationFrame(() => {
         const isMobile = window.innerWidth <= 768;
         if (!isMobile) {
           // Nur am PC fokussieren, um Auto-Scrolling am Handy zu vermeiden
-          tableElement.focus({ preventScroll: true }); 
+          tableElement.focus({ preventScroll: true });
         }
       });
 
@@ -207,48 +205,57 @@ if (!splitInstance) {
             } else {
               next = table.getRows()[0];
             }
-
             if (next) {
               table.deselectRow();
               next.select();
-      
               // FIX: Statt table.scrollToRow nutzen wir die native Funktion:
               const rowElement = next.getElement();
-              rowElement.scrollIntoView({ 
+              rowElement.scrollIntoView({
                 block: "nearest",   // Vertikal: So wenig wie möglich bewegen
                 inline: "nearest",  // Horizontal: Nur springen, wenn das Feld gar nicht im Bild ist!
                 behavior: "auto"    // "smooth" könnte bei schnellem Tippen ruckeln
               });
+
               const rowData = next.getData();
-              highlightFeatureForRow(rowData);
+
             }
           }
         };  
         // Beim Klick auf eine Zeile: Selektieren, Fokus setzen und Karte highlighten
-table.on("rowClick", function(e, row) {
-    table.deselectRow();
-    row.select();
+        table.on("rowClick", function(e, row) {
+          table.deselectRow();
+          row.select();
+          // PRÜFUNG: Nur fokussieren, wenn wir NICHT auf einem Mobilgerät sind   
+          const isMobile = window.innerWidth <= 768;
+          if (!isMobile) {
+            tableElement.focus({ preventScroll: true });
+          }
+          const rowData = row.getData();
+          highlightFeatureForRow(rowData);
 
-    // PRÜFUNG: Nur fokussieren, wenn wir NICHT auf einem Mobilgerät sind
-    const isMobile = window.innerWidth <= 768;
-    if (!isMobile) {
-        tableElement.focus({ preventScroll: true }); 
-    }
-
-    const rowData = row.getData();
-    highlightFeatureForRow(rowData);
-});
+        });
       }
     });
 
+
+
     // MOUSE OVER
+
     table.on("rowMouseOver", (e, row) => highlightFeatureForRow(row.getData()));
+
     table.on("rowMouseOut", () => clearHighlightedFeature());
 
+
+
   } catch (err) {
+
     console.error("Fehler beim Erstellen der Tabulator-Instanz:", err);
+
   }
+
 }
+
+// Die closeTable bleibt fast gleich, sie ist das "harte" Ende
 export function closeTable() {
   isTableActive = false;
   clearHighlightedFeature();
@@ -256,23 +263,13 @@ export function closeTable() {
     splitInstance.destroy();
     splitInstance = null;
   }
-  if (resizeObserver) {
-  resizeObserver.disconnect();
-  resizeObserver = null;
-  }
-  
-
+  // ... restliche Aufräumarbeiten wie gehabt
   document.getElementById("wms-table-container").style.display = "none";
   deactivateTableToggle();
-  
-  if (mapRef) {
-    // WICHTIG: Karte muss wieder den ganzen Platz einnehmen
-    const mapElement = document.getElementById("map");
-    if (mapElement) mapElement.style.height = "100%";
-    mapRef.updateSize();
-  }
+  // ... Karte auf 100% setzen
 }
 
+// ... restliche Funktionen zoomToFeature, getTableActive etc.
 export function switchLayerData(results) {
   const selector = document.getElementById('layer-selector');
   if (!selector) return;
@@ -390,7 +387,7 @@ function highlightFeatureForRow(rowData) {
   const layerName = selector ? selector.value : null;
   if (!layerName) return;
 
-  // 1. Layer suchen (wie gehabt)
+  
   let targetLayer = null;
   mapRef.getLayers().getArray().forEach((l) => {
     if (l.get('name') === layerName) targetLayer = l;

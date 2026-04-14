@@ -14,6 +14,7 @@ let isTableActive = false;
 let tableToggleBtnInstance = null;
 let gpsToggleBtnInstance = null;
 let ptnToogleBtnInstance = null;
+let mainTableBtnInstance = null;
 
 export function createLayerSwitcher(map) {
   return new LayerSwitcher({
@@ -55,7 +56,7 @@ export function createMainToolbar(map) {
     active: false,
     bar: createSubBarT(map),
   });
-
+  mainTableBtnInstance = toggleBtn3; // Instanz speichern
   const allBtns = [toggleBtn1, toggleBtn2, toggleBtn3];
 
   allBtns.forEach((btn) => {
@@ -96,9 +97,14 @@ export function createSubBarT(map) {
       isTableActive = active;
 
       if (active) {
+        // --- NEU: Hauptbutton optisch aktiv halten ---
+        if (mainTableBtnInstance) {
+          mainTableBtnInstance.element.classList.add('is-running');
+        }
         updateTableFromVisibleLayers(map);
       } else {
         closeTable();
+        // Das Entfernen der Klasse erfolgt zentral in deactivateTableToggle
       }
     },
   });
@@ -106,7 +112,6 @@ export function createSubBarT(map) {
   tableToggleBtnInstance = tableToggleBtn;
   return new Bar({ toggleOne: true, controls: [tableToggleBtn] });
 }
-
 export function createSubBarI(map) {
   
   const gpsToggleBtn = new Toggle({
@@ -171,7 +176,12 @@ export function isTableEnabled() {
 }
 
 export function deactivateTableToggle() {
-  if (tableToggleBtnInstance) {
+   if (tableToggleBtnInstance) {
     tableToggleBtnInstance.setActive(false);
+  }
+  
+  // --- NEU: Blau-Markierung vom Hauptbutton entfernen ---
+  if (mainTableBtnInstance) {
+    mainTableBtnInstance.element.classList.remove('is-running');
   }
 }

@@ -24,6 +24,12 @@ import { getClickResults } from './js/mapEvents.js';
 import { updateTableFromVisibleLayers  } from './js/mapEvents.js';
 import { getVisibleVectorFeatures } from './js/mapEvents.js';
 
+import { searchControlFunc } from './js/controls.js';
+import { initSearchEvents } from './js/mapEvents.js'; // Import hinzufügen
+import { initPtn } from './js/ptn.js'; // 👈 Sicherstellen, dass initPtn importiert ist!
+
+
+
 
 let splitInstance = null;
 
@@ -32,6 +38,8 @@ registerProjections();
 
 // 👉 Layerstruktur (inkl. Gruppen)
 const layers = createLayerStructure();
+
+
 
 // 👉 Map erstellen (mit Layern!)
 const map = createMap('map', layers);
@@ -44,11 +52,21 @@ map.addControl(layerSwitcher);
 const toolbar = createMainToolbar(map);
 map.addControl(toolbar);
 
+
+
+// ... Karte erstellen ...
+
+const searchControl = searchControlFunc();
+map.addControl(searchControl);
+initSearchEvents(searchControl, map); // Nutzt jetzt das mapRef aus initPtn
+
 initMapClick(map);
 switcherDrawList(layerSwitcher);
 switcherToggle(layerSwitcher);
 
 map.updateSize();
+
+initPtn(map);   // 👈 Diesen Aufruf unbedingt hinzufügen!
 
 document.getElementById('layer-selector').addEventListener('change', () => {
   // 1. Hole WMS Klick-Daten
@@ -69,7 +87,6 @@ initTable(map);
 
 document.getElementById('close-table-btn')
   .addEventListener('click', closeTable);
-
 
 
 map.on('moveend', () => {

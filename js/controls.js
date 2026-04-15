@@ -9,12 +9,15 @@ import { closeTable } from './table.js';
 import { isGpsTrackingActive, startGpsTracking, stopGpsTracking } from './gps.js';
 import { handleCRSChange, ptnDelFindCoord, initPtn } from './ptn.js';
 
+
+
 let isTableActive = false;
 
 let tableToggleBtnInstance = null;
 let gpsToggleBtnInstance = null;
 let ptnToogleBtnInstance = null;
 let mainTableBtnInstance = null;
+
 
 export function createLayerSwitcher(map) {
   return new LayerSwitcher({
@@ -77,7 +80,7 @@ export function createMainToolbar(map) {
 
       // Der Block, der tableToggleBtnInstance deaktiviert und closeTable() aufruft,
       // wurde entfernt, damit die Tabelle offen bleibt.
-      console.log('Button aktiviert:', btn.get('title'));
+      //console.log('Button aktiviert:', btn.get('title'));
     });
   });
 
@@ -93,9 +96,9 @@ export function createSubBarT(map) {
   const tableToggleBtn = new Toggle({
     html: '<i class="fa fa-table" aria-hidden="true"></i>',
     title: 'Tabelle anzeigen',
+    className: 'tabelle',
     onToggle: function (active) {
       isTableActive = active;
-
       if (active) {
         // --- NEU: Hauptbutton optisch aktiv halten ---
         if (mainTableBtnInstance) {
@@ -113,7 +116,6 @@ export function createSubBarT(map) {
   return new Bar({ toggleOne: true, controls: [tableToggleBtn] });
 }
 export function createSubBarI(map) {
-  
   const gpsToggleBtn = new Toggle({
     html: '<i class="fa fa-map-marker"></i>',
     title: 'GPS Position anzeigen',
@@ -140,8 +142,6 @@ export function createSubBarI(map) {
     },
   });
   gpsToggleBtnInstance = gpsToggleBtn;
-  
-  
   const ptnToogleBtn = new Toggle({
     html: '<i class="fa fa-circle"></i>',
     title: 'Punkt setzen',
@@ -155,8 +155,8 @@ export function createSubBarI(map) {
       }
     },
 });
-  ptnToogleBtnInstance = ptnToogleBtn;
-  return new Bar({ toggleOne: true, controls: [gpsToggleBtn, ptnToogleBtn] });
+ptnToogleBtnInstance = ptnToogleBtn;
+return new Bar({ toggleOne: true, controls: [gpsToggleBtn, ptnToogleBtn] });
 }
 
 export function createDataTable(map) {
@@ -176,12 +176,24 @@ export function isTableEnabled() {
 }
 
 export function deactivateTableToggle() {
-   if (tableToggleBtnInstance) {
+  if (tableToggleBtnInstance) {
     tableToggleBtnInstance.setActive(false);
   }
-  
   // --- NEU: Blau-Markierung vom Hauptbutton entfernen ---
   if (mainTableBtnInstance) {
     mainTableBtnInstance.element.classList.remove('is-running');
   }
 }
+
+import SearchPhoton from 'ol-ext/control/SearchPhoton';
+
+let searchControl = null;
+  export function searchControlFunc() {
+  let searchControl = new SearchPhoton({
+        lang: "en",
+        position: true
+  });
+  return searchControl;
+
+}
+    

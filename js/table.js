@@ -20,7 +20,6 @@ import CircleStyle from 'ol/style/Circle';
 let highlightedFeature = null;
 let clickTimeout = null;
 
-
 const hoverHighlightStyle = new Style({
   stroke: new Stroke({
     color: '#ff9900',

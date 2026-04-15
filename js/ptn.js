@@ -28,6 +28,7 @@ export function initPtn(map) {
                 })
             })
         });
+        ptnLayer.set('displayInLayerSwitcher', false);
         mapRef.addLayer(ptnLayer);
     }
 }
@@ -102,7 +103,7 @@ export function handleCRSChange() {
    drawPoint(transformed);
 }
 
-function drawPoint(coords) {
+export function drawPoint(coords) {
     if (!ptnSource || !mapRef) return;
 
     // Optional: Alten Punkt löschen, wenn immer nur einer angezeigt werden soll
@@ -133,4 +134,42 @@ export function ptnDelFindCoord() {
         ptnLayer = null; // Zurücksetzen, damit er beim nächsten Mal neu erstellt wird
         ptnSource = null;
     }
+     
+}
+
+let searchSource = null;
+let searchLayer = null;
+
+export function drawSearchPoint(coords) {
+    // 1. Sicherheitscheck: Wenn initPtn(map) noch nicht lief, haben wir kein mapRef
+    if (!mapRef) {
+        console.error("mapRef ist nicht gesetzt. Wurde initPtn(map) in main.js aufgerufen?");
+        return;
+    }
+
+    // 2. Initialisiere den Such-Layer nur beim allerersten Mal
+    if (!searchLayer) {
+        searchSource = new VectorSource();
+        searchLayer = new VectorLayer({
+            source: searchSource,
+            zIndex: 9999, // Suchergebnis immer ganz oben
+            style: new Style({
+                image: new Circle({
+                    radius: 8,
+                    fill: new Fill({ color: '#337ab7' }), // Blau für Suche
+                    stroke: new Stroke({ color: 'white', width: 2 })
+                })
+            })
+
+        });
+        mapRef.addLayer(searchLayer);
+        searchLayer.set('displayInLayerSwitcher', false);
+    }
+
+    // 3. Bestehende Suche löschen und neuen Punkt setzen
+    searchSource.clear();
+    const searchFeature = new Feature({
+        geometry: new Point(coords)
+    });
+    searchSource.addFeature(searchFeature);
 }

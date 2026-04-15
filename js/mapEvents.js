@@ -4,6 +4,7 @@ import { updateSelector, showTableDebounced, closeTable } from './table.js';
 import { isTableEnabled } from './controls.js';
 
 
+
 let currentClickResults = {};
 let latestClickRequestId = 0;
 
@@ -202,11 +203,7 @@ export function updateTableFromVisibleLayers(map) {
 
     showTableDebounced(results[layerToShow]);
   } else {
-    // STATT closeTable(): 
-    // Wir senden ein leeres Array an die Tabelle. 
-    // Die Tabelle versteckt sich dann (laut unserer neuen Logik), 
-    // aber der Toggle bleibt aktiv!
-    showTableDebounced([]); 
+    closeTable();
   }
 }
 
@@ -230,3 +227,32 @@ layerSwitcher.on('drawlist', (evt) => {
 });
 }
 
+// js/mapEvents.js
+import { drawSearchPoint } from './ptn.js';
+export function initSearchEvents(searchControl, map) {
+  if (!searchControl) return;
+
+  searchControl.on('select', (e) => {
+    console.log("Suche ausgewählt:", e.search);
+    const coord = e.coordinate;
+
+    if (coord) {
+      // 1. Zoom zur Stelle
+      map.getView().animate({
+        center: coord,
+        zoom: 18, // Etwas näher ran zum Testen
+        duration: 1000
+      });
+
+      // 2. Punkt zeichnen
+      // Überprüfe, ob drawPoint wirklich nur die Koordinate braucht.
+      // Falls deine ptn.js die Koordinate transformiert, versuche es so:
+      try {
+        drawSearchPoint(coord);
+        console.log("Punkt gezeichnet an:", coord);
+      } catch (err) {
+        console.error("Fehler beim Zeichnen des Suchpunktes:", err);
+      }
+    }
+  });
+}

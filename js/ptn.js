@@ -115,11 +115,7 @@ export function drawPoint(coords) {
 
     ptnSource.addFeature(pointFeature);
 
-    mapRef.getView().animate({
-        center: coords,
-        zoom: 16,
-        duration: 1000,
-    });
+    
 }
 
 export function ptnDelFindCoord() {

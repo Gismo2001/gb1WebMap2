@@ -26,32 +26,6 @@ html, body {
     width: 100%;
     position: relative; /* Wichtig für OpenLayers Controls */
 }
-
-
-/* Der äußere Container darf NICHT scrollen, sonst verschwindet der Header */
-#wms-table-container {
-    width: 100%;
-    overflow: hidden; /* WICHTIG: Kein Scrollen hier! */
-    display: none;
-    flex-direction: column;
-    height: 50vh;
-}
-
-/* Das Div, in dem Tabulator sitzt */
-#wms_data_table {
-    width: 100%;
-    flex-grow: 1;
-    overflow: hidden; /* Tabulator regelt das Scrollen intern */
-}
-#wms_data_table:focus {
-    outline: 1px solid #ff9900; /* Orangefarbener Rahmen wenn aktiv */
-}
-/* Optional: Verhindert, dass die Karte beim ersten Laden zu klein ist */
-#map .ol-viewport {
-    height: 100% !important;
-    width: 100% !important;
-}
-
 /* Gemeinsamer Block für mobile Geräte (Smartphone/Tablet) */
 @media (max-width: 768px) {
   /* 2. Allgemeine OpenLayers Controls vergrößern */
@@ -72,9 +46,50 @@ html, body {
   margin: 1px;
   padding-right: 0;
   font-size: 16px;
+    }
+.ol-search {
+        left: 10px;    /* Etwas Abstand zum Rand */
+        right: auto;
+    }
+
+    .ol-search input {
+        width: 60vw;   /* Feld nimmt 60% der Breite ein */
+        font-size: 16px; /* Verhindert Auto-Zoom bei iOS */
+    }
+    
+    /* Falls die Ergebnisliste auch zu breit ist */
+    .ol-search ul.autocomplete {
+        max-width: 75vw;
+    }
+  
 }
 
-  
+/* Der äußere Container darf NICHT scrollen, sonst verschwindet der Header */
+#wms-table-container {
+    width: 100%;
+    overflow: hidden; /* WICHTIG: Kein Scrollen hier! */
+    display: none;
+    flex-direction: column;
+    height: 50vh;
+}
+/* Das Div, in dem Tabulator sitzt */
+#wms_data_table {
+    width: 100%;
+    flex-grow: 1;
+    overflow: hidden; /* Tabulator regelt das Scrollen intern */
+}
+#wms_data_table:focus {
+    outline: 1px solid #ff9900; /* Orangefarbener Rahmen wenn aktiv */
+}
+/* Optional: Verhindert, dass die Karte beim ersten Laden zu klein ist */
+#map .ol-viewport {
+    height: 100% !important;
+    width: 100% !important;
+}
+
+
+.ol-control * {
+  font-size: 14px; /* Hier kannst du die gewünschte Größe für alle Elemente innerhalb des Div-Containers angeben */
 }
 
 /* In deinem style.css */
@@ -82,6 +97,11 @@ html, body {
 .ol-control.main-toolbar .is-running.TabelleHaupt button {
     background-color: #337ab7; /* Dein Blau-Ton */
     color: white;
+}
+
+
+.ol-control.ol-layerswitcher-collapsed {
+  min-width: unset;
 }
 
 .ol-control.ol-layerswitcher button {
@@ -93,13 +113,33 @@ html, body {
   font-size: inherit;
 }
 
+.ol-control.ol-layerswitcher li .li-content label {
+  box-sizing: border-box;
+  vertical-align: middle;
+  
+}
+
 .ol-control.ol-layerswitcher .panel-container {
+  overflow-y: auto;
+  box-sizing: border-box;
   margin: 1px;
   padding-right: 0;
   font-size: 12px;
-  
-  
 }
+
+.ol-control.ol-layerswitcher .panel ul {
+  overflow: visible;
+}
+
+  .ol-control.ol-layerswitcher .layerup {
+  width: 2em;
+  background: none;
+  position: absolute;
+  right: .5em;
+}
+  
+  
+
 #table-header {
     display: flex;
     align-items: center;      /* Vertikal zentrieren */
@@ -149,3 +189,13 @@ html, body {
     border-bottom: 1px solid #ccc;
 }
 
+/* Container des Search-Controls */
+.ol-search {
+    max-width: 80vw; /* Maximal 80% der Bildschirmbreite */
+}
+
+/* Das eigentliche Eingabefeld */
+.ol-search input {
+    width: 200px; /* Standardbreite für Desktop */
+    transition: width 0.3s ease;
+}

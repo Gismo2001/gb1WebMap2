@@ -190,8 +190,8 @@ import SearchPhoton from 'ol-ext/control/SearchPhoton';
 let searchControl = null;
   export function searchControlFunc() {
   let searchControl = new SearchPhoton({
-        lang: "en",
-        position: true
+  reverse: true,
+  position: true	
   });
   return searchControl;
 

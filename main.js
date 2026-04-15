@@ -53,7 +53,6 @@ const toolbar = createMainToolbar(map);
 map.addControl(toolbar);
 
 
-
 // ... Karte erstellen ...
 
 const searchControl = searchControlFunc();

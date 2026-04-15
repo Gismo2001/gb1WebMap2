@@ -232,27 +232,30 @@ import { drawSearchPoint } from './ptn.js';
 export function initSearchEvents(searchControl, map) {
   if (!searchControl) return;
 
-  searchControl.on('select', (e) => {
-    console.log("Suche ausgewählt:", e.search);
+searchControl.on('select', (e) => {
     const coord = e.coordinate;
+    if (!coord) return;
 
-    if (coord) {
-      // 1. Zoom zur Stelle
-      map.getView().animate({
-        center: coord,
-        zoom: 18, // Etwas näher ran zum Testen
-        duration: 1000
-      });
+    // Daten aus properties extrahieren
+    const props = e.search.properties || {};
+    const type = props.type || props.osm_value;
 
-      // 2. Punkt zeichnen
-      // Überprüfe, ob drawPoint wirklich nur die Koordinate braucht.
-      // Falls deine ptn.js die Koordinate transformiert, versuche es so:
-      try {
-        drawSearchPoint(coord);
-        console.log("Punkt gezeichnet an:", coord);
-      } catch (err) {
-        console.error("Fehler beim Zeichnen des Suchpunktes:", err);
-      }
+    // Dynamischen Zoom festlegen
+    let customZoom = 18; // Standard für Adressen/Straßen
+    if (type === 'city' || type === 'town') {
+        customZoom = 13;
+    } else if (type === 'district' || type === 'suburb') {
+        customZoom = 14;
     }
-  });
+    
+    // Animation ausführen
+    map.getView().animate({
+        center: coord,
+        zoom: customZoom,
+        duration: 1000
+    });
+
+    // Punkt in ptn.js zeichnen
+    drawSearchPoint(coord);
+});
 }

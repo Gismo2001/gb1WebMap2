@@ -28,6 +28,7 @@ import { searchControlFunc } from './js/controls.js';
 import { initSearchEvents } from './js/mapEvents.js'; // Import hinzufügen
 import { initPtn } from './js/ptn.js'; // 👈 Sicherstellen, dass initPtn importiert ist!
 
+import { initPrintControl } from './js/controls.js';
 
 
 
@@ -58,8 +59,8 @@ map.addControl(toolbar);
 const searchControl = searchControlFunc();
 map.addControl(searchControl);
 initSearchEvents(searchControl, map); // Nutzt jetzt das mapRef aus initPtn
-
 initMapClick(map);
+initPrintControl(map);
 switcherDrawList(layerSwitcher);
 switcherToggle(layerSwitcher);
 

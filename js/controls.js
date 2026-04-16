@@ -9,13 +9,24 @@ import { closeTable } from './table.js';
 import { isGpsTrackingActive, startGpsTracking, stopGpsTracking } from './gps.js';
 import { handleCRSChange, ptnDelFindCoord, initPtn } from './ptn.js';
 
+import { saveAs } from 'file-saver';
+import { jsPDF } from 'jspdf';
+import PrintDialog from 'ol-ext/control/PrintDialog';
+import CanvasAttribution from 'ol-ext/control/CanvasAttribution';
+import CanvasTitle from 'ol-ext/control/CanvasTitle';
+import CanvasScaleLine from 'ol-ext/control/CanvasScaleLine';
+import { Style, Text } from 'ol/style';
+
+let printControlInstance = null;
+
 
 
 let isTableActive = false;
 
 let tableToggleBtnInstance = null;
 let gpsToggleBtnInstance = null;
-let ptnToogleBtnInstance = null;
+let ptnToggleBtnInstance = null;
+let printToogleBtnInstance = null;
 let mainTableBtnInstance = null;
 
 
@@ -154,9 +165,11 @@ export function createSubBarI(map) {
         ptnDelFindCoord();
       }
     },
-});
-ptnToogleBtnInstance = ptnToogleBtn;
-return new Bar({ toggleOne: true, controls: [gpsToggleBtn, ptnToogleBtn] });
+  });
+  ptnToggleBtnInstance = ptnToogleBtn;
+
+
+return new Bar({ toggleOne: true, controls: [gpsToggleBtn, ptnToogleBtn, ] });
 }
 
 export function createDataTable(map) {
@@ -195,5 +208,69 @@ let searchControl = null;
   });
   return searchControl;
 
+}
+
+//Print
+
+export function initPrintControl(map) {
+  
+  // 1. Zusätzliche Canvas-Controls für das Druckbild hinzufügen
+  map.addControl(new CanvasAttribution());
+  map.addControl(new CanvasTitle({ 
+    title: '', 
+    visible: false,
+    style: new Style({ 
+      text: new Text({ font: 'bold 12pt Arial, sans-serif' })
+    }),
+  }));
+  map.addControl(new CanvasScaleLine());
+
+  // 2. Den eigentlichen PrintDialog erstellen
+  printControlInstance = new PrintDialog({
+    title: 'Drucken',
+    lang: 'de',
+    className: 'ol-print-dialog' // Für eigenes CSS
+  });
+  map.addControl(printControlInstance);
+  // Finde das HTML-Element des Controls und entferne den Button
+  const printButton = printControlInstance.element.querySelector('.ol-print-button');
+  if (printButton) {
+    printButton.remove(); // Button aus dem DOM entfernen
+  }
+
+  
+  printControlInstance.setSize('A4');
+  printControlInstance.setOrientation('portrait');
+
+  // 3. Den Dialog der Karte hinzufügen
+  map.addControl(printControlInstance);
+
+  // 4. Print-Event Handler
+  printControlInstance.on(['print', 'error'], function(e) {
+    if (e.image) {
+      if (e.pdf) {
+        const pdf = new jsPDF({
+          orientation: e.print.orientation,
+          unit: e.print.unit,
+          format: e.print.size
+        });
+        pdf.addImage(e.image, 'JPEG', e.print.position[0], e.print.position[1], e.print.imageWidth, e.print.imageHeight);
+        pdf.save(e.print.legend ? 'legende.pdf' : 'karte.pdf');
+      } else {
+        // Bild-Export
+        e.canvas.toBlob(function(blob) {
+          const name = (e.print.legend ? 'legende.' : 'karte.') + e.imageType.replace('image/', '');
+          saveAs(blob, name);
+        }, e.imageType, e.quality);
+      }
+    } else {
+      console.warn('Kein Canvas zum Exportieren gefunden');
+    }
+  });
+
+  // Wenn der Dialog manuell geschlossen wird (X-Button), Toggle deaktivieren
+  printControlInstance.on('hide', () => {
+    if (printToogleBtnInstance) printToogleBtnInstance.setActive(false);
+  });
 }
     

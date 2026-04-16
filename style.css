@@ -92,10 +92,19 @@ html, body {
   font-size: 14px; /* Hier kannst du die gewünschte Größe für alle Elemente innerhalb des Div-Containers angeben */
 }
 
+.ol-control.main-toolbar {
+top: 4em;
+}
+
 /* In deinem style.css */
 .ol-control.main-toolbar .ol-active.TabelleHaupt button{
   color: black;
   
+}
+
+/* Spricht die Bar an, die oben (top) und links (left) positioniert ist */
+.ol-control.ol-bar.ol-top.ol-left {
+    top: 4em; /* Standard ist meist 0.5em oder 3em. Erhöhe diesen Wert nach Bedarf */
 }
 
 .ol-control.main-toolbar .is-running.TabelleHaupt button {
@@ -201,4 +210,52 @@ html, body {
 .ol-search input {
     width: 200px; /* Standardbreite für Desktop */
     transition: width 0.3s ease;
+}
+
+/* --- 1. HAUPT-TOOLBAR POSITIONIERUNG --- */
+.ol-control.ol-bar.ol-top.ol-left {
+    /* Hier kannst du die gesamte Toolbar (I, W, T) global verschieben */
+    top: 7em !important; 
+}
+
+/* --- 2. PRINT-BUTTON (Lösung A) ANPASSUNG --- */
+.ol-touch .ol-print-dialog, 
+.ol-print-dialog {
+    /* Berechnung: 
+       Start der Toolbar (5em) 
+       + ca. 3.5em (für 3 Buttons inkl. Abstände)
+       = 8.5em
+    */
+    top: 12.5em !important; 
+    left: 0.5em !important;
+    right: auto !important;
+}
+
+/* --- 3. PRINT-BUTTON STYLING (VERFEINERT) --- */
+.ol-print-dialog button.ol-print-button {
+    background-color: white !important;
+    color: #333 !important;
+    border: 1px solid #ccc !important;
+    border-radius: 2px !important;
+    /* Größe an deine restlichen Buttons anpassen (meist 1.375em oder 2.1em) */
+    width: 2.1em !important; 
+    height: 2.1em !important;
+    cursor: pointer;
+    background-image: none !important; 
+    text-indent: 0 !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+}
+
+.ol-print-dialog button.ol-print-button::before {
+    font-family: "Font Awesome 5 Free", "Font Awesome 6 Free", FontAwesome !important;
+    font-weight: 900;
+    content: "\f02f" !important;
+    font-size: 1.1em;
+}
+
+/* Hover für den Print-Button */
+.ol-print-dialog button.ol-print-button:hover {
+    background-color: #f4f4f4 !important;
 }

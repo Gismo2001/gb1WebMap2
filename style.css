@@ -228,9 +228,6 @@ top: 4em;
        = 8.5em
     */
     top: 12.5em !important; 
-    left: 0.5em !important;
-    right: auto !important;
-}
-button {
-    border: 5px solid rgb(116, 116, 116) !important;
+    left: auto !important;
+    right: 0.5em !important;
 }

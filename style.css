@@ -93,12 +93,15 @@ html, body {
 }
 
 /* In deinem style.css */
-.ol-control.main-toolbar .ol-active.TabelleHaupt button,
-.ol-control.main-toolbar .is-running.TabelleHaupt button {
-    background-color: #337ab7; /* Dein Blau-Ton */
-    color: white;
+.ol-control.main-toolbar .ol-active.TabelleHaupt button{
+  color: black;
+  
 }
 
+.ol-control.main-toolbar .is-running.TabelleHaupt button {
+    color: black;
+  background-color: #2a90fc;  
+}
 
 .ol-control.ol-layerswitcher-collapsed {
   min-width: unset;

@@ -218,6 +218,7 @@ top: 4em;
     top: 7em !important; 
 }
 
+
 /* --- 2. PRINT-BUTTON (Lösung A) ANPASSUNG --- */
 .ol-touch .ol-print-dialog, 
 .ol-print-dialog {
@@ -230,32 +231,6 @@ top: 4em;
     left: 0.5em !important;
     right: auto !important;
 }
-
-/* --- 3. PRINT-BUTTON STYLING (VERFEINERT) --- */
-.ol-print-dialog button.ol-print-button {
-    background-color: white !important;
-    color: #333 !important;
-    border: 1px solid #ccc !important;
-    border-radius: 2px !important;
-    /* Größe an deine restlichen Buttons anpassen (meist 1.375em oder 2.1em) */
-    width: 2.1em !important; 
-    height: 2.1em !important;
-    cursor: pointer;
-    background-image: none !important; 
-    text-indent: 0 !important;
-    display: flex !important;
-    align-items: center;
-    justify-content: center;
-}
-
-.ol-print-dialog button.ol-print-button::before {
-    font-family: "Font Awesome 5 Free", "Font Awesome 6 Free", FontAwesome !important;
-    font-weight: 900;
-    content: "\f02f" !important;
-    font-size: 1.1em;
-}
-
-/* Hover für den Print-Button */
-.ol-print-dialog button.ol-print-button:hover {
-    background-color: #f4f4f4 !important;
+button {
+    border: 5px solid rgb(116, 116, 116) !important;
 }

@@ -11,13 +11,18 @@ let ptnSource = null;
 let ptnLayer = null;
 let mapRef = null;
 
-export function initPtn(map) {
-    mapRef = map;
 
-    // Falls der Layer noch nicht existiert, erstellen wir ihn hier
-    if (!ptnLayer) {
-        ptnSource = new VectorSource();
+export function initPtn(map) { //hier wird map übergeben
+    mapRef = map; // map wird mapRef zugewiesn
+    console.log ('initPtn aufgerufen?')
+    // Punktlayer erstellen für Visualisierung bei Hover in Tabelle
+    if (!ptnLayer) { 
+        console.log ('ptnLayer wird erstellt?')
+        ptnSource = new VectorSource(
+           
+        );
         ptnLayer = new VectorLayer({
+             title: 'test',
             source: ptnSource,
             // Optional: Ein schöner Style, damit der Punkt auffällt
             style: new Style({
@@ -26,13 +31,13 @@ export function initPtn(map) {
                     fill: new Fill({ color: 'red' }),
                     stroke: new Stroke({ color: 'white', width: 2 })
                 })
+
             })
         });
-        ptnLayer.set('displayInLayerSwitcher', false);
+        ptnLayer.set('displayInLayerSwitcher', true);
         mapRef.addLayer(ptnLayer);
     }
 }
-
 export function handleCRSChange() {
     // 1. Nur das Menü einblenden
     const coordInputDiv = document.getElementById('coordinate_selection');
@@ -48,8 +53,6 @@ export function handleCRSChange() {
         startBtn.onclick = () => askForCoordinates();
     }
 }
-
-
  function askForCoordinates() {
     const selectElement = document.getElementById('coord_select');
     const systemLabel = selectElement.value.toUpperCase();
@@ -102,7 +105,6 @@ export function handleCRSChange() {
     }
    drawPoint(transformed);
 }
-
 export function drawPoint(coords) {
     if (!ptnSource || !mapRef) return;
 
@@ -117,7 +119,6 @@ export function drawPoint(coords) {
 
     
 }
-
 export function ptnDelFindCoord() {
     const coordInputDiv = document.getElementById('coordinate_selection');
     if (coordInputDiv) coordInputDiv.style.display = 'none';
@@ -132,10 +133,8 @@ export function ptnDelFindCoord() {
     }
      
 }
-
 let searchSource = null;
 let searchLayer = null;
-
 export function drawSearchPoint(coords) {
     // 1. Sicherheitscheck: Wenn initPtn(map) noch nicht lief, haben wir kein mapRef
     if (!mapRef) {

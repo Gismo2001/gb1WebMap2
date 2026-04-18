@@ -15,19 +15,23 @@ import PrintDialog from 'ol-ext/control/PrintDialog';
 import CanvasAttribution from 'ol-ext/control/CanvasAttribution';
 import CanvasTitle from 'ol-ext/control/CanvasTitle';
 import CanvasScaleLine from 'ol-ext/control/CanvasScaleLine';
+
+import { fileToggleInput } from './mapEvents.js';
 import { Style, Text } from 'ol/style';
 
-let printControlInstance = null;
+
+
 
 
 
 let isTableActive = false;
-
 let tableToggleBtnInstance = null;
 let gpsToggleBtnInstance = null;
-let ptnToggleBtnInstance = null;
-let printToogleBtnInstance = null;
+let ptnToogleBtnInstance = null;
 let mainTableBtnInstance = null;
+
+let printControlInstance = null;
+let printToogleBtnInstance = null;
 
 
 export function createLayerSwitcher(map) {
@@ -122,7 +126,6 @@ export function createSubBarT(map) {
       }
     },
   });
-
   tableToggleBtnInstance = tableToggleBtn;
   return new Bar({ toggleOne: true, controls: [tableToggleBtn] });
 }
@@ -153,6 +156,7 @@ export function createSubBarI(map) {
     },
   });
   gpsToggleBtnInstance = gpsToggleBtn;
+
   const ptnToogleBtn = new Toggle({
     html: '<i class="fa fa-circle"></i>',
     title: 'Punkt setzen',
@@ -166,10 +170,26 @@ export function createSubBarI(map) {
       }
     },
   });
-  ptnToggleBtnInstance = ptnToogleBtn;
+  ptnToogleBtnInstance = ptnToogleBtn;
 
+  const fileToogleBtn = new Toggle({
+    html: '<i class="fa fa-file"></i>',
+    title: 'Datei laden',
+    onToggle: function (active) { 
+        if (active) {
+           
+            fileToggleInput(map); 
+            
+            // WICHTIG: Da es ein "Aktions-Button" ist, 
+            // setzen wir ihn sofort wieder auf inaktiv
+            setTimeout(() => {
+                this.setActive(false);
+            }, 100);
+        }
+    },
+});
 
-return new Bar({ toggleOne: true, controls: [gpsToggleBtn, ptnToogleBtn, ] });
+return new Bar({ toggleOne: true, controls: [gpsToggleBtn, ptnToogleBtn, fileToogleBtn ] });
 }
 
 export function createDataTable(map) {

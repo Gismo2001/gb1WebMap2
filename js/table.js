@@ -59,7 +59,7 @@ export function updateSelector(names) {
   } else {
     // Optional: Falls der alte Layer weg ist, beim ersten bleiben 
     // oder eine Standardaktion ausführen.
-    console.log("Vorheriger Layer nicht mehr in der Liste.");
+    //console.log("Vorheriger Layer nicht mehr in der Liste.");
   }
 }
 // ... (Deine Imports bleiben gleich)
@@ -169,7 +169,7 @@ export function showTable(data) {
     });
 
     table.on("tableBuilt", () => {
-      console.log("Tabulator ist bereit.");
+      //console.log("Tabulator ist bereit.");
       // Fokus für Pfeiltasten
       requestAnimationFrame(() => {
         const isMobile = window.innerWidth <= 768;

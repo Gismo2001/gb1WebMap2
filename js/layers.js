@@ -718,7 +718,6 @@ export function createwmsNsgLayer() {
 }
 export function createwmsLsgLayer() {
   return new TileLayer({
-
   title: "LSG",
   name: "LSG",
   permalink:'LSG',  
@@ -739,9 +738,8 @@ export function createwmsLsgLayer() {
 export function createwmsNibisLayer() {
   return new TileLayer({
   title: "Nibis Bohrdaten", // Für die Anzeige im LayerSwitcher
+  name: "Nibis Bohrdaten",
   permalink: 'nibis_bohrdaten', 
-  visible: false,
-  opacity: 0.5,
   source: new TileWMS({
     url: 'https://nibis.lbeg.de/net3/public/ogc.ashx?PkgId=37',
     params: {
@@ -749,9 +747,10 @@ export function createwmsNibisLayer() {
       'FORMAT': 'image/png',
       'TRANSPARENT': true,
       'TILED': true,
-      'VERSION': '1.3.0' // Sicherstellen, dass die Koordinatenordnung stimmt
+      //'VERSION': '1.3.0' // Sicherstellen, dass die Koordinatenordnung stimmt
     },
-    // Die Attribution gehört hierhin:
+    visible: false,
+    opacity: 0.5,
     attributions: '© LBEG Niedersachsen',
     crossOrigin: 'anonymous' // Wichtig, falls du später Export-Funktionen nutzt
   })

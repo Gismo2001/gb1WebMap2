@@ -5,7 +5,7 @@ import { FullScreen, Attribution, defaults as defaultControls, ZoomToExtent } fr
 import { DragRotateAndZoom, defaults as defaultInteractions } from 'ol/interaction';
 
 
-
+// map erstellen aus main.js aufgerufen, die Layer die zuvor in main.js erstellt wurden, werden hier übergeben
 export function createMap(target = 'map', layers = []) {
   return new Map({
     target,
@@ -13,6 +13,7 @@ export function createMap(target = 'map', layers = []) {
       center: fromLonLat([7.35, 52.7]),
       zoom: 9
     }),
+    theme: null, // hier ist mir nicht klar, was das macht: 
     layers,
     controls: defaultControls().extend([
       new FullScreen(),

@@ -4,20 +4,30 @@ import { updateSelector, showTableDebounced, closeTable } from './table.js';
 import { isTableEnabled } from './controls.js';
 
 
+import GeoTIFF from 'ol/source/GeoTIFF';
+import GeoTIFFSource from 'ol/source/GeoTIFF';
+import WebGLTileLayer from 'ol/layer/WebGLTile';
+import { transformExtent } from 'ol/proj';
+
+
 
 let currentClickResults = {};
 let latestClickRequestId = 0;
 
-export function getAllLayers(layerGroup, parentVisible = true, groupTitle = null) {
+export function getAllLayers(layerGroup, parentVisible = true, groupTitle = null) { //Funktion wurd aus Event SingleClick in initMapClick aufgerufen
   let layers = [];
+  const currentTitle = layerGroup.get('title') || groupTitle; // aktuelle Namen und Gruppen ermitteln
+  
+  layerGroup.getLayers().forEach((layer) => { // Für jeden Layer in einer Gruppe
+    const isVisible = parentVisible && layer.getVisible(); // Ist die Gruppe und ein Layer sichtbar dann isVisible = true
+    
+    if (layer.getLayers) {  //Wenn was gefunden wurde
+      //Rekursiver Aufruf, Die Funktion ruft sich selbst auf allerdings jetzt mit:
+      // layer → ist hier eine LayerGroup 
+      // isVisible → bisher berechnete Sichtbarkeit wird weitergegeben 
+      // currentTitle → Gruppentitel wird „vererbt“
 
-  const currentTitle = layerGroup.get('title') || groupTitle;
-
-  layerGroup.getLayers().forEach((layer) => {
-    const isVisible = parentVisible && layer.getVisible();
-
-    if (layer.getLayers) {
-      layers = layers.concat(getAllLayers(layer, isVisible, currentTitle));
+      layers = layers.concat(getAllLayers(layer, isVisible, currentTitle)); 
     } else {
       layers.push({
         layer,
@@ -26,27 +36,25 @@ export function getAllLayers(layerGroup, parentVisible = true, groupTitle = null
       });
     }
   });
-
-  return layers;
+  
+  return layers; // Gibt das Ergebnis zurück
 }
 
-export function initMapClick(map) {
+export function initMapClick(map) { // Funktion wird nur aufgerufen, wenn Tabelle im Split aktiv ist
   map.on('singleclick', function (evt) {
     const requestId = ++latestClickRequestId;
-
-    if (!isTableEnabled()) return;
-
-    const promises = [];
-    const viewResolution = map.getView().getResolution();
-    currentClickResults = {};
-    const allLayers = getAllLayers(map);
-
-    allLayers.forEach((obj) => {
-      const layer = obj.layer;
-      if (obj.visible && layer.getSource()?.getFeatureInfoUrl) {
+    if (!isTableEnabled()) return; // Wenn Tabelle im Splitscreen sichtbar
+    const promises = []; // Leeres Array ??
+    const viewResolution = map.getView().getResolution(); 
+    currentClickResults = {}; // Leeres Feld für Aufnahme des Klickergebnisses ??
+    const allLayers = getAllLayers(map); // Alle Layer ermitteln, ruft die Funktion weiter oben auf 
+    
+    allLayers.forEach((obj) => { //Für jeden Layer, bzw. alle Objekte von allLayers
+      const layer = obj.layer; // Das Objekt layer zuweisen
+      if (obj.visible && layer.getSource()?.getFeatureInfoUrl) { //Wen  Layer sichtbar und unterstützt GetFeatureInfo
         const name = layer.get('name');
 
-        const url = layer.getSource().getFeatureInfoUrl(
+        const url = layer.getSource().getFeatureInfoUrl( // url auslesen
           evt.coordinate,
           viewResolution,
           'EPSG:3857',
@@ -56,7 +64,7 @@ export function initMapClick(map) {
             LAYERS: layer.getSource().getParams().LAYERS,
           }
         );
-
+        console.log (url)
         if (url) {
           promises.push(
             fetch(url)
@@ -147,9 +155,7 @@ export function getVisibleVectorFeatures(map) {
   const extent = map.getView().calculateExtent(map.getSize());
   const results = {};
   const allLayers = getAllLayers(map);
-  
   const allowedGroups = ['Bauw.(L)', 'Bauw.(P)'];
-
   allLayers.forEach((obj) => {
     const { layer, visible, groupTitle } = obj;
     const name = layer.get('name');
@@ -167,7 +173,7 @@ export function getVisibleVectorFeatures(map) {
     if (!isInAllowedGroup && !isFSKLayer) return;
 
     // Ab hier läuft die gewohnte Logik für die gültigen Layer
-    console.log("Verarbeite Layer:", name);
+    //console.log("Verarbeite Layer:", name);
     
     const source = typeof layer.getSource === 'function' ? layer.getSource() : null;
     if (!source || typeof source.getFeaturesInExtent !== 'function') return;
@@ -181,7 +187,6 @@ export function getVisibleVectorFeatures(map) {
       return props;
     });
   });
-
   return results;
 }
 export function updateTableFromVisibleLayers(map) {
@@ -259,3 +264,81 @@ searchControl.on('select', (e) => {
     drawSearchPoint(coord);
 });
 }
+
+// mapEvents.js
+import GeoJSON from 'ol/format/GeoJSON';
+import KML from 'ol/format/KML';
+import VectorSource from 'ol/source/Vector';
+import VectorLayer from 'ol/layer/Vector';
+
+let zaehlerGeojson = 1;
+let zaehlerKML = 1;
+
+let fileInput;
+
+
+export function fileToggleInput(map) {
+  if (!fileInput) {
+    fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.multiple = true;
+    fileInput.accept = '.geojson,.json,.kml,.tif,.tiff';
+    fileInput.style.display = 'none';
+    document.body.appendChild(fileInput);
+  }
+  fileInput.onchange = (event) => {
+    const files = event.target.files;
+    if (!files.length) return;
+    Array.from(files).forEach(file => {
+      const fileName = file.name.replace(/\.[^/.]+$/, "");
+      const fileEnd = file.name.split('.').pop().toLowerCase();
+      if (fileEnd === 'tif' || fileEnd === 'tiff') {
+        console.log('tiff-Datei');
+      } else {
+         const reader = new FileReader();
+         reader.onload = (e) => {
+            const content = e.target.result;
+            let format;
+            let sourceName;
+              if (fileEnd === 'kml') {
+                format = new KML({ extractStyles: true });
+                sourceName = `KML: ${zaehlerKML} ${fileName}`;
+                zaehlerKML++;
+              } else {
+                format = new GeoJSON();
+                sourceName = `GeoJson: ${zaehlerGeojson} ${fileName}`;
+                zaehlerGeojson++;
+              }
+              try {
+                const features = format.readFeatures(content, {
+                  featureProjection: 'EPSG:3857'
+                  });
+                const vectorSource = new VectorSource({
+                  features: features
+                });
+                const vectorLayer = new VectorLayer({
+                  source: vectorSource,
+                  title: sourceName,
+                  name: sourceName
+                });
+                map.addLayer(vectorLayer); 
+                if (features.length > 0) {
+                  map.getView().fit(vectorSource.getExtent(), {
+                  padding: [50, 50, 50, 50],
+                  duration: 1000,
+                  maxZoom: 18
+                  });
+                }
+              } catch (err) {
+                console.error("Fehler beim Parsen:", err);
+                alert(`Fehler beim Laden von ${file.name}`);  
+              }
+         };
+         reader.readAsText(file);
+      }
+    });
+    fileInput.value = '';
+  };
+  fileInput.click();
+}
+

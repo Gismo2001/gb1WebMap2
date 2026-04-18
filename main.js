@@ -18,8 +18,8 @@ import { switchLayerData } from './js/table.js';
 import { getTableActive } from './js/table.js';  
 
 import { initMapClick } from './js/mapEvents.js';
-import {switcherDrawList} from './js/mapEvents.js';
-import {switcherToggle} from './js/mapEvents.js';
+import { switcherDrawList } from './js/mapEvents.js';
+import { switcherToggle } from './js/mapEvents.js';
 import { getClickResults } from './js/mapEvents.js';
 import { updateTableFromVisibleLayers  } from './js/mapEvents.js';
 import { getVisibleVectorFeatures } from './js/mapEvents.js';
@@ -30,36 +30,30 @@ import { initPtn } from './js/ptn.js'; // 👈 Sicherstellen, dass initPtn impor
 
 import { initPrintControl } from './js/controls.js';
 
-
-
 let splitInstance = null;
 
 // Projektionen registrieren
 registerProjections();
 
-// 👉 Layerstruktur (inkl. Gruppen)
+// 👉 Hier werden zuerst die Layer erstellt (layers.js)
 const layers = createLayerStructure();
 
-
-
-// 👉 Map erstellen (mit Layern!)
+// 👉 Mier wird map mit Layern erstellt (map.js)
 const map = createMap('map', layers);
 
-// 👉 LayerSwitcher hinzufügen
+// 👉 LayerSwitcher wird hinzugefügt (control.js)
 const layerSwitcher = createLayerSwitcher(map);
 map.addControl(layerSwitcher);
 
-// Toolbar erstellen
+// Toolbar wird erstellt und hinzugefügt (control.js)
 const toolbar = createMainToolbar(map);
 map.addControl(toolbar);
 
-
 // ... Karte erstellen ...
-
-const searchControl = searchControlFunc();
-map.addControl(searchControl);
-initSearchEvents(searchControl, map); // Nutzt jetzt das mapRef aus initPtn
-initMapClick(map);
+const searchControl = searchControlFunc(); // Die Ortssuche und der zugehörige Button wird erstellt (control.js)
+map.addControl(searchControl); // und hinzugefügt (control.js)
+initSearchEvents(searchControl, map); // eventhandler fü+r searchControl wird erstellt (mapEvents.js)
+initMapClick(map); // eventhandler für Click auf di Karte (mapEvents.js)
 initPrintControl(map);
 switcherDrawList(layerSwitcher);
 switcherToggle(layerSwitcher);

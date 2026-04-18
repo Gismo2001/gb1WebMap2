@@ -22,7 +22,7 @@ export function initPtn(map) { //hier wird map übergeben
            
         );
         ptnLayer = new VectorLayer({
-             title: 'test',
+            title: 'test',
             source: ptnSource,
             // Optional: Ein schöner Style, damit der Punkt auffällt
             style: new Style({
@@ -34,7 +34,7 @@ export function initPtn(map) { //hier wird map übergeben
 
             })
         });
-        ptnLayer.set('displayInLayerSwitcher', true);
+        ptnLayer.set('displayInLayerSwitcher', false);
         mapRef.addLayer(ptnLayer);
     }
 }

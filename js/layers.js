@@ -730,7 +730,7 @@ export function createwmsLsgLayer() {
       'TILED': true,
     },
   }),
-  
+  attributions: '© Mu Niedersachsen',
   visible: false,
   opacity: .5,
 });
@@ -742,20 +742,23 @@ export function createwmsNibisLayer() {
   permalink: 'nibis_bohrdaten', 
   source: new TileWMS({
     url: 'https://nibis.lbeg.de/net3/public/ogc.ashx?PkgId=37',
+    
     params: {
       'LAYERS': 'group_817',
       'FORMAT': 'image/png',
       'TRANSPARENT': true,
       'TILED': true,
-      //'VERSION': '1.3.0' // Sicherstellen, dass die Koordinatenordnung stimmt
+      'VERSION': '1.3.0' // Sicherstellen, dass die Koordinatenordnung stimmt
     },
-    visible: false,
-    opacity: 0.5,
+   
+    
     attributions: '© LBEG Niedersachsen',
     crossOrigin: 'anonymous' // Wichtig, falls du später Export-Funktionen nutzt
-  })
+  }),
+  visible: false,
 });
 }
+
 export function createwmsAlkisLayer() {
   return new TileLayer({
   title: 'ALKIS',

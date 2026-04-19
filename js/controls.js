@@ -129,7 +129,7 @@ export function createSubBarT(map) {
   tableToggleBtnInstance = tableToggleBtn;
   return new Bar({ toggleOne: true, controls: [tableToggleBtn] });
 }
-export function createSubBarI(map) {
+export function createSubBarI(map) { // GPS - Punkt setzen
   const gpsToggleBtn = new Toggle({
     html: '<i class="fa fa-map-marker"></i>',
     title: 'GPS Position anzeigen',
@@ -166,7 +166,7 @@ export function createSubBarI(map) {
         initPtn(map); 
         handleCRSChange(); // Kein 'e' mehr nötig
       } else {  
-        ptnDelFindCoord();
+        ptnDelFindCoord(); // Funktion zum löschen des Punktes aus (ptn.js)
       }
     },
   });
@@ -220,13 +220,14 @@ export function deactivateTableToggle() {
 
 import SearchPhoton from 'ol-ext/control/SearchPhoton';
 
-let searchControl = null;
-  export function searchControlFunc() {
-  let searchControl = new SearchPhoton({
+let searchPlaceControl = null; //Erstmal die Ortssuche auf null
+
+export function searchPlaceControlFunc() {
+  let searchPlaceControl = new SearchPhoton({
   reverse: true,
   position: true	
   });
-  return searchControl;
+  return searchPlaceControl;
 
 }
 

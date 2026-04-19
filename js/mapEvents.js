@@ -44,6 +44,7 @@ export function initMapClick(map) { // Funktion wird nur aufgerufen, wenn Tabell
   map.on('singleclick', function (evt) {
     const requestId = ++latestClickRequestId;
     if (!isTableEnabled()) return; // Wenn Tabelle im Splitscreen sichtbar
+    
     const promises = []; // Leeres Array ??
     const viewResolution = map.getView().getResolution(); 
     currentClickResults = {}; // Leeres Feld für Aufnahme des Klickergebnisses ??
@@ -52,36 +53,82 @@ export function initMapClick(map) { // Funktion wird nur aufgerufen, wenn Tabell
     allLayers.forEach((obj) => { //Für jeden Layer, bzw. alle Objekte von allLayers
       const layer = obj.layer; // Das Objekt layer zuweisen
       if (obj.visible && layer.getSource()?.getFeatureInfoUrl) { //Wen  Layer sichtbar und unterstützt GetFeatureInfo
-        const name = layer.get('name');
-
-        const url = layer.getSource().getFeatureInfoUrl( // url auslesen
-          evt.coordinate,
-          viewResolution,
-          'EPSG:3857',
-          {
-            INFO_FORMAT: 'text/xml',
-            QUERY_LAYERS: layer.getSource().getParams().LAYERS,
-            LAYERS: layer.getSource().getParams().LAYERS,
-          }
-        );
-        console.log (url)
-        if (url) {
-          promises.push(
-            fetch(url)
-              .then((res) => res.text())
-              .then((xml) => {
-                if (requestId !== latestClickRequestId) return;
-
-                const data = parseArcGISXml(xml, name);
-                if (data.length > 0) {
-                  currentClickResults[name] = data;
-                }
-              })
-              .catch((error) => {
-                console.warn(`GetFeatureInfo fehlgeschlagen für Layer '${name}':`, error);
-              })
+        const name = layer.get('name'); // Namen zordnen
+        const baseParams = { // Die Parameter des WMS-Dienstes auslaesen
+          QUERY_LAYERS: layer.getSource().getParams().LAYERS,
+          LAYERS: layer.getSource().getParams().LAYERS,
+        };
+        // 👉 Helferfunktion: Request mit bestimmtem Format
+        function requestFeatureInfo(infoFormat) {
+          const url = layer.getSource().getFeatureInfoUrl(
+            evt.coordinate,
+            viewResolution,
+            'EPSG:3857',
+            {
+              ...baseParams,
+              INFO_FORMAT: infoFormat,
+            }
           );
+
+          if (!url) return Promise.resolve(null);
+
+          return fetch(url)
+            .then((res) => res.text())
+            .then((text) => {
+              if (requestId !== latestClickRequestId) return null;
+
+              // ❌ ServiceException → nächster Versuch nötig
+              if (text.includes('ServiceException')) {
+                return null;
+              }
+
+              return text;
+            });
         }
+
+        // 👉 Ablauf: zuerst XML versuchen, dann HTML
+        const promise = requestFeatureInfo('text/xml')
+          .then((responseText) => {
+            if (responseText) return responseText;
+            return requestFeatureInfo('text/html');
+          })
+          .then((responseText) => {
+            if (!responseText) return;
+
+            let data = [];
+
+            // 👉 Format erkennen
+            if (responseText.includes('FeatureInfoResponse')) {
+              
+              data = parseArcGISXml(responseText, name);
+              console.log(responseText + '__' + name);
+
+            } else if (responseText.includes('<body')) {
+              const bodyIsEmpty = /<body[^>]*>\s*<\/body>/i.test(responseText);
+              if (bodyIsEmpty) {
+                return; // nichts drin
+              }
+             data = parseNibisHTML(responseText);
+              //data = parseHTMLFeatureInfo(responseText, name);
+              console.log(responseText + '__' + name);
+
+            } else {
+              console.warn(`Unbekanntes Format bei Layer '${name}'`);
+              console.log(responseText + '__' + name);
+            }
+
+            if (data.length > 0) {
+              currentClickResults[name] = data;
+            }
+          })
+          .catch((error) => {
+            console.warn(
+              `GetFeatureInfo fehlgeschlagen für Layer '${name}':`,
+              error
+            );
+          });
+        
+        promises.push(promise);
       }
     });
 
@@ -92,18 +139,54 @@ export function initMapClick(map) { // Funktion wird nur aufgerufen, wenn Tabell
       Object.keys(vectorResults).forEach((layerName) => {
         currentClickResults[layerName] = vectorResults[layerName];
       });
-
       const layerNames = Object.keys(currentClickResults);
       if (layerNames.length > 0) {
         if (isTableEnabled()) {
           updateSelector(layerNames);
           showTableDebounced(currentClickResults[layerNames[0]]);
         }
-      } else if (isTableEnabled()) {
-        // closeTable();
       }
     });
   });
+}
+
+function parseNibisHTML(html) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+
+  const result = [];
+
+  // 👉 alle Tabellen durchgehen
+  const tables = doc.querySelectorAll('table');
+
+tables.forEach((table) => {
+  const headers = Array.from(table.querySelectorAll('th')).map(th =>
+    th.textContent.trim()
+  );
+
+  const rows = table.querySelectorAll('tr');
+
+  rows.forEach((row, rowIndex) => {
+    if (rowIndex === 0) return; // Header überspringen
+
+    const cells = row.querySelectorAll('td');
+
+    if (cells.length === headers.length && cells.length > 0) {
+      headers.forEach((header, i) => {
+
+        const text = cells[i].textContent.trim();
+
+        result.push({
+  attribute: header,
+  value: text
+});
+
+      });
+    }
+  });
+});
+
+  return result;
 }
 
 export function parseArcGISXml(xmlString, layerName) {
@@ -232,14 +315,16 @@ layerSwitcher.on('drawlist', (evt) => {
 });
 }
 
-// js/mapEvents.js
-import { drawSearchPoint } from './ptn.js';
-export function initSearchEvents(searchControl, map) {
-  if (!searchControl) return;
 
-searchControl.on('select', (e) => {
-    const coord = e.coordinate;
-    if (!coord) return;
+import { drawSearchPoint } from './ptn.js';
+
+// --------------------Funktion für GPS-Suche--------------------
+export function initSearchEvents(searchPlaceControl, map) { //Zustand searchPlaceControl und die Karte werden übergeben
+  if (!searchPlaceControl) return; // Wenn searchPlaceControl nicht aktiv ist wieder verlassen
+
+searchPlaceControl.on('select', (e) => { //Eventhandler für searchPlaceControl, das Click-Event wird übergeben
+    const coord = e.coordinate; // Koordinate des Click-Eventes
+    if (!coord) return; // Wenn keine Koordinate dann Funktion verlassen
 
     // Daten aus properties extrahieren
     const props = e.search.properties || {};

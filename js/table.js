@@ -167,7 +167,33 @@ export function showTable(data) {
     table.on("rowMouseOut", () => {
         clearHighlightedFeature();
     });
+    
+    table.on("cellClick", function (e, cell) {
 
+  const value = cell.getValue();
+
+  // 👉 Link-Erkennung direkt über Datenwert (kein DOM-Query mehr nötig)
+  if (typeof value === "string" && /^https?:\/\//i.test(value)) {
+    e.stopPropagation();
+
+    window.open(value, "_blank", "noopener,noreferrer");
+    return;
+  }
+
+  // 👉 normale Row-Logik
+  const row = cell.getRow();
+
+  table.deselectRow();
+  row.select();
+
+  const isMobile = window.innerWidth <= 768;
+  if (!isMobile) {
+    tableElement.focus({ preventScroll: true });
+  }
+
+  const rowData = row.getData();
+  highlightFeatureForRow(rowData);
+});
     table.on("tableBuilt", () => {
       //console.log("Tabulator ist bereit.");
       // Fokus für Pfeiltasten

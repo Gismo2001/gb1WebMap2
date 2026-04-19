@@ -119,25 +119,24 @@ export function drawPoint(coords) {
 
     
 }
-export function ptnDelFindCoord() {
-    const coordInputDiv = document.getElementById('coordinate_selection');
-    if (coordInputDiv) coordInputDiv.style.display = 'none';
+export function ptnDelFindCoord() { // den gefundenen GBP-Punkt wieder löschen wird aufgerufen über den Toggle (ptnToogleBtn)
+    const coordInputDiv = document.getElementById('coordinate_selection'); //Holen des Koord.sytemauswahldiv
+    if (coordInputDiv) coordInputDiv.style.display = 'none'; // Koord.systemauswahldiv ausschalten
 
     // Wenn der Nutzer den Button deaktiviert, löschen wir den Punkt
     // und entfernen den Layer komplett von der Karte
-    if (ptnSource) ptnSource.clear();
-    if (ptnLayer && mapRef) {
-        mapRef.removeLayer(ptnLayer);
+    if (ptnSource) ptnSource.clear(); // Löschen der Source des Layers
+    if (ptnLayer && mapRef) { // Wenne es den Layer noch gibt und wenn mapRef
+        mapRef.removeLayer(ptnLayer); // Layer löschen
         ptnLayer = null; // Zurücksetzen, damit er beim nächsten Mal neu erstellt wird
-        ptnSource = null;
+        ptnSource = null; // Zurücksetzen, damit die Source beim nächsten Mal neu erstellt wird
     }
-     
 }
-let searchSource = null;
-let searchLayer = null;
-export function drawSearchPoint(coords) {
+let searchSource = null; // Erstmal die Source für GPS-Search auf null
+let searchLayer = null; // Erstmal den Layer für GPS-Search auf null
+export function drawSearchPoint(coords) { // Punkt für GPS-Suche zeichnen
     // 1. Sicherheitscheck: Wenn initPtn(map) noch nicht lief, haben wir kein mapRef
-    if (!mapRef) {
+    if (!mapRef) { //Erstmal checken, ob Karte schon geladen ist
         console.error("mapRef ist nicht gesetzt. Wurde initPtn(map) in main.js aufgerufen?");
         return;
     }

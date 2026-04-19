@@ -24,7 +24,7 @@ import { getClickResults } from './js/mapEvents.js';
 import { updateTableFromVisibleLayers  } from './js/mapEvents.js';
 import { getVisibleVectorFeatures } from './js/mapEvents.js';
 
-import { searchControlFunc } from './js/controls.js';
+import { searchPlaceControlFunc } from './js/controls.js';
 import { initSearchEvents } from './js/mapEvents.js'; // Import hinzufügen
 import { initPtn } from './js/ptn.js'; // 👈 Sicherstellen, dass initPtn importiert ist!
 
@@ -50,9 +50,9 @@ const toolbar = createMainToolbar(map);
 map.addControl(toolbar);
 
 // ... Karte erstellen ...
-const searchControl = searchControlFunc(); // Die Ortssuche und der zugehörige Button wird erstellt (control.js)
-map.addControl(searchControl); // und hinzugefügt (control.js)
-initSearchEvents(searchControl, map); // eventhandler fü+r searchControl wird erstellt (mapEvents.js)
+const searchPlaceControl = searchPlaceControlFunc(); // Die Ortssuche und der zugehörige Button wird erstellt (control.js)
+map.addControl(searchPlaceControl); // und hinzugefügt (control.js)
+initSearchEvents(searchPlaceControl, map); // eventhandler fü+r searchPlaceControl wird erstellt (mapEvents.js)
 initMapClick(map); // eventhandler für Click auf di Karte (mapEvents.js)
 initPrintControl(map);
 switcherDrawList(layerSwitcher);

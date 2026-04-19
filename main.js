@@ -29,6 +29,7 @@ import { initSearchEvents } from './js/mapEvents.js'; // Import hinzufügen
 import { initPtn } from './js/ptn.js'; // 👈 Sicherstellen, dass initPtn importiert ist!
 
 import { initPrintControl } from './js/controls.js';
+import { initializeWMS } from './js/controls.js'; // Pfad anpassen
 
 let splitInstance = null;
 
@@ -40,6 +41,10 @@ const layers = createLayerStructure();
 
 // 👉 Mier wird map mit Layern erstellt (map.js)
 const map = createMap('map', layers);
+
+
+initializeWMS(map);
+
 
 // 👉 LayerSwitcher wird hinzugefügt (control.js)
 const layerSwitcher = createLayerSwitcher(map);

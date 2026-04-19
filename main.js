@@ -43,7 +43,6 @@ const layers = createLayerStructure();
 const map = createMap('map', layers);
 
 
-initializeWMS(map);
 
 
 // 👉 LayerSwitcher wird hinzugefügt (control.js)
@@ -62,6 +61,9 @@ initMapClick(map); // eventhandler für Click auf di Karte (mapEvents.js)
 initPrintControl(map);
 switcherDrawList(layerSwitcher);
 switcherToggle(layerSwitcher);
+
+initializeWMS(map);
+
 
 map.updateSize();
 

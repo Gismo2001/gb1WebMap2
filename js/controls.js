@@ -311,6 +311,7 @@ import WMSCapabilities from 'ol-ext/control/WMSCapabilities';
  */
 export function initializeWMS(map) {
     const cap = new WMSCapabilities({
+        
         target: document.body, // Oder ein spezielles Div
         srs: ['EPSG:3857', 'EPSG:4326', 'EPSG:25832'], // Deine Projektionen
         cors: true,
@@ -353,6 +354,6 @@ export function initializeWMS(map) {
         // Layer der Karte hinzufügen
         map.addLayer(layer);
         
-        console.log(`WMS geladen: ${rawTitle}`);
+        
     });
 }

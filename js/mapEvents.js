@@ -295,8 +295,9 @@ export function updateTableFromVisibleLayers(map) {
   }
 }
 
-export function switcherDrawList(layerSwitcher) {
+export function switcherDrawList(layerSwitcher) {//Eventhandler für Layerswitcher Click
 layerSwitcher.on('drawlist', (evt) => {
+  console.log ('auf leayersweitccher geclicktz')
   var layer = evt.layer;
   // Klick-Listener auf den Label-Text hinzufügen
   evt.li.querySelector('label').addEventListener('click', () => {

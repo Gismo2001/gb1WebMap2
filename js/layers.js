@@ -392,7 +392,7 @@ export function createOsmTileGr() {
       attributions: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
     }),
     opacity: 1,
-    visible: true,
+    visible: false,
   });
 }
 export function createbaseDECrLayer() {
@@ -417,7 +417,7 @@ export function createbaseDECrLayer() {
 }
 export function createbaseDEGrLayer() {
   return new TileLayer({
-     title: 'Base-DE-grey',
+  title: 'Base-DE-grey',
   name: 'baseDeGr',
   permalink:'baseDEGr',
   type: 'base',
@@ -434,6 +434,34 @@ export function createbaseDEGrLayer() {
   visible: false,
     
   });
+}
+
+export function createbaseTopPlusLayer() {
+return new TileLayer({
+title: 'TopPlus',
+  name: 'TopPlus',
+  permalink:'TopPlus',
+  type: 'base',
+  'TopPlusOpen': 'https://sgx.geodatenzentrum.de/wms_topplus_open?request=GetCapabilities&service=wms',
+
+  source: new TileWMS({
+    url: "https://sgx.geodatenzentrum.de/wms_topplus_open",
+    attributions: '© GeoBasis-DE / BKG (Jahr des letzten Datenbezugs) CC BY 4.0',
+    params: {
+      "LAYERS": "web",
+      "TILED": true,
+      "VERSION": "1.3.0"
+    },
+  }),
+  opacity: 1,
+  visible: true,
+
+
+}
+
+)
+
+
 }
 
 
@@ -788,6 +816,7 @@ export function createLayerStructure() {
   const baseDECr = createbaseDECrLayer();
   const osmGrey = createOsmTileGr();
   const osmColor = createOsmTileCr();
+  const topoPlus = createbaseTopPlusLayer();
 
   //Luftbilder Layer
   const NOH1937 = creategnAtlasNOH1937Layer();
@@ -856,7 +885,8 @@ export function createLayerStructure() {
         baseDEGr,
         baseDECr,
         osmGrey,
-        osmColor
+        osmColor,
+        topoPlus
       ]
     }),
      // 🏗️ Luftbilder

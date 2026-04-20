@@ -29,7 +29,7 @@ import { initSearchEvents } from './js/mapEvents.js'; // Import hinzufügen
 import { initPtn } from './js/ptn.js'; // 👈 Sicherstellen, dass initPtn importiert ist!
 
 import { initPrintControl } from './js/controls.js';
-import { initializeWMS } from './js/wms.js';
+import { initializeWMS } from './js/controls.js'; // Pfad anpassen
 
 let splitInstance = null;
 
@@ -42,17 +42,6 @@ const layers = createLayerStructure();
 // 👉 Mier wird map mit Layern erstellt (map.js)
 const map = createMap('map', layers);
 
-
-
-
-
-
-// Wichtig: ol-ext CSS muss irgendwo geladen werden (z.B. in main.js oder index.html)
-// import 'ol-ext/dist/ol-ext.css'
-/**
- * Initialisiert das WMS-Capabilities Control
- * @param {ol/Map} map 
- */
 
 
 

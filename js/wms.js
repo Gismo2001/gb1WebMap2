@@ -32,7 +32,7 @@ export function initializeWMS(map) {
 
     // Event-Handling wenn ein Layer ausgewählt wurde
 cap.on('select', function(e) {
-  console.log("Layer ausgewählt:", e.layer);
+  
   // Hier könnte man manuell prüfen, ob die Buttons nun existieren
   setTimeout(() => {
     const loadBtn = document.querySelector('.ol-load');

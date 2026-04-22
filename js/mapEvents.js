@@ -102,24 +102,20 @@ export function initMapClick(map) { // Funktion wird nur aufgerufen, wenn Tabell
             let data = [];
 
             // 👉 Format erkennen
-            if (responseText.includes('FeatureInfoResponse')) {
-              
-              data = parseArcGISXml(responseText, name);
-              console.log(responseText + '__' + name);
-
-            } else if (responseText.includes('<body')) {
-              const bodyIsEmpty = /<body[^>]*>\s*<\/body>/i.test(responseText);
-              if (bodyIsEmpty) {
-                return; // nichts drin
-              }
-             data = parseNibisHTML(responseText);
-              //data = parseHTMLFeatureInfo(responseText, name);
-              console.log(responseText + '__' + name);
-
-            } else {
-              console.warn(`Unbekanntes Format bei Layer '${name}'`);
-              console.log(responseText + '__' + name);
-            }
+// 👉 Format erkennen
+if (responseText.includes('FeatureInfoResponse')) {
+  console.log("ArcGIS XML erkannt:", name);
+    data = parseArcGISXml(responseText, name);
+} else if (responseText.includes('gml:featureMember') || responseText.includes('FeatureCollection')) {
+  console.log("GML erkannt:", name);
+    // Das ist dein neues Format vom Emsland-Server!
+    data = parseDeegreeGml(responseText, name);
+    console.log("Deegree GML erkannt:", name);
+} else if (responseText.includes('<body') || responseText.includes('<table')) {
+    data = parseNibisHTML(responseText);
+} else {
+    console.warn(`Unbekanntes Format bei Layer '${name}'`);
+}
 
             if (data.length > 0) {
               currentClickResults[name] = data;
@@ -188,6 +184,42 @@ Promise.all(promises).then(() => {
       }
     });
   });
+}
+
+function parseDeegreeGml(xmlString, layerName) {
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlString, "text/xml");
+    const results = [];
+
+    // Wir suchen alle featureMember
+    const features = xmlDoc.getElementsByTagNameNS("*", "featureMember");
+    
+    for (let i = 0; i < features.length; i++) {
+        const featureNode = features[i].firstElementChild; // Das app:lkel... Element
+        if (!featureNode) continue;
+
+        const entry = { 
+            Layer: layerName,
+            // Wir versuchen die fid (ID) zu extrahieren
+            id: featureNode.getAttribute("fid") || featureNode.getAttribute("gml:id")
+        };
+
+        // Alle Kindknoten (Attribute) durchlaufen
+        const children = featureNode.children;
+        for (let j = 0; j < children.length; j++) {
+            const child = children[j];
+            // Wir nehmen den lokalen Namen (ohne "app:") für die Tabelle
+            const key = child.localName; 
+            const value = child.textContent.trim();
+            
+            // Koordinaten-Tags überspringen wir für die Tabelle
+            if (key !== "boundedBy" && key !== "geometry") {
+                entry[key] = value;
+            }
+        }
+        results.push(entry);
+    }
+    return results;
 }
 
 function parseNibisHTML(html) {

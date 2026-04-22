@@ -86,9 +86,9 @@ document.getElementById('layer-selector').addEventListener('change', () => {
 // nach map-Erstellung
 initTable(map);
 
-document.getElementById('close-table-btn')
+//Eventlistener für den "Schließen"-Button der Tabelle, damit die Karte wieder 100% bekommt
+document.getElementById('close-table-btn') 
   .addEventListener('click', closeTable);
-
 
 map.on('moveend', () => {
   // Nur wenn der User die Tabelle offen hat, führen wir das Update aus

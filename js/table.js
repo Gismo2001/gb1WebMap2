@@ -1,12 +1,12 @@
 import { TabulatorFull as Tabulator } from 'tabulator-tables';
 import 'tabulator-tables/dist/css/tabulator.min.css';
 import Split from 'split.js';
-import { deactivateTableToggle } from './controls';
+import { deactivateTableToggle } from './controls'; 
 
 let splitInstance = null;
 let isTableActive = false; 
 let mapRef = null;
-let table = null;
+export let table = null;
 let resizeObserver = null;
 let tableReady = false;
 let showTableTimeout;
@@ -19,6 +19,10 @@ import CircleStyle from 'ol/style/Circle';
 
 let highlightedFeature = null;
 let clickTimeout = null;
+// Ganz oben in der Datei (außerhalb jeder Funktion)
+
+
+
 
 const hoverHighlightStyle = new Style({
   stroke: new Stroke({
@@ -66,6 +70,7 @@ export function updateSelector(names) {
 
 export function showTable(data) {
   isTableActive = true; 
+  
   const container = document.getElementById("wms-table-container");
   const tableElement = document.getElementById("wms_data_table");
 
@@ -280,13 +285,13 @@ export function showTable(data) {
 
 }
 
-// Die closeTable bleibt fast gleich, sie ist das "harte" Ende
+// Tabelle schließen
 export function closeTable() {
-  isTableActive = false;
-  clearHighlightedFeature();
-  if (splitInstance) {
-    splitInstance.destroy();
-    splitInstance = null;
+  isTableActive = false; // Status auf false setzen
+  clearHighlightedFeature(); // Alle Hervorhebungen in der Karte entfernen
+  if (splitInstance) { // Wenn eine Split.js-Instanz existiert
+    splitInstance.destroy(); // Split.js-Instanz zerstören, damit die Karte wieder 100% bekommt
+    splitInstance = null; // Referenz zurücksetzen
   }
   // ... restliche Aufräumarbeiten wie gehabt
   document.getElementById("wms-table-container").style.display = "none";
@@ -316,7 +321,7 @@ export function getTableActive() {
 export function showTableDebounced(data) {
 
   clearTimeout(showTableTimeout);
-
+  
   showTableTimeout = setTimeout(() => {
     showTable(data);
   }, 150);  // 👈 150ms perfekt
@@ -404,7 +409,7 @@ function clearHighlightedFeature() {
   }
 }
 
-function highlightFeatureForRow(rowData) {
+export function highlightFeatureForRow(rowData) {
   clearHighlightedFeature();
   if (!mapRef) return;
 

@@ -2,7 +2,7 @@
 
 import { updateSelector, showTableDebounced, closeTable } from './table.js';
 import { isTableEnabled } from './controls.js';
-
+import { table, highlightFeatureForRow } from './table.js';
 
 import GeoTIFF from 'ol/source/GeoTIFF';
 import GeoTIFFSource from 'ol/source/GeoTIFF';
@@ -40,10 +40,14 @@ export function getAllLayers(layerGroup, parentVisible = true, groupTitle = null
   return layers; // Gibt das Ergebnis zurück
 }
 
+// Funktion zum Initialisieren des Karten-Klick-Events
 export function initMapClick(map) { // Funktion wird nur aufgerufen, wenn Tabelle im Split aktiv ist
   map.on('singleclick', function (evt) {
-    const requestId = ++latestClickRequestId;
-    if (!isTableEnabled()) return; // Wenn Tabelle im Splitscreen sichtbar
+    // Jede Anfrage bekommt eine eindeutige ID, damit wir sicherstellen können, 
+    // dass nur die Ergebnisse der aktuellsten Anfrage verarbeitet werden
+    const requestId = ++latestClickRequestId; 
+    
+    if (!isTableEnabled()) return; // Wenn Tabelle im Splitscreen nicht sichtbar Funktion verlassen
     
     const promises = []; // Leeres Array ??
     const viewResolution = map.getView().getResolution(); 
@@ -132,19 +136,55 @@ export function initMapClick(map) { // Funktion wird nur aufgerufen, wenn Tabell
       }
     });
 
-    Promise.all(promises).then(() => {
+Promise.all(promises).then(() => {
       if (requestId !== latestClickRequestId) return;
 
       const vectorResults = getVectorFeaturesAtClick(map, evt);
       Object.keys(vectorResults).forEach((layerName) => {
         currentClickResults[layerName] = vectorResults[layerName];
       });
+
       const layerNames = Object.keys(currentClickResults);
-      if (layerNames.length > 0) {
-        if (isTableEnabled()) {
-          updateSelector(layerNames);
-          showTableDebounced(currentClickResults[layerNames[0]]);
+      
+      if (layerNames.length > 0 && isTableEnabled()) {
+        // 1. Die Daten des ersten gefundenen Features nehmen
+        const clickedFeatureData = currentClickResults[layerNames[0]][0];
+        
+        
+        // 2. ID-Key bestimmen (analog zu deiner showTable Logik)
+        const selector = document.getElementById('layer-selector');
+        const layerName = selector ? selector.value : "unknown";
+        const idKey = (layerName === 'fsk') ? 'OBJECTID' : 'ID_con';
+        const featureId = clickedFeatureData[idKey];
+        
+
+        // 3. In der bestehenden Tabulator-Instanz suchen
+        // 'table' muss die Instanz sein, die in showTable erstellt wurde
+        console.log(table + '___' + featureId + '___' + idKey);
+        if (typeof table !== 'undefined' && table && featureId !== undefined) {
+          
+          const rows = table.searchRows(idKey, "=", featureId);
+          if (rows.length > 0) {
+            const targetRow = rows[0];
+
+            // Zeile selektieren
+            table.deselectRow();
+            targetRow.select();
+
+            // Zur Zeile scrollen (Mitte des Containers)
+            table.scrollToRow(targetRow, "center", false);
+
+            // Karten-Highlight auslösen (deine bestehende Funktion)
+            highlightFeatureForRow(clickedFeatureData);
+            
+            // WICHTIG: Hier abbrechen, damit die Tabelle NICHT neu geladen wird
+            return; 
+          }
         }
+
+        // 4. FALLBACK: Wenn Element nicht in Tabelle, dann wie bisher neu laden
+        updateSelector(layerNames);
+        showTableDebounced(currentClickResults[layerNames[0]]);
       }
     });
   });

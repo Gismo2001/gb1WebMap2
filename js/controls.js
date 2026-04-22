@@ -214,18 +214,16 @@ export function isTableEnabled() {
   return isTableActive;
 }
 
-export function deactivateTableToggle() {
-  if (tableToggleBtnInstance) {
-    tableToggleBtnInstance.setActive(false);
+export function deactivateTableToggle() { // Funktion zum Deaktivieren des Table-Toggles und Entfernen der Hauptbutton-Markierung
+  if (tableToggleBtnInstance) { // Falls Tabelleninstanz existiert
+    tableToggleBtnInstance.setActive(false); // Tabelle deaktivieren
   }
-  // --- NEU: Blau-Markierung vom Hauptbutton entfernen ---
-  if (mainTableBtnInstance) {
-    mainTableBtnInstance.element.classList.remove('is-running');
+  if (mainTableBtnInstance) { // Falls Hauptbutton-Instanz existiert
+    mainTableBtnInstance.element.classList.remove('is-running'); //Blau-Markierung vom Hauptbutton entfernen
   }
 }
 
 import SearchPhoton from 'ol-ext/control/SearchPhoton';
-
 let searchPlaceControl = null; //Erstmal die Ortssuche auf null
 
 export function searchPlaceControlFunc() {

@@ -204,6 +204,7 @@ export function createDataTable(map) {
     layout: 'fitData',
     autoColumns: true,
     columnDefaults: { tooltip: true },
+    placeholder: "Keine Objekte im Sichtbereich. Klicken Sie auf ein Objekt für Details.",
   });
 
   setTimeout(() => map.updateSize(), 50);

@@ -14,7 +14,7 @@ let mapRef = null;
 
 export function initPtn(map) { //hier wird map übergeben
     mapRef = map; // map wird mapRef zugewiesn
-    console.log ('initPtn aufgerufen?')
+  
     // Punktlayer erstellen für Visualisierung bei Hover in Tabelle
     if (!ptnLayer) { 
         console.log ('ptnLayer wird erstellt?')

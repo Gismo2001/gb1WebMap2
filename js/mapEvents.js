@@ -101,21 +101,21 @@ export function initMapClick(map) { // Funktion wird nur aufgerufen, wenn Tabell
 
             let data = [];
 
+            
             // 👉 Format erkennen
-// 👉 Format erkennen
-if (responseText.includes('FeatureInfoResponse')) {
-  console.log("ArcGIS XML erkannt:", name);
-    data = parseArcGISXml(responseText, name);
-} else if (responseText.includes('gml:featureMember') || responseText.includes('FeatureCollection')) {
-  console.log("GML erkannt:", name);
-    // Das ist dein neues Format vom Emsland-Server!
-    data = parseDeegreeGml(responseText, name);
-    console.log("Deegree GML erkannt:", name);
-} else if (responseText.includes('<body') || responseText.includes('<table')) {
-    data = parseNibisHTML(responseText);
-} else {
-    console.warn(`Unbekanntes Format bei Layer '${name}'`);
-}
+            if (responseText.includes('FeatureInfoResponse')) {
+              
+              data = parseArcGISXml(responseText, name);
+            } else if (responseText.includes('gml:featureMember') || responseText.includes('FeatureCollection')) {
+              
+            // Das ist dein neues Format vom Emsland-Server!
+              data = parseDeegreeGml(responseText, name);
+              
+            } else if (responseText.includes('<body') || responseText.includes('<table')) {
+              data = parseNibisHTML(responseText);
+            } else {
+              console.warn(`Unbekanntes Format bei Layer '${name}'`);
+            }
 
             if (data.length > 0) {
               currentClickResults[name] = data;
@@ -156,7 +156,7 @@ Promise.all(promises).then(() => {
 
         // 3. In der bestehenden Tabulator-Instanz suchen
         // 'table' muss die Instanz sein, die in showTable erstellt wurde
-        console.log(table + '___' + featureId + '___' + idKey);
+        
         if (typeof table !== 'undefined' && table && featureId !== undefined) {
           
           const rows = table.searchRows(idKey, "=", featureId);
@@ -363,7 +363,9 @@ export function updateTableFromVisibleLayers(map) {
 
     showTableDebounced(results[layerToShow]);
   } else {
-    closeTable();
+    showTableDebounced([]);
+    // Optional: Den Selector leeren oder auf einen Standardwert setzen
+    //updateSelector([]);
   }
 }
 

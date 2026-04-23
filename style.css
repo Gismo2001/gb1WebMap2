@@ -31,7 +31,7 @@ html, body {
     width: 100%;
     position: relative; /* Wichtig für OpenLayers Controls */
 }
-/* Gemeinsamer Block für mobile Geräte (Smartphone/Tablet) */
+
 @media (max-width: 768px) {
   /* 2. Allgemeine OpenLayers Controls vergrößern */
   .ol-control button {
@@ -78,7 +78,11 @@ html, body {
    
 }
 
-  
+/* OSM - Streetmap in greyscale */
+.base-grey
+ {
+    filter: grayscale(100%);
+}
 
 /* 
 .ol-wmscapabilities {

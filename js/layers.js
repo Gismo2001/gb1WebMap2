@@ -373,12 +373,13 @@ export function createOsmTileCr() {
     permalink: 'osmcolor',
     className: 'base',
     type: 'base',
+    className: 'base',
     source: new OSM({
       url: 'https://{a-c}.tile.openstreetmap.de/{z}/{x}/{y}.png',
-      //attributions: ['© OpenStreetMap contributors', 'Tiles courtesy of <a href="https://www.openstreetmap.org/"></a>'],
+      attributions: ['© OpenStreetMap contributors', 'Tiles courtesy of <a href="https://www.openstreetmap.org/"></a>'],
     }),
-    opacity: 1,
-    visible: false,
+    opacity: 0.75,
+    visible: true, 
   });
 }
 export function createOsmTileGr() {
@@ -386,10 +387,13 @@ export function createOsmTileGr() {
     title: 'osm-grey',
     name: 'osmgrey',
     permalink: 'osmgrey',
+    className: 'base-grey',
     type: 'base',
-    source: new XYZ({
-      url: 'https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png',
-      attributions: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+    
+    source: new OSM({
+      url: 'http://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      
+      attributions: ['© OpenStreetMap contributors', 'Tiles courtesy of <a href="https://www.openstreetmap.org/"></a>'],
     }),
     opacity: 1,
     visible: false,

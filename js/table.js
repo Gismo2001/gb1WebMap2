@@ -75,15 +75,21 @@ export function showTable(data) {
   const tableElement = document.getElementById("wms_data_table");
 
   if (!container || !tableElement) return;
-
-  // 1. FALL: Keine Daten -> Verstecken
+ // 1. FALL: Keine Daten
   if (!data || data.length === 0) {
-    container.style.display = "none";
-    if (mapRef) {
-      document.getElementById("map").style.height = "100%";
-      mapRef.updateSize();
+    // Container MUSS sichtbar bleiben
+    container.style.display = "flex"; 
+    
+    // Falls Tabulator schon existiert, leeren wir ihn einfach
+    if (table) {
+      table.setData([]); // Zeigt "No Data" an, aber Struktur bleibt
     }
-    return; 
+    
+    // Wir machen hier KEIN return mehr, sondern lassen den Split-Check unten zu,
+    // damit der Split-Zustand stabil bleibt.
+  } else {
+    // 2. FALL: Daten sind da!
+    container.style.display = "flex";
   }
 
   // 2. FALL: Daten sind da! -> Sichtbar machen (WICHTIG!)
@@ -95,7 +101,7 @@ export function showTable(data) {
   }
 
   // --- DATEN VORHANDEN: TABELLE ANZEIGEN ---
-  container.style.display = "flex";
+  //container.style.display = "flex";
 
   const selector = document.getElementById('layer-selector');
   const layerName = selector ? selector.value : "unknown";
@@ -144,6 +150,7 @@ export function showTable(data) {
       data: uniqueData,
       height: "100%",
       layout: "fitData",
+      placeholder: "Keine Objekte im Sichtbereich. Klicken Sie auf ein Objekt für Details.",
       autoColumns: true,
       autoColumnsDefinitions: function(definitions) {
         if (layerName !== 'fsk') {

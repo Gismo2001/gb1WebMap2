@@ -13,7 +13,7 @@ import Stroke from 'ol/style/Stroke';
 
 import {SleStyle, WehStyle, BruAndereStyle, BruNlwknStyle, DueStyle, QueStyle, getStyleForArtEin, getStyleForArtSonPun, getStyleForArtSonLin, getStyleForArtGewInfo, getStyleForArtUmn, Km10scalStyle, Km100scalStyle, Km500scalStyle, getStyleForArtFSK } from './utils.js';
 import LayerGroup from 'ol/layer/Group';
-import { TileWMS } from 'ol/source.js';
+import TileWMS from 'ol/source/TileWMS';
 
 
 
@@ -264,7 +264,7 @@ export function createKm10scalLayer() {
 }
 export function createKm100scalLayer() {
  return new VectorLayer({
- source: new VectorSource({format: new GeoJSON(), url: function (extent) {return './myLayers/km_100_scal.geojson' + '?bbox=' + extent.join(','); }, strategy: bboxStrategy }),
+ source: new VectorSource({format: new GeoJSON(), url: function (extent) {return '/myLayers/km_100_scal.geojson' + '?bbox=' + extent.join(','); }, strategy: bboxStrategy }),
   title: 'Km100scal',
   name: 'Km100scal',
   permalink:'Km100scal',
@@ -373,7 +373,6 @@ export function createOsmTileCr() {
     permalink: 'osmcolor',
     className: 'base',
     type: 'base',
-    className: 'base',
     source: new OSM({
       url: 'https://{a-c}.tile.openstreetmap.de/{z}/{x}/{y}.png',
       attributions: ['© OpenStreetMap contributors', 'Tiles courtesy of <a href="https://www.openstreetmap.org/"></a>'],
@@ -604,7 +603,7 @@ return  new VectorLayer({
   source: new VectorSource({
     format: new GeoJSON(), 
     url: function (extent) 
-    {return './myLayers/exp_allgm_fsk.geojson?bbox=' + extent.join(',');
+    {return '/myLayers/exp_allgm_fsk.geojson?bbox=' + extent.join(',');
 
      }, 
     strategy: bboxStrategy

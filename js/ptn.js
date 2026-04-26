@@ -103,7 +103,6 @@ export function handleCRSChange() {
     } catch (err) {
         alert('❌ Fehler bei der Koordinate oder dem Koordinatensystem.');
     }
-   drawPoint(transformed);
 }
 export function drawPoint(coords) {
     if (!ptnSource || !mapRef) return;

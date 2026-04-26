@@ -4,9 +4,6 @@ import { updateSelector, showTableDebounced, closeTable } from './table.js';
 import { isTableEnabled } from './controls.js';
 import { table, highlightFeatureForRow } from './table.js';
 
-import GeoTIFF from 'ol/source/GeoTIFF';
-import GeoTIFFSource from 'ol/source/GeoTIFF';
-import WebGLTileLayer from 'ol/layer/WebGLTile';
 import { transformExtent } from 'ol/proj';
 
 

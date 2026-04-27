@@ -258,13 +258,13 @@ top: 4em;
 
 
 /* --- 2. PRINT-BUTTON (Lösung A) ANPASSUNG --- */
-.ol-control .ol-print-dialog, 
+
 .ol-print-dialog {
    
-    bottom: 35em !important; 
-    left: 0.5em !important;
-    height: 10px !important;
-    width: 10px !important;
+    bottom: 20em !important; 
+    left: 5px !important;
+    height: 15px !important;
+    width: 15px !important;
     padding: 1px !important;
     background-color: #2a90fc !important;
 

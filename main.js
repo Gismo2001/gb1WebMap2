@@ -58,7 +58,7 @@ const searchPlaceControl = searchPlaceControlFunc(); // Die Ortssuche und der zu
 map.addControl(searchPlaceControl); // und hinzugefügt (control.js)
 initSearchEvents(searchPlaceControl, map); // eventhandler fü+r searchPlaceControl wird erstellt (mapEvents.js)
 initMapClick(map); // eventhandler für Click auf di Karte (mapEvents.js)
-initPrintControl(map);
+initPrintControl(map);//Contols laden für den Print-Button (control.js)
 switcherDrawList(layerSwitcher);
 switcherToggle(layerSwitcher);
 

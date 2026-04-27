@@ -49,13 +49,14 @@ html, body {
 
 .ol-touch .ol-control button,
   .ol-touch .ol-control.ol-print-dialog {
-    width: 30px;  /* 30px ist oft noch etwas klein für Daumen */
-    height: 30px;
-    font-size: 1.25em;
+  font-size: 12px;
+  margin-top: 250px; 
+  text-align: left; /* Inhalt im Container linksbündig */
+  left: 5px; /* Abstand zum linken Rand */
+  padding: 5px;
+  background-color: #0062ff;
   }
-
-
-  
+ 
   .ol-touch .ol-control.ol-layerswitcher .panel-container {
   margin: 1px;
   padding-right: 0;

@@ -375,7 +375,7 @@ export function createOsmTileCr() {
     type: 'base',
     source: new OSM({
       url: 'https://{a-c}.tile.openstreetmap.de/{z}/{x}/{y}.png',
-      attributions: ['© OpenStreetMap contributors', 'Tiles courtesy of <a href="https://www.openstreetmap.org/"></a>'],
+      attributions: ['© OpenStreetMap contributors'],
     }),
     opacity: 0.75,
     visible: false, 
@@ -392,7 +392,7 @@ export function createOsmTileGr() {
     source: new OSM({
       url: 'http://tile.openstreetmap.org/{z}/{x}/{y}.png',
       
-      attributions: ['© OpenStreetMap contributors', 'Tiles courtesy of <a href="https://www.openstreetmap.org/"></a>'],
+      attributions: ['© OpenStreetMap contributors'],
     }),
     opacity: 1,
     visible: false,
@@ -406,7 +406,7 @@ export function createbaseDECrLayer() {
   type: 'base',
   source: new TileWMS({
     url: "https://sgx.geodatenzentrum.de/wms_basemapde",
-    attributions: '© GeoBasis-DE / BKG (Jahr des letzten Datenbezugs) CC BY 4.0',
+    attributions: '© GeoBasis-DE / BKG',
     params: {
       "LAYERS": "de_basemapde_web_raster_farbe",
       "TILED": true,
@@ -426,7 +426,7 @@ export function createbaseDEGrLayer() {
   type: 'base',
     source: new TileWMS({
     url: "https://sgx.geodatenzentrum.de/wms_basemapde",
-    attributions: '© GeoBasis-DE / BKG (Jahr des letzten Datenbezugs) CC BY 4.0',
+    attributions: '© GeoBasis-DE / BKG',
     params: {
       "LAYERS": "de_basemapde_web_raster_grau",
       "TILED": true,
@@ -449,7 +449,7 @@ title: 'TopPlus',
 
   source: new TileWMS({
     url: "https://sgx.geodatenzentrum.de/wms_topplus_open",
-    attributions: '© GeoBasis-DE / BKG (Jahr des letzten Datenbezugs) CC BY 4.0',
+    attributions: '© GeoBasis-DE / BKG',
     params: {
       "LAYERS": "web",
       "TILED": true,

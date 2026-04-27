@@ -260,13 +260,13 @@ top: 4em;
 /* --- 2. PRINT-BUTTON (Lösung A) ANPASSUNG --- */
 
 .ol-print-dialog {
-   
-    bottom: 20em !important; 
-    left: 5px !important;
-    height: 15px !important;
-    width: 15px !important;
-    padding: 1px !important;
-    background-color: #2a90fc !important;
+  margin-top: 250px; 
+  text-align: left; /* Inhalt im Container linksbündig */
+  left: 5px; /* Abstand zum linken Rand */
+  font-size: 12px;
+  padding: 5px;
+  
+  background-color: #0062ff;
 
 }
 

@@ -261,11 +261,13 @@ top: 4em;
 .ol-control .ol-print-dialog, 
 .ol-print-dialog {
    
-    bottom: 5.5em !important; 
-    left: auto !important;
-    right: 0.5em !important;
+    bottom: 35em !important; 
+    left: 0.5em !important;
+    height: 10px !important;
+    width: 10px !important;
     padding: 1px !important;
     background-color: #2a90fc !important;
-    
+
 }
+
 

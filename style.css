@@ -55,7 +55,7 @@ html, body {
   left: 5px; /* Abstand zum linken Rand */
   padding: 5px;
   background-color: #0062ff;
-  }
+    }
  
   .ol-touch .ol-control.ol-layerswitcher .panel-container {
   margin: 1px;
@@ -80,9 +80,38 @@ html, body {
 }
 
 /* OSM - Streetmap in greyscale */
-.base-grey
- {
+.base-grey {
     filter: grayscale(100%);
+}
+
+/* Popup Styling */
+.ol-popup {
+    background-color: white;
+    border: 2px solid black;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    position: relative;
+}
+
+.ol-popup-closer {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    color: black;
+    text-decoration: none;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 1000;
+}
+
+.ol-popup-closer:hover {
+    color: #666;
+}
+
+.ol-popup-content {
+    padding: 10px;
+    color: black;
 }
 
 /* 

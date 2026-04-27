@@ -1,6 +1,7 @@
 // js/mapEvents.js
 
 import { updateSelector, showTableDebounced, closeTable } from './table.js';
+
 import { isTableEnabled } from './controls.js';
 import { table, highlightFeatureForRow } from './table.js';
 
@@ -11,8 +12,14 @@ import { transformExtent } from 'ol/proj';
 
 import { EXCLUDED_LAYERS } from './config.js';
 
+import Overlay from 'ol/Overlay.js';
+import { toStringHDMS } from 'ol/coordinate'; // z.B. für Koordinatenanzeige
+
 let currentClickResults = {};
 let latestClickRequestId = 0;
+
+let popupOverlay;
+let popupContent;
 
 
 
@@ -47,11 +54,12 @@ export function getAllLayers(layerGroup, parentVisible = true, groupTitle = null
 }
 // Funktion zum Initialisieren des Karten-Klick-Events
 export function initMapClick(map) { // Funktion wird nur aufgerufen, wenn Tabelle im Split aktiv ist
+  
   map.on('singleclick', function (evt) {
     // Jede Anfrage bekommt eine eindeutige ID, damit wir sicherstellen können, 
     // dass nur die Ergebnisse der aktuellsten Anfrage verarbeitet werden
     const requestId = ++latestClickRequestId; 
-    if (!isTableEnabled()) return; // Wenn Tabelle im Splitscreen nicht sichtbar Funktion verlassen
+    //if (!isTableEnabled()) return; // Wenn Tabelle im Splitscreen nicht sichtbar Funktion verlassen
     const promises = []; // Leeres Array ??
     const viewResolution = map.getView().getResolution(); // die Auflösung der Karte holen
     currentClickResults = {}; // Leeres Feld für Aufnahme des Klickergebnisses ??
@@ -120,7 +128,10 @@ export function initMapClick(map) { // Funktion wird nur aufgerufen, wenn Tabell
             }
 
             if (data.length > 0) {
-              currentClickResults[name] = data;
+              currentClickResults[name] = {
+                data: data,
+                layer: layer
+              };
             }
           })
           .catch((error) => {
@@ -133,10 +144,9 @@ export function initMapClick(map) { // Funktion wird nur aufgerufen, wenn Tabell
         promises.push(promise);
       }
     });
-
+    //Promise für Tabelle
     Promise.all(promises).then(() => {
       if (requestId !== latestClickRequestId) return;
-
       const vectorResults = getVectorFeaturesAtClick(map, evt);
       Object.keys(vectorResults).forEach((layerName) => {
         currentClickResults[layerName] = vectorResults[layerName];
@@ -146,8 +156,7 @@ export function initMapClick(map) { // Funktion wird nur aufgerufen, wenn Tabell
       if (layerNames.length > 0 && isTableEnabled()) {
     
         // Wir nehmen das erste gefundene Feature vom Klick
-        const clickedFeatureData = currentClickResults[layerNames[0]][0];
-        
+        const clickedFeatureData = currentClickResults[layerNames[0]].data[0];
         
         // 2. ID-Key bestimmen (analog zu deiner showTable Logik)
         const selector = document.getElementById('layer-selector');
@@ -179,9 +188,55 @@ export function initMapClick(map) { // Funktion wird nur aufgerufen, wenn Tabell
 
         // 4. FALLBACK: Wenn Element nicht in Tabelle, dann wie bisher neu laden
         updateSelector(layerNames);
-        showTableDebounced(currentClickResults[layerNames[0]]);
+        showTableDebounced(currentClickResults[layerNames[0]].data);
       }
     });
+    //Promise für Popup
+Promise.all(promises).then(() => {
+  if (requestId !== latestClickRequestId) return;
+
+  const vectorResults = getVectorFeaturesAtClick(map, evt);
+
+  Object.keys(vectorResults).forEach((layerName) => {
+    currentClickResults[layerName] = vectorResults[layerName];
+  });
+
+  const layerNames = Object.keys(currentClickResults);
+  if (layerNames.length === 0) return;
+
+  // 👉 FALL 1: Tabelle aktiv
+  if (isTableEnabled()) {
+
+    updateSelector(layerNames);
+    showTableDebounced(currentClickResults[layerNames[0]].data);
+    return;
+  }
+
+  // 👉 FALL 2: Tabelle NICHT aktiv → Popup
+  const layerName = layerNames[0];
+  const entry = currentClickResults[layerName];
+
+if (!shouldShowPopup(entry.layer)) return;
+
+const data = entry.data;
+
+  //if (!shouldShowPopupLayerName(layerName)) return;
+
+  popupContent.innerHTML = buildPopupContent(data, layerName);
+  popupOverlay.setPosition(evt.coordinate);
+
+  // 👉 Button aktivieren
+  setTimeout(() => {
+    const btn = document.getElementById('open-table-btn');
+    if (btn) {
+      btn.onclick = () => {
+        updateSelector([layerName]);
+        showTableDebounced(data);
+        popupOverlay.setPosition(undefined);
+      };
+    }
+  }, 0);
+});
   });
 }
 
@@ -300,14 +355,17 @@ export function getVectorFeaturesAtClick(map, evt) {
     const key = name || title || 'vector';
 
     if (!results[key]) {
-      results[key] = [];
+      results[key] = {
+        data: [],
+        layer: layer
+      };
     }
 
     const props = feature.getProperties();
     const cleanProps = { ...props };
     delete cleanProps.geometry;
 
-    results[key].push(cleanProps);
+    results[key].data.push(cleanProps);
   });
 
   return results;
@@ -574,4 +632,59 @@ function addVectorLayerToMap(map, features, sourceName) {
       maxZoom: 18
     });
   }
+}
+
+
+
+function shouldShowPopup(layer) {
+  if (isTableEnabled()) return false;
+
+  const name = (layer?.get('name') || '').toLowerCase();
+
+  const allowedWmsLayers = ['uesg', 'fließgew'];
+
+  const isVector = !layer?.getSource()?.getFeatureInfoUrl;
+
+  return isVector || allowedWmsLayers.includes(name);
+}
+
+
+export function initPopup(map) {
+  
+
+  const container = document.getElementById('popup');
+  const content = document.getElementById('popup-content');
+  const closer = document.getElementById('popup-closer');
+
+  popupOverlay = new Overlay({
+    element: container,
+    autoPan: true,
+    autoPanAnimation: { duration: 250 }
+  });
+
+  // ✅ WICHTIG – wieder aktivieren!
+  map.addOverlay(popupOverlay);
+
+  popupContent = content; // 👉 speichern!
+
+  closer.onclick = function () {
+    popupOverlay.setPosition(undefined);
+    return false;
+  };
+}
+function buildPopupContent(data, layerName) {
+  
+  if (!data || data.length === 0) return "<p>Keine Daten</p>";
+  const first = data[0];
+  let html = `<b>${layerName}</b><br>`;
+  // 👉 nur wenige Attribute anzeigen!
+  Object.entries(first).slice(0, 3).forEach(([key, value]) => {
+    html += `${key}: ${value}<br>`;
+  });
+
+  // 👉 Link zur Tabelle
+  html += `<br><button id="open-table-btn">Details anzeigen</button>`;
+  
+  
+  return html;
 }

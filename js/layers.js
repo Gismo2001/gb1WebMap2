@@ -724,7 +724,7 @@ export function createwmsUesgLayer() {
       'TILED': true,
     },
   }),  
-  title: 'ÜSG',
+  title: 'UESG',
   name: 'UESG',
   permalink:'UESG',
   visible: false,

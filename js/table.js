@@ -70,19 +70,15 @@ export function updateSelector(names) {
 }
 export function showTable(data) {
   isTableActive = true;
-
   const container = document.getElementById("wms-table-container");
   const tableElement = document.getElementById("wms_data_table");
   if (!container || !tableElement) return;
-
   // 👉 Anzeige
   container.style.display = "flex";
-
   const mapElement = document.getElementById("map");
   if (mapElement) {
     mapElement.style.height = "";
   }
-
   // 👉 Layer-Info
   const selector = document.getElementById('layer-selector');
   const layerName = selector ? selector.value : "unknown";
@@ -108,9 +104,7 @@ export function showTable(data) {
       }
     });
   }
-
-  if (mapRef) mapRef.updateSize();
-
+if (mapRef) mapRef.updateSize();
   // 👉 Tabelle neu aufbauen
   if (table) {
     table.destroy();
@@ -118,7 +112,6 @@ export function showTable(data) {
   }
 
   tableElement.innerHTML = "";
-
   try {
     table = new Tabulator("#wms_data_table", {
       data: uniqueData,

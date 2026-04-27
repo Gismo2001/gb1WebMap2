@@ -18,6 +18,7 @@ import { switchLayerData } from './js/table.js';
 import { getTableActive } from './js/table.js';  
 
 import { initMapClick } from './js/mapEvents.js';
+import { initPopup } from './js/mapEvents.js';
 import { switcherDrawList } from './js/mapEvents.js';
 import { switcherToggle } from './js/mapEvents.js';
 import { getClickResults } from './js/mapEvents.js';
@@ -44,7 +45,6 @@ const map = createMap('map', layers);
 
 
 
-
 // 👉 LayerSwitcher wird hinzugefügt (control.js)
 const layerSwitcher = createLayerSwitcher(map);
 map.addControl(layerSwitcher);
@@ -57,7 +57,8 @@ map.addControl(toolbar);
 const searchPlaceControl = searchPlaceControlFunc(); // Die Ortssuche und der zugehörige Button wird erstellt (control.js)
 map.addControl(searchPlaceControl); // und hinzugefügt (control.js)
 initSearchEvents(searchPlaceControl, map); // eventhandler fü+r searchPlaceControl wird erstellt (mapEvents.js)
-initMapClick(map); // eventhandler für Click auf di Karte (mapEvents.js)
+initMapClick(map); // eventhandler für Click auf die Karte (mapEvents.js)
+initPopup(map); // Popup-Overlay wird erstellt (mapEvents.js)
 initPrintControl(map);//Contols laden für den Print-Button (control.js)
 switcherDrawList(layerSwitcher);
 switcherToggle(layerSwitcher);

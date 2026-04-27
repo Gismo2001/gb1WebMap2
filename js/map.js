@@ -4,8 +4,6 @@ import { fromLonLat } from 'ol/proj';
 import { FullScreen, Attribution, defaults as defaultControls, ZoomToExtent } from 'ol/control';
 import { DragRotateAndZoom, defaults as defaultInteractions } from 'ol/interaction';
 
-
-// map erstellen aus main.js aufgerufen, die Layer die zuvor in main.js erstellt wurden, werden hier übergeben
 export function createMap(target = 'map', layers = []) {
   return new Map({
     target,

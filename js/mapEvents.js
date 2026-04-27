@@ -4,27 +4,36 @@ import { updateSelector, showTableDebounced, closeTable } from './table.js';
 import { isTableEnabled } from './controls.js';
 import { table, highlightFeatureForRow } from './table.js';
 
+import GeoTIFF from 'ol/source/GeoTIFF';
+import GeoTIFFSource from 'ol/source/GeoTIFF';
+import WebGLTileLayer from 'ol/layer/WebGLTile';
 import { transformExtent } from 'ol/proj';
 
-
+import { EXCLUDED_LAYERS } from './config.js';
 
 let currentClickResults = {};
 let latestClickRequestId = 0;
 
-export function getAllLayers(layerGroup, parentVisible = true, groupTitle = null) { //Funktion wurd aus Event SingleClick in initMapClick aufgerufen
-  let layers = [];
-  const currentTitle = layerGroup.get('title') || groupTitle; // aktuelle Namen und Gruppen ermitteln
-  
-  layerGroup.getLayers().forEach((layer) => { // Für jeden Layer in einer Gruppe
-    const isVisible = parentVisible && layer.getVisible(); // Ist die Gruppe und ein Layer sichtbar dann isVisible = true
-    
-    if (layer.getLayers) {  //Wenn was gefunden wurde
-      //Rekursiver Aufruf, Die Funktion ruft sich selbst auf allerdings jetzt mit:
-      // layer → ist hier eine LayerGroup 
-      // isVisible → bisher berechnete Sichtbarkeit wird weitergegeben 
-      // currentTitle → Gruppentitel wird „vererbt“
 
-      layers = layers.concat(getAllLayers(layer, isVisible, currentTitle)); 
+
+
+export function getAllLayers(layerGroup, parentVisible = true, groupTitle = null) {
+  let layers = [];
+  const currentTitle = layerGroup.get('title') || groupTitle;
+
+  layerGroup.getLayers().forEach((layer) => {
+    const isVisible = parentVisible && layer.getVisible();
+
+    const name = (layer.get('name') || '').toLowerCase();
+    const title = (layer.get('title') || '').toLowerCase();
+
+    // 👉 Ausschluss prüfen
+    if (EXCLUDED_LAYERS.includes(name) || EXCLUDED_LAYERS.includes(title)) {
+      return;
+    }
+
+    if (layer.getLayers) {
+      layers = layers.concat(getAllLayers(layer, isVisible, currentTitle));
     } else {
       layers.push({
         layer,
@@ -33,24 +42,20 @@ export function getAllLayers(layerGroup, parentVisible = true, groupTitle = null
       });
     }
   });
-  
-  return layers; // Gibt das Ergebnis zurück
-}
 
+  return layers;
+}
 // Funktion zum Initialisieren des Karten-Klick-Events
 export function initMapClick(map) { // Funktion wird nur aufgerufen, wenn Tabelle im Split aktiv ist
   map.on('singleclick', function (evt) {
     // Jede Anfrage bekommt eine eindeutige ID, damit wir sicherstellen können, 
     // dass nur die Ergebnisse der aktuellsten Anfrage verarbeitet werden
     const requestId = ++latestClickRequestId; 
-    
     if (!isTableEnabled()) return; // Wenn Tabelle im Splitscreen nicht sichtbar Funktion verlassen
-    
     const promises = []; // Leeres Array ??
-    const viewResolution = map.getView().getResolution(); 
+    const viewResolution = map.getView().getResolution(); // die Auflösung der Karte holen
     currentClickResults = {}; // Leeres Feld für Aufnahme des Klickergebnisses ??
-    const allLayers = getAllLayers(map); // Alle Layer ermitteln, ruft die Funktion weiter oben auf 
-    
+    const allLayers = getAllLayers(map); // Alle Layer ermitteln außer km10, km100,...
     allLayers.forEach((obj) => { //Für jeden Layer, bzw. alle Objekte von allLayers
       const layer = obj.layer; // Das Objekt layer zuweisen
       if (obj.visible && layer.getSource()?.getFeatureInfoUrl) { //Wen  Layer sichtbar und unterstützt GetFeatureInfo
@@ -129,7 +134,7 @@ export function initMapClick(map) { // Funktion wird nur aufgerufen, wenn Tabell
       }
     });
 
-Promise.all(promises).then(() => {
+    Promise.all(promises).then(() => {
       if (requestId !== latestClickRequestId) return;
 
       const vectorResults = getVectorFeaturesAtClick(map, evt);
@@ -138,9 +143,9 @@ Promise.all(promises).then(() => {
       });
 
       const layerNames = Object.keys(currentClickResults);
-      
       if (layerNames.length > 0 && isTableEnabled()) {
-        // 1. Die Daten des ersten gefundenen Features nehmen
+    
+        // Wir nehmen das erste gefundene Feature vom Klick
         const clickedFeatureData = currentClickResults[layerNames[0]][0];
         
         
@@ -159,14 +164,11 @@ Promise.all(promises).then(() => {
           const rows = table.searchRows(idKey, "=", featureId);
           if (rows.length > 0) {
             const targetRow = rows[0];
-
             // Zeile selektieren
             table.deselectRow();
             targetRow.select();
-
             // Zur Zeile scrollen (Mitte des Containers)
             table.scrollToRow(targetRow, "center", false);
-
             // Karten-Highlight auslösen (deine bestehende Funktion)
             highlightFeatureForRow(clickedFeatureData);
             
@@ -287,22 +289,29 @@ export function getVectorFeaturesAtClick(map, evt) {
   const results = {};
 
   map.forEachFeatureAtPixel(evt.pixel, function (feature, layer) {
-    const layerName = layer?.get('name') || 'Vector';
 
-    if (!results[layerName]) {
-      results[layerName] = [];
+    const name = (layer?.get('name') || '').toLowerCase();
+    const title = (layer?.get('title') || '').toLowerCase();
+
+    if (EXCLUDED_LAYERS.includes(name) || EXCLUDED_LAYERS.includes(title)) {
+      return;
+    }
+
+    const key = name || title || 'vector';
+
+    if (!results[key]) {
+      results[key] = [];
     }
 
     const props = feature.getProperties();
     const cleanProps = { ...props };
     delete cleanProps.geometry;
 
-    results[layerName].push(cleanProps);
+    results[key].push(cleanProps);
   });
 
   return results;
 }
-
 export function getVisibleVectorFeatures(map) {
   const extent = map.getView().calculateExtent(map.getSize());
   const results = {};
@@ -425,6 +434,7 @@ searchPlaceControl.on('select', (e) => { //Eventhandler für searchPlaceControl,
 // mapEvents.js
 import GeoJSON from 'ol/format/GeoJSON';
 import KML from 'ol/format/KML';
+import shp from 'shpjs';
 import VectorSource from 'ol/source/Vector';
 import VectorLayer from 'ol/layer/Vector';
 
@@ -439,59 +449,75 @@ export function fileToggleInput(map) {
     fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.multiple = true;
-    fileInput.accept = '.geojson,.json,.kml,.tif,.tiff';
+    fileInput.accept = '.geojson,.json,.kml,.zip,.tif,.tiff';
     fileInput.style.display = 'none';
     document.body.appendChild(fileInput);
   }
+
   fileInput.onchange = (event) => {
     const files = event.target.files;
     if (!files.length) return;
+
     Array.from(files).forEach(file => {
       const fileName = file.name.replace(/\.[^/.]+$/, "");
       const fileEnd = file.name.split('.').pop().toLowerCase();
+
       if (fileEnd === 'tif' || fileEnd === 'tiff') {
-        console.log('tiff-Datei');
-      } else {
-         const reader = new FileReader();
-         reader.onload = (e) => {
-            const content = e.target.result;
-            let format;
-            let sourceName;
-              if (fileEnd === 'kml') {
-                format = new KML({ extractStyles: true });
-                sourceName = `KML: ${zaehlerKML} ${fileName}`;
-                zaehlerKML++;
-              } else {
-                format = new GeoJSON();
-                sourceName = `GeoJson: ${zaehlerGeojson} ${fileName}`;
-                zaehlerGeojson++;
-              }
-              try {
-                const features = format.readFeatures(content, {
-                  featureProjection: 'EPSG:3857'
-                  });
-                const vectorSource = new VectorSource({
-                  features: features
-                });
-                const vectorLayer = new VectorLayer({
-                  source: vectorSource,
-                  title: sourceName,
-                  name: sourceName
-                });
-                map.addLayer(vectorLayer); 
-                if (features.length > 0) {
-                  map.getView().fit(vectorSource.getExtent(), {
-                  padding: [50, 50, 50, 50],
-                  duration: 1000,
-                  maxZoom: 18
-                  });
-                }
-              } catch (err) {
-                console.error("Fehler beim Parsen:", err);
-                alert(`Fehler beim Laden von ${file.name}`);  
-              }
-         };
-         reader.readAsText(file);
+        console.log('tiff-Datei - Hier müsste GeoTIFF-Logik hin');
+      } 
+      // 👉 NEU: Shapefile-Logik (ZIP)
+      else if (fileEnd === 'zip') {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          try {
+            const buffer = e.target.result;
+            // shpjs macht aus dem Buffer ein GeoJSON-Objekt
+            const geojson = await shp(buffer);
+            const sourceName = `Shapefile: ${zaehlerGeojson} ${fileName}`;
+            zaehlerGeojson++;
+
+            // Da shp() ein GeoJSON liefert, nutzen wir den GeoJSON-Format-Reader
+            const features = new GeoJSON().readFeatures(geojson, {
+              featureProjection: 'EPSG:3857'
+            });
+
+            addVectorLayerToMap(map, features, sourceName);
+          } catch (err) {
+            console.error("Fehler beim Shapefile-Parsing:", err);
+            alert(`Fehler beim Laden des Shapefiles: ${file.name}`);
+          }
+        };
+        reader.readAsArrayBuffer(file); // ZIP muss binär gelesen werden!
+      } 
+      // 👉 Bestehende Text-Logik (KML, GeoJSON)
+      else {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const content = e.target.result;
+          let format;
+          let sourceName;
+
+          if (fileEnd === 'kml') {
+            format = new KML({ extractStyles: true });
+            sourceName = `KML: ${zaehlerKML} ${fileName}`;
+            zaehlerKML++;
+          } else {
+            format = new GeoJSON();
+            sourceName = `GeoJson: ${zaehlerGeojson} ${fileName}`;
+            zaehlerGeojson++;
+          }
+
+          try {
+            const features = format.readFeatures(content, {
+              featureProjection: 'EPSG:3857'
+            });
+            addVectorLayerToMap(map, features, sourceName);
+          } catch (err) {
+            console.error("Fehler beim Parsen:", err);
+            alert(`Fehler beim Laden von ${file.name}`);
+          }
+        };
+        reader.readAsText(file);
       }
     });
     fileInput.value = '';
@@ -499,3 +525,53 @@ export function fileToggleInput(map) {
   fileInput.click();
 }
 
+import { Style, Circle, Fill, Stroke } from 'ol/style';
+
+// Wir definieren den Style einmal außerhalb, damit er nicht bei jedem 
+// Feature-Upload neu erstellt werden muss (besser für die Performance).
+const uploadStyle = new Style({
+  // Style für Polygone und die Füllung von Kreisen
+  fill: new Fill({
+    color: 'rgba(255, 0, 0, 0.2)', // Rot mit 20% Deckkraft
+  }),
+  // Style für Linien und die Umrandung von Kreisen/Polygonen
+  stroke: new Stroke({
+    color: '#ff0000', // Kräftiges Rot
+    width: 2,
+  }),
+  // Spezieller Style für Punkt-Geometrien
+  image: new Circle({
+    radius: 6,
+    fill: new Fill({
+      color: 'rgba(255, 0, 0, 0.5)', // Punkt-Füllung etwas kräftiger (50%)
+    }),
+    stroke: new Stroke({
+      color: '#ff0000',
+      width: 2,
+    }),
+  }),
+});
+
+function addVectorLayerToMap(map, features, sourceName) {
+  const vectorSource = new VectorSource({
+    features: features
+  });
+
+  const vectorLayer = new VectorLayer({
+    source: vectorSource,
+    title: sourceName,
+    name: sourceName,
+    // 👉 Hier wird der neue Style zugewiesen
+    style: uploadStyle 
+  });
+  
+  map.addLayer(vectorLayer);
+
+  if (features.length > 0) {
+    map.getView().fit(vectorSource.getExtent(), {
+      padding: [50, 50, 50, 50],
+      duration: 1000,
+      maxZoom: 18
+    });
+  }
+}

@@ -460,11 +460,7 @@ title: 'TopPlus',
   visible: true,
 
 
-}
-
-)
-
-
+})
 }
 
 
@@ -482,7 +478,8 @@ export function createExpBwSleLayer() {
     name: 'sle',
     permalink: 'sle',
     style: SleStyle,
-    visible: true,
+    opacity: 0.7,
+    visible: false,
   });
 }
 export function createExpBwWehLayer() {
@@ -494,11 +491,12 @@ export function createExpBwWehLayer() {
       },
       strategy: bboxStrategy
     }),
-  title: 'Wehr', 
-  name: 'weh', 
-  permalink:'weh',
-  style: WehStyle,
-  visible: false
+    title: 'Wehr', 
+    name: 'weh', 
+    permalink:'weh',
+    style: WehStyle,
+    opacity: 0.7,
+    visible: false,
   });
 }
 export function createExpBwBruAndereLayer() {
@@ -514,7 +512,8 @@ export function createExpBwBruAndereLayer() {
     name: 'bru_andere', 
     permalink:'bru_andere',  
     style: BruAndereStyle,
-    visible: false
+    opacity: 0.7,
+    visible: false,
   });
 }
 export function createExpBwBruNlwknLayer() {
@@ -530,7 +529,8 @@ export function createExpBwBruNlwknLayer() {
     name: 'bru_nlwkn', // Titel für den Layer-Switcher
     permalink:'bru_nlwkn',  // Um Permalink zu setzen
     style: BruNlwknStyle,
-    visible: false
+    opacity: 0.7,
+    visible: true,
   });
 }
 export function createExpBwDueLayer() {
@@ -542,11 +542,12 @@ export function createExpBwDueLayer() {
       },
       strategy: bboxStrategy
     }),
-   title: 'Düker', 
-  name: 'due', 
-  permalink:'due',  
-  style: DueStyle,
-  visible: false
+    title: 'Düker', 
+    name: 'due', 
+    permalink:'due',  
+    style: DueStyle,
+    opacity: 0.7,
+    visible: false
   });
 }
 export function createExpBwQueLayer() {
@@ -558,11 +559,12 @@ export function createExpBwQueLayer() {
       },
       strategy: bboxStrategy
     }),
-  title: 'Querung', 
-  name: 'que', 
-  permalink:'que',  
-  style: QueStyle,
-  visible: false
+    title: 'Querung', 
+    name: 'que', 
+    permalink:'que',  
+    style: QueStyle,
+    opacity: 0.7,
+    visible: false,
   });
 }
 export function createExpBwEinLayer() {
@@ -578,6 +580,7 @@ export function createExpBwEinLayer() {
   name: 'ein', 
   permalink:'ein',  
   style: getStyleForArtEin,
+  opacity: 0.7,
   visible: false
   });
 }
@@ -594,6 +597,7 @@ export function createExpBwSonPunLayer() {
   name: 'son_pun', 
   permalink:'son_pun', 
   style: getStyleForArtSonPun,
+  opacity: 0.7,
   visible: false
    });
 }

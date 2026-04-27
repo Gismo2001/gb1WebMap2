@@ -19,23 +19,25 @@ import CircleStyle from 'ol/style/Circle';
 
 let highlightedFeature = null;
 let clickTimeout = null;
-// Ganz oben in der Datei (außerhalb jeder Funktion)
-
-
 
 
 const hoverHighlightStyle = new Style({
   stroke: new Stroke({
-    color: '#ff9900',
+    color: '#faa600',   // OpenLayers Standard-Blau
     width: 4,
   }),
   fill: new Fill({
-    color: 'rgba(255, 153, 0, 0.2)',
+    color: 'rgba(51, 153, 255, 0.2)', // transparent!
   }),
   image: new CircleStyle({
     radius: 8,
-    fill: new Fill({ color: '#ff9900' }),
-    stroke: new Stroke({ color: '#ffffff', width: 2 }),
+    fill: new Fill({
+      color: 'rgba(51, 153, 255, 0.7)',
+    }),
+    stroke: new Stroke({
+      color: '#000000',
+      width: 10
+    }),
   }),
 });
 
@@ -66,54 +68,34 @@ export function updateSelector(names) {
     //console.log("Vorheriger Layer nicht mehr in der Liste.");
   }
 }
-// ... (Deine Imports bleiben gleich)
-
 export function showTable(data) {
-  isTableActive = true; 
-  
+  isTableActive = true;
+
   const container = document.getElementById("wms-table-container");
   const tableElement = document.getElementById("wms_data_table");
-
   if (!container || !tableElement) return;
- // 1. FALL: Keine Daten
-  if (!data || data.length === 0) {
-    // Container MUSS sichtbar bleiben
-    container.style.display = "flex"; 
-    
-    // Falls Tabulator schon existiert, leeren wir ihn einfach
-    if (table) {
-      table.setData([]); // Zeigt "No Data" an, aber Struktur bleibt
-    }
-    
-    // Wir machen hier KEIN return mehr, sondern lassen den Split-Check unten zu,
-    // damit der Split-Zustand stabil bleibt.
-  } else {
-    // 2. FALL: Daten sind da!
-    container.style.display = "flex";
-  }
 
-  // 2. FALL: Daten sind da! -> Sichtbar machen (WICHTIG!)
-  container.style.display = "flex"; // Das muss VOR dem restlichen Code stehen
-  
+  // 👉 Anzeige
+  container.style.display = "flex";
+
   const mapElement = document.getElementById("map");
   if (mapElement) {
-    mapElement.style.height = ""; // Karte wieder Platz für Tabelle lassen
+    mapElement.style.height = "";
   }
 
-  // --- DATEN VORHANDEN: TABELLE ANZEIGEN ---
-  //container.style.display = "flex";
-
+  // 👉 Layer-Info
   const selector = document.getElementById('layer-selector');
   const layerName = selector ? selector.value : "unknown";
   const idKey = (layerName === 'fsk') ? 'OBJECTID' : 'ID_con';
-  
-  const uniqueData = data.filter((item, index, self) => {
+
+  // 👉 Daten deduplizieren
+  const uniqueData = (data || []).filter((item, index, self) => {
     const val = item[idKey];
     if (val === null || val === undefined) return true;
     return index === self.findIndex((t) => t[idKey] === val);
   });
 
-  // Split.js initialisieren oder wiederherstellen
+  // 👉 Split.js
   if (!splitInstance) {
     splitInstance = Split(['#map', '#wms-table-container'], {
       sizes: [70, 30],
@@ -122,27 +104,19 @@ export function showTable(data) {
       gutterSize: 10,
       onDrag: () => { if (mapRef) mapRef.updateSize(); },
       onDragEnd: (sizes) => {
-        if (sizes[1] <= 5) { 
-          closeTable(); // Nur hier wird der Toggle wirklich deaktiviert
-        }
+        if (sizes[1] <= 5) closeTable();
       }
     });
-  } else {
-    // Falls Split existiert, stellen wir sicher, dass die Höhen wieder stimmen
-    // (da wir oben bei leeren Daten die Karte auf 100% gesetzt hatten)
-    const mapElement = document.getElementById("map");
-    if (mapElement) mapElement.style.height = ""; // Split.js übernimmt wieder
   }
 
   if (mapRef) mapRef.updateSize();
 
-  // Tabulator aktualisieren oder neu erstellen
+  // 👉 Tabelle neu aufbauen
   if (table) {
-    // Wenn die Tabelle schon da ist, reicht oft ein Austausch der Daten
-    // Aber wegen potenziell wechselnder Spalten (Layer-Wechsel) ist dein Destroy-Ansatz sicherer:
     table.destroy();
     table = null;
   }
+
   tableElement.innerHTML = "";
 
   try {
@@ -158,9 +132,11 @@ export function showTable(data) {
           const idCol = definitions.find(col => col.field === idKey);
           const statCol = definitions.find(col => col.field === statKey);
           const remainingCols = definitions.filter(col => col.field !== idKey && col.field !== statKey);
+
           const newOrder = [];
           if (idCol) newOrder.push(idCol);
           if (statCol) newOrder.push(statCol);
+
           return newOrder.concat(remainingCols);
         }
         return definitions;
@@ -170,127 +146,154 @@ export function showTable(data) {
       scrollToRowIfVisible: false,
     });
 
+    // ==============================
+    // 👉 INTERAKTION
+    // ==============================
+
+    let isKeyboardNavigation = false;
+    let lastHighlightedId = null;
+
     table.on("tableBuilt", () => {
-      tableReady = true;
-      // ... (Dein Fokus- und Tastatur-Code bleibt gleich)
-    });
-
-    // 2. Mouse Out Clear
-    table.on("rowMouseOut", () => {
-        clearHighlightedFeature();
-    });
-    
-    table.on("cellClick", function (e, cell) {
-
-  const value = cell.getValue();
-
-  // 👉 Link-Erkennung direkt über Datenwert (kein DOM-Query mehr nötig)
-  if (typeof value === "string" && /^https?:\/\//i.test(value)) {
-    e.stopPropagation();
-
-    window.open(value, "_blank", "noopener,noreferrer");
-    return;
-  }
-
-  // 👉 normale Row-Logik
-  const row = cell.getRow();
-
-  table.deselectRow();
-  row.select();
-
-  const isMobile = window.innerWidth <= 768;
-  if (!isMobile) {
-    tableElement.focus({ preventScroll: true });
-  }
-
-  const rowData = row.getData();
-  highlightFeatureForRow(rowData);
-});
-    table.on("tableBuilt", () => {
-      //console.log("Tabulator ist bereit.");
-      // Fokus für Pfeiltasten
       requestAnimationFrame(() => {
         const isMobile = window.innerWidth <= 768;
         if (!isMobile) {
-          // Nur am PC fokussieren, um Auto-Scrolling am Handy zu vermeiden
           tableElement.focus({ preventScroll: true });
         }
       });
 
       const tableHolder = tableElement.querySelector(".tabulator-tableholder");
+
       if (tableHolder) {
-        // DOPPELKLICK
+
+        // 👉 Doppelklick = Zoom
         tableHolder.ondblclick = (e) => {
           const rowElement = e.target.closest(".tabulator-row");
           if (rowElement) {
             const row = table.getRow(rowElement);
-            if (row && mapRef) zoomToFeature(layerName, row.getData());
+            if (row && mapRef) {
+              zoomToFeature(layerName, row.getData());
+            }
           }
         };
 
-        // TASTATUR-STEUERUNG
+        // 👉 Tastatur aktivieren
         tableElement.setAttribute("tabindex", "0");
-        // TASTATUR-STEUERUNG (korrigiert)
-        // TASTATUR-STEUERUNG (Horizontaler Sprung fixiert)
+
         tableElement.onkeydown = (e) => {
           if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-          e.preventDefault();
-          const selected = table.getSelectedRows();
-          let next;
+            isKeyboardNavigation = true;
+            e.preventDefault();
+
+            const selected = table.getSelectedRows();
+            let next;
+
             if (selected.length > 0) {
-              next = (e.key === "ArrowDown") ? selected[0].getNextRow() : selected[0].getPrevRow();
+              next = (e.key === "ArrowDown")
+                ? selected[0].getNextRow()
+                : selected[0].getPrevRow();
             } else {
               next = table.getRows()[0];
             }
+
             if (next) {
               table.deselectRow();
               next.select();
-              // FIX: Statt table.scrollToRow nutzen wir die native Funktion:
+
               const rowElement = next.getElement();
               rowElement.scrollIntoView({
-                block: "nearest",   // Vertikal: So wenig wie möglich bewegen
-                inline: "nearest",  // Horizontal: Nur springen, wenn das Feld gar nicht im Bild ist!
-                behavior: "auto"    // "smooth" könnte bei schnellem Tippen ruckeln
+                block: "nearest",
+                inline: "nearest",
+                behavior: "auto"
               });
 
               const rowData = next.getData();
 
+              // 👉 Highlight nur wenn neues Feature
+              if (rowData[idKey] !== lastHighlightedId) {
+                highlightFeatureForRow(rowData);
+                lastHighlightedId = rowData[idKey];
+              }
             }
           }
-        };  
-        // Beim Klick auf eine Zeile: Selektieren, Fokus setzen und Karte highlighten
-        table.on("rowClick", function(e, row) {
-          table.deselectRow();
-          row.select();
-          // PRÜFUNG: Nur fokussieren, wenn wir NICHT auf einem Mobilgerät sind   
-          const isMobile = window.innerWidth <= 768;
-          if (!isMobile) {
-            tableElement.focus({ preventScroll: true });
-          }
-          const rowData = row.getData();
-          highlightFeatureForRow(rowData);
 
-        });
+          // 👉 ENTER = Zoom
+          if (e.key === "Enter") {
+            e.preventDefault();
+
+            const selected = table.getSelectedRows();
+            if (selected.length > 0 && mapRef) {
+              zoomToFeature(layerName, selected[0].getData());
+            }
+          }
+        };
+      }
+
+      // 👉 Maus bewegt → zurück zu Mausmodus
+      tableElement.addEventListener("mousemove", () => {
+        isKeyboardNavigation = false;
+      });
+    });
+
+    // 👉 Hover nur wenn nicht Tastatur aktiv
+    table.on("rowMouseOver", (e, row) => {
+      if (!isKeyboardNavigation) {
+        highlightFeatureForRow(row.getData());
       }
     });
 
+    table.on("rowMouseOut", () => {
+      if (!isKeyboardNavigation) {
+        clearHighlightedFeature();
+      }
+    });
 
+    // 👉 Klick
+    table.on("rowClick", function(e, row) {
+      isKeyboardNavigation = false;
 
-    // MOUSE OVER
+      table.deselectRow();
+      row.select();
 
-    table.on("rowMouseOver", (e, row) => highlightFeatureForRow(row.getData()));
+      const isMobile = window.innerWidth <= 768;
+      if (!isMobile) {
+        tableElement.focus({ preventScroll: true });
+      }
 
-    table.on("rowMouseOut", () => clearHighlightedFeature());
+      const rowData = row.getData();
+      highlightFeatureForRow(rowData);
+    });
 
+    // 👉 Link-Klick
+    table.on("cellClick", function (e, cell) {
+      const value = cell.getValue();
 
+      if (typeof value === "string" && /^https?:\/\//i.test(value)) {
+        e.stopPropagation();
+        window.open(value, "_blank", "noopener,noreferrer");
+        return;
+      }
+
+      const row = cell.getRow();
+      table.deselectRow();
+      row.select();
+
+      const rowData = row.getData();
+      highlightFeatureForRow(rowData);
+    });
 
   } catch (err) {
-
     console.error("Fehler beim Erstellen der Tabulator-Instanz:", err);
-
   }
-
 }
+
+
+export function showTableDebounced(data) {
+  clearTimeout(showTableTimeout);
+  showTableTimeout = setTimeout(() => {
+    showTable(data);
+  }, 150);  // 👈 150ms perfekt
+}
+
 
 // Tabelle schließen
 export function closeTable() {
@@ -306,14 +309,11 @@ export function closeTable() {
   // ... Karte auf 100% setzen
 }
 
-// ... restliche Funktionen zoomToFeature, getTableActive etc.
 export function switchLayerData(results) {
   const selector = document.getElementById('layer-selector');
   if (!selector) return;
-
   const selectedLayer = selector.value;
   const data = results[selectedLayer];
-
   if (data) {
     // Da sich beim Layer-Wechsel die Spalten ändern, 
     // nutzen wir showTable, um die Tabelle sauber neu zu initialisieren.
@@ -325,20 +325,9 @@ export function getTableActive() {
   return isTableActive;
 }
 
-export function showTableDebounced(data) {
-
-  clearTimeout(showTableTimeout);
-  
-  showTableTimeout = setTimeout(() => {
-    showTable(data);
-  }, 150);  // 👈 150ms perfekt
-}
 
 function zoomToFeature(layerName, rowData) {
-  //console.log("--- Zoom-Vorgang gestartet ---");
-  //console.log("Layer:", layerName, "ID_con gesucht:", rowData.ID_con);
   if (!mapRef) return;
-  // Layer finden
   let targetLayer = null;
   mapRef.getLayers().getArray().forEach(l => {
     if (l.get('name') === layerName) targetLayer = l;
@@ -385,11 +374,8 @@ function zoomToFeature(layerName, rowData) {
 }
 
 function initResizeObserver() {
-
   const tableContainer = document.getElementById("wms_data_table");
-
   if (!tableContainer) return;
-
   resizeObserver = new ResizeObserver(() => {
     if (!tableReady) return; 
     if (!table || !table.element) return;
@@ -403,9 +389,7 @@ function initResizeObserver() {
     if (mapRef) {
       mapRef.updateSize();
     }
-
   });
-
   resizeObserver.observe(tableContainer);
 }
 
@@ -419,12 +403,9 @@ function clearHighlightedFeature() {
 export function highlightFeatureForRow(rowData) {
   clearHighlightedFeature();
   if (!mapRef) return;
-
   const selector = document.getElementById('layer-selector');
   const layerName = selector ? selector.value : null;
   if (!layerName) return;
-
-  
   let targetLayer = null;
   mapRef.getLayers().getArray().forEach((l) => {
     if (l.get('name') === layerName) targetLayer = l;
@@ -436,10 +417,9 @@ export function highlightFeatureForRow(rowData) {
   });
 
   if (!targetLayer) return;
-
   const source = targetLayer.getSource();
   if (!source || typeof source.getFeatures !== 'function') return;
-
+  
   // 2. Den richtigen ID-Schlüssel bestimmen
   // Wenn der Layer 'fsk' heißt, nutze 'OBJECTID', sonst 'ID_con'
   const idKey = (layerName === 'fsk') ? 'OBJECTID' : 'ID_con';
@@ -447,7 +427,7 @@ export function highlightFeatureForRow(rowData) {
   // 3. Feature suchen
   const features = source.getFeatures();
   const feature = features.find((f) => {
-    const props = f.getProperties();
+  const props = f.getProperties();
     
     // Wir vergleichen dynamisch den Wert des jeweiligen Keys
     const featId = props[idKey];

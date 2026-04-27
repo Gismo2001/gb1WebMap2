@@ -1,6 +1,6 @@
 import './style.css';
 import 'ol/ol.css';
-import 'ol-ext/dist/ol-ext.css';   // 👈 unbedingt notwendig!
+import 'ol-ext/dist/ol-ext.css'; 
 import 'tabulator-tables/dist/css/tabulator.min.css';
 
 import { createMap } from './js/map.js';

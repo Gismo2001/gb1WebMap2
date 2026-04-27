@@ -378,7 +378,7 @@ export function createOsmTileCr() {
       attributions: ['© OpenStreetMap contributors', 'Tiles courtesy of <a href="https://www.openstreetmap.org/"></a>'],
     }),
     opacity: 0.75,
-    visible: true, 
+    visible: false, 
   });
 }
 export function createOsmTileGr() {

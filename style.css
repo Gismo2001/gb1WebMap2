@@ -310,4 +310,25 @@ top: 4em;
 
 }
 
+/* Standardmäßig eingeblendet */
+.tabulator-header-filter {
+    display: block; 
+}
+
+/* Wenn diese Klasse am Tabellen-Container hängt, wird der Filter versteckt */
+.hide-filters .tabulator-header-filter {
+    display: none !important;
+}
+
+/* Optional: Ein bisschen Styling für den Button */
+.btn-control {
+    padding: 5px 10px;
+    margin-bottom: 5px;
+    cursor: pointer;
+    background: #f0f0f0;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+.btn-control:hover { background: #e0e0e0; }
+
 

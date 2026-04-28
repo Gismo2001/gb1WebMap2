@@ -635,7 +635,7 @@ function addVectorLayerToMap(map, features, sourceName) {
 function shouldShowPopup(layer) {
   if (isTableEnabled()) return false;
   const name = (layer?.get('name') || '').toLowerCase();
-  const allowedWmsLayers = ['uesg', 'fließgew'];
+  const allowedWmsLayers = ['uesg', 'fließgew', 'ALKIS'];
   const isVector = !layer?.getSource()?.getFeatureInfoUrl;
   return isVector || allowedWmsLayers.includes(name);
 }

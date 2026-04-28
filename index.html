@@ -35,15 +35,19 @@
     </select>
      <button id="start-coord-input" style="margin-left: 5px;">📍 Koordinate eingeben</button>
     </div> 
+   
     <div id="wms-table-container" class="split">
       <div id="table-header">
         <div class="header-controls-left">
           <strong>Ebene:</strong>
           <select id="layer-selector"></select>
+         </div>
+        <div id="table-controls">
+          <button id="filter-toggle" class="btn-control">Filter zeigen/verbergen</button>
         </div>
         <button id="close-table-btn">✕ Schließen</button>
       </div>
-      <div id="wms_data_table"></div>
+      <div id="wms_data_table" class="hide-filters"></div>
     </div>
     <div id="popup" class="ol-popup">
       <a href="#" id="popup-closer" class="ol-popup-closer">✕</a>

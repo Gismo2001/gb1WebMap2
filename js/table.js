@@ -72,7 +72,22 @@ export function showTable(data) {
   isTableActive = true;
   const container = document.getElementById("wms-table-container");
   const tableElement = document.getElementById("wms_data_table");
+  
+  const filterBtn = document.getElementById("filter-toggle");
+  
   if (!container || !tableElement) return;
+  if (filterBtn && tableElement) {
+    filterBtn.onclick = () => {
+        // Toggle die CSS-Klasse am Container
+        tableElement.classList.toggle("hide-filters");
+        
+        // WICHTIG: Tabulator muss das Layout neu berechnen, 
+        // da sich die Höhe des Headers geändert hat
+        if (table) {
+            table.redraw(); 
+        }
+    };
+}
   // 👉 Anzeige
   container.style.display = "flex";
   const mapElement = document.getElementById("map");
@@ -120,6 +135,49 @@ if (mapRef) mapRef.updateSize();
       placeholder: "Keine Objekte im Sichtbereich. Klicken Sie auf ein Objekt für Details.",
       autoColumns: true,
       autoColumnsDefinitions: function(definitions) {
+        definitions.forEach((column) => {
+          column.headerFilter = "input";
+          column.headerFilterPlaceholder = "Suche...";
+          // Wenn das Feld "stat_von" heißt, erzwinge numerische Sortierung
+          if (column.field === "stat_von") {
+            column.sorter = "number";
+            column.headerFilterPlaceholder = "z.B. <5000";
+          }
+          column.headerFilterFunc = function(headerValue, rowValue, rowData, filterParams) {
+            // Falls leer, alles anzeigen
+            if (headerValue === null || headerValue === undefined || headerValue === "") return true;
+            if (rowValue === null || rowValue === undefined) return false;
+
+            const val = String(rowValue).trim();
+            const search = String(headerValue).trim();
+
+            // 1. Check auf mathematische Operatoren (<, >, <=, >=)
+            const match = search.match(/^(<=|>=|<|>)\s*(\d+(?:\.\d+)?)$/);
+            if (match) {
+              const operator = match[1];
+              const numSearch = parseFloat(match[2]);
+              const numRow = parseFloat(val);
+
+              if (isNaN(numRow)) return false;
+
+              switch (operator) {
+                case "<":  return numRow < numSearch;
+                case ">":  return numRow > numSearch;
+                case "<=": return numRow <= numSearch;
+                case ">=": return numRow >= numSearch;
+              }
+            }
+
+            // 2. Fallback: Deine Platzhalter-Logik (*) oder Teilstring-Suche
+            const regexString = search.replace(/\*/g, ".*");
+            try {
+              const regex = new RegExp(regexString, "i");
+              return regex.test(val);
+            } catch (e) {
+              return val.includes(search);
+            }
+          };
+        });
         if (layerName !== 'fsk') {
           const statKey = "stat_von";
           const idCol = definitions.find(col => col.field === idKey);

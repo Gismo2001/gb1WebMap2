@@ -17,7 +17,7 @@ export function initPtn(map) { //hier wird map übergeben
   
     // Punktlayer erstellen für Visualisierung bei Hover in Tabelle
     if (!ptnLayer) { 
-        console.log ('ptnLayer wird erstellt?')
+        //console.log ('ptnLayer wird erstellt?')
         ptnSource = new VectorSource(
            
         );

@@ -197,13 +197,13 @@ export function initMapClick(map) { // Funktion wird nur aufgerufen, wenn Tabell
       const vectorResults = getVectorFeaturesAtClick(map, evt);
       Object.keys(vectorResults).forEach((layerName) => {
         currentClickResults[layerName] = vectorResults[layerName];
-    });
+      });
 
-    const layerNames = Object.keys(currentClickResults);
-    if (layerNames.length === 0) return;
+      const layerNames = Object.keys(currentClickResults);
+      if (layerNames.length === 0) return;
 
-    // 👉 FALL 1: Tabelle aktiv
-    if (isTableEnabled()) {
+      // 👉 FALL 1: Tabelle aktiv
+      if (isTableEnabled()) {
       updateSelector(layerNames);
       showTableDebounced(currentClickResults[layerNames[0]].data);
       return;
@@ -218,10 +218,10 @@ export function initMapClick(map) { // Funktion wird nur aufgerufen, wenn Tabell
     const data = entry.data;
 
     //if (!shouldShowPopupLayerName(layerName)) return;
-    popupContent.innerHTML = buildPopupContent(data, layerName);
-    popupOverlay.setPosition(evt.coordinate);
+    popupContent.innerHTML = buildPopupContent(data, layerName); // Popup erstellen
+    popupOverlay.setPosition(evt.coordinate); // Popup an der Klickposition anzeigen
 
-  // 👉 Button aktivieren
+  // 👉 Button im Popup aktivieren
   setTimeout(() => {
     const btn = document.getElementById('open-table-btn');
     if (btn) {
@@ -233,7 +233,7 @@ export function initMapClick(map) { // Funktion wird nur aufgerufen, wenn Tabell
     }
   }, 0);
 });
-  });
+});
 }
 
 function parseDeegreeGml(xmlString, layerName) {
@@ -665,7 +665,6 @@ export function initPopup(map) {
   };
 }
 function buildPopupContent(data, layerName) {
-  
   if (!data || data.length === 0) return "<p>Keine Daten</p>";
   console.log("Daten für Popup:", data);
   const first = data[0];
@@ -677,7 +676,5 @@ function buildPopupContent(data, layerName) {
 
   // 👉 Link zur Tabelle
   html += `<br><button id="open-table-btn">Details anzeigen</button>`;
-  
-  
   return html;
 }

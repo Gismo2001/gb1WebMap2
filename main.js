@@ -35,7 +35,7 @@ import { initializeWMS } from './js/controls.js'; // Pfad anpassen
 
 let splitInstance = null;
 
-// Projektionen registrieren
+// Projektionen hier registrieren
 registerProjections();
 
 // 👉 Hier werden zuerst die Layer erstellt (layers.js)

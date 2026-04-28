@@ -183,7 +183,6 @@ if (mapRef) mapRef.updateSize();
           const idCol = definitions.find(col => col.field === idKey);
           const statCol = definitions.find(col => col.field === statKey);
           const remainingCols = definitions.filter(col => col.field !== idKey && col.field !== statKey);
-
           const newOrder = [];
           if (idCol) newOrder.push(idCol);
           if (statCol) newOrder.push(statCol);

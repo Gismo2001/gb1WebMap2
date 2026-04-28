@@ -1,4 +1,5 @@
 import './style.css';
+import 'core-js/stable';
 import 'ol/ol.css';
 import 'ol-ext/dist/ol-ext.css'; 
 import 'tabulator-tables/dist/css/tabulator.min.css';

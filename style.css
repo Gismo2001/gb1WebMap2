@@ -101,7 +101,7 @@ html, body {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     position: relative;
     /* Rechts Platz für das 'X' schaffen (ca. 25px) */
-    
+    padding: 2px 30px 2px 2px; 
     min-width: 75px;
     max-width: 250px; /* Hier kannst du die Breite festlegen */
 }

@@ -56,7 +56,9 @@ export function getAllLayers(layerGroup, parentVisible = true, groupTitle = null
 export function initMapClick(map) { // Funktion wird nur aufgerufen, wenn Tabelle im Split aktiv ist
   
   map.on('singleclick', function (evt) {
-    
+    if (!isTableEnabled()) {
+        popupOverlay.setPosition(undefined);
+    }
     // Jede Anfrage bekommt eine eindeutige ID, damit wir sicherstellen können, 
     // dass nur die Ergebnisse der aktuellsten Anfrage verarbeitet werden
     const requestId = ++latestClickRequestId; 

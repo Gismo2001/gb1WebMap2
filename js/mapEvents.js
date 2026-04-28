@@ -192,38 +192,34 @@ export function initMapClick(map) { // Funktion wird nur aufgerufen, wenn Tabell
       }
     });
     //Promise für Popup
-Promise.all(promises).then(() => {
-  if (requestId !== latestClickRequestId) return;
+    Promise.all(promises).then(() => {
+      if (requestId !== latestClickRequestId) return;
+      const vectorResults = getVectorFeaturesAtClick(map, evt);
+      Object.keys(vectorResults).forEach((layerName) => {
+        currentClickResults[layerName] = vectorResults[layerName];
+    });
 
-  const vectorResults = getVectorFeaturesAtClick(map, evt);
+    const layerNames = Object.keys(currentClickResults);
+    if (layerNames.length === 0) return;
 
-  Object.keys(vectorResults).forEach((layerName) => {
-    currentClickResults[layerName] = vectorResults[layerName];
-  });
+    // 👉 FALL 1: Tabelle aktiv
+    if (isTableEnabled()) {
+      updateSelector(layerNames);
+      showTableDebounced(currentClickResults[layerNames[0]].data);
+      return;
+    }
 
-  const layerNames = Object.keys(currentClickResults);
-  if (layerNames.length === 0) return;
+    // 👉 FALL 2: Tabelle NICHT aktiv → Popup
+    const layerName = layerNames[0];
+    const entry = currentClickResults[layerName];
 
-  // 👉 FALL 1: Tabelle aktiv
-  if (isTableEnabled()) {
+    if (!shouldShowPopup(entry.layer)) return;
 
-    updateSelector(layerNames);
-    showTableDebounced(currentClickResults[layerNames[0]].data);
-    return;
-  }
+    const data = entry.data;
 
-  // 👉 FALL 2: Tabelle NICHT aktiv → Popup
-  const layerName = layerNames[0];
-  const entry = currentClickResults[layerName];
-
-if (!shouldShowPopup(entry.layer)) return;
-
-const data = entry.data;
-
-  //if (!shouldShowPopupLayerName(layerName)) return;
-
-  popupContent.innerHTML = buildPopupContent(data, layerName);
-  popupOverlay.setPosition(evt.coordinate);
+    //if (!shouldShowPopupLayerName(layerName)) return;
+    popupContent.innerHTML = buildPopupContent(data, layerName);
+    popupOverlay.setPosition(evt.coordinate);
 
   // 👉 Button aktivieren
   setTimeout(() => {
@@ -638,13 +634,9 @@ function addVectorLayerToMap(map, features, sourceName) {
 
 function shouldShowPopup(layer) {
   if (isTableEnabled()) return false;
-
   const name = (layer?.get('name') || '').toLowerCase();
-
   const allowedWmsLayers = ['uesg', 'fließgew'];
-
   const isVector = !layer?.getSource()?.getFeatureInfoUrl;
-
   return isVector || allowedWmsLayers.includes(name);
 }
 
@@ -675,10 +667,11 @@ export function initPopup(map) {
 function buildPopupContent(data, layerName) {
   
   if (!data || data.length === 0) return "<p>Keine Daten</p>";
+  console.log("Daten für Popup:", data);
   const first = data[0];
-  let html = `<b>${layerName}</b><br>`;
+  let html = ""//`<b>${layerName}</b><br>`;
   // 👉 nur wenige Attribute anzeigen!
-  Object.entries(first).slice(0, 3).forEach(([key, value]) => {
+  Object.entries(first).slice(0, 2).forEach(([key, value]) => {
     html += `${key}: ${value}<br>`;
   });
 

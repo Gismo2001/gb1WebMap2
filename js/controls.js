@@ -243,7 +243,7 @@ export function initPrintControl(map) {
   // 1. Zusätzliche Canvas-Controls für das Druckbild hinzufügen
   map.addControl(new CanvasAttribution());
   map.addControl(new CanvasTitle({ 
-    title: '', 
+    title: 'Print-Preview', 
     visible: false,
     style: new Style({ 
       text: new Text({ font: 'bold 12pt Arial, sans-serif' })

@@ -217,6 +217,7 @@ export function initMapClick(map) { // Funktion wird nur aufgerufen, wenn Tabell
       const entry = currentClickResults[layerName];
       if (!shouldShowPopup(entry.layer)) return;
       const data = entry.data;
+      
       //if (!shouldShowPopupLayerName(layerName)) return;
       
       popupContent.innerHTML = buildPopupContent(data, layerName); // Popup erstellen
@@ -637,7 +638,8 @@ function addVectorLayerToMap(map, features, sourceName) {
 function shouldShowPopup(layer) {
   if (isTableEnabled()) return false;
   const name = (layer?.get('name') || '').toLowerCase();
-  const allowedWmsLayers = ['uesg', 'fließgew', 'ALKIS'];
+  console.log("Name:", name);
+  const allowedWmsLayers = ['uesg', 'fließgew', 'ALKIS', 'lsg', 'nsg', 'gewaesser', 'nibis bohrdaten'];
   const isVector = !layer?.getSource()?.getFeatureInfoUrl;
   return isVector || allowedWmsLayers.includes(name);
 }

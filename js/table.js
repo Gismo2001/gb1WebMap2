@@ -77,16 +77,37 @@ export function showTable(data) {
   
   if (!container || !tableElement) return;
   if (filterBtn && tableElement) {
+   const filterBtn = document.getElementById("filter-toggle");
+const tableElement = document.getElementById("wms_data_table");
+
+if (filterBtn && tableElement) {
     filterBtn.onclick = () => {
-        // Toggle die CSS-Klasse am Container
+        // 1. Filter in der Tabelle umschalten
         tableElement.classList.toggle("hide-filters");
+
+        // 2. Button-Hintergrund umschalten
+        // Wenn 'hide-filters' aktiv ist, ist der Filter weg -> also Button NICHT aktiv
+        const filtersHidden = tableElement.classList.contains("hide-filters");
         
-        // WICHTIG: Tabulator muss das Layout neu berechnen, 
-        // da sich die Höhe des Headers geändert hat
+        if (filtersHidden) {
+            filterBtn.classList.remove("active");
+        } else {
+            filterBtn.classList.add("active");
+        }
+
+        // 3. Tabelle neu berechnen
         if (table) {
             table.redraw(); 
         }
     };
+
+    // INITIALER ZUSTAND: 
+    // Falls die Tabelle beim Start 'hide-filters' hat, darf der Button kein 'active' haben.
+    // Falls sie ohne 'hide-filters' startet, füge 'active' hinzu:
+    if (!tableElement.classList.contains("hide-filters")) {
+        filterBtn.classList.add("active");
+    }
+}
 }
   // 👉 Anzeige
   container.style.display = "flex";

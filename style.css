@@ -320,15 +320,30 @@ top: 4em;
     display: none !important;
 }
 
-/* Optional: Ein bisschen Styling für den Button */
+/* Grunddesign des Buttons */
 .btn-control {
-    padding: 5px 10px;
     margin-bottom: 5px;
     cursor: pointer;
-    background: #f0f0f0;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+    background: #f8f9fa; /* Hellgrau */
+    font-size: 12px;   /* Etwas kleinere Schrift */
+    font-weight: 500;
+    transition: all 0.2s ease; /* Sanfter Farbübergang */
 }
-.btn-control:hover { background: #e0e0e0; }
 
+/* Hover-Effekt */
+.btn-control:hover {
+    background: #e2e6ea;
+}
+
+/* Zustand wenn Filter AKTIV sind (Klasse wird per JS gesetzt) */
+.btn-control.active {
+    background-color: #007bff; /* Blau */
+    color: white;              /* Weisser Text */
+    border-color: #0056b3;
+}
+
+/* Kleiner Bonus: Ein Icon-Punkt oder Schatten, wenn aktiv */
+.btn-control.active {
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
 

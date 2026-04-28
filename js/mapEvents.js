@@ -53,38 +53,38 @@ export function getAllLayers(layerGroup, parentVisible = true, groupTitle = null
   return layers;
 }
 // Funktion zum Initialisieren des Karten-Klick-Events
-export function initMapClick(map) { // Funktion wird nur aufgerufen, wenn Tabelle im Split aktiv ist
-  
+
+export function initMapClick(map) {
   map.on('singleclick', function (evt) {
+    // 1. Sofortiges Feedback: Popup schließen, wenn Tabelle nicht aktiv ist
     if (!isTableEnabled()) {
-        popupOverlay.setPosition(undefined);
+      popupOverlay.setPosition(undefined);
     }
-    // Jede Anfrage bekommt eine eindeutige ID, damit wir sicherstellen können, 
-    // dass nur die Ergebnisse der aktuellsten Anfrage verarbeitet werden
-    const requestId = ++latestClickRequestId; 
-    //if (!isTableEnabled()) return; // Wenn Tabelle im Splitscreen nicht sichtbar Funktion verlassen
-    const promises = []; // Leeres Array ??
-    const viewResolution = map.getView().getResolution(); // die Auflösung der Karte holen
-    currentClickResults = {}; // Leeres Feld für Aufnahme des Klickergebnisses ??
-    const allLayers = getAllLayers(map); // Alle Layer ermitteln außer km10, km100,...
-    allLayers.forEach((obj) => { //Für jeden Layer, bzw. alle Objekte von allLayers
-      const layer = obj.layer; // Das Objekt layer zuweisen
-      if (obj.visible && layer.getSource()?.getFeatureInfoUrl) { //Wen  Layer sichtbar und unterstützt GetFeatureInfo
-        const name = layer.get('name'); // Namen zordnen
-        const baseParams = { // Die Parameter des WMS-Dienstes auslaesen
+
+    const requestId = ++latestClickRequestId;
+    const promises = [];
+    const viewResolution = map.getView().getResolution();
+    const coord = evt.coordinate;
+    
+    // Aktuelle Ergebnisse zurücksetzen
+    currentClickResults = {};
+
+    const allLayers = getAllLayers(map);
+    allLayers.forEach((obj) => {
+      const layer = obj.layer;
+      if (obj.visible && layer.getSource()?.getFeatureInfoUrl) {
+        const name = layer.get('name');
+        const baseParams = {
           QUERY_LAYERS: layer.getSource().getParams().LAYERS,
           LAYERS: layer.getSource().getParams().LAYERS,
         };
-        // 👉 Helferfunktion: Request mit bestimmtem Format
+
         function requestFeatureInfo(infoFormat) {
           const url = layer.getSource().getFeatureInfoUrl(
-            evt.coordinate,
+            coord,
             viewResolution,
             'EPSG:3857',
-            {
-              ...baseParams,
-              INFO_FORMAT: infoFormat,
-            }
+            { ...baseParams, INFO_FORMAT: infoFormat }
           );
 
           if (!url) return Promise.resolve(null);
@@ -93,17 +93,11 @@ export function initMapClick(map) { // Funktion wird nur aufgerufen, wenn Tabell
             .then((res) => res.text())
             .then((text) => {
               if (requestId !== latestClickRequestId) return null;
-
-              // ❌ ServiceException → nächster Versuch nötig
-              if (text.includes('ServiceException')) {
-                return null;
-              }
-
+              if (text.includes('ServiceException')) return null;
               return text;
             });
         }
 
-        // 👉 Ablauf: zuerst XML versuchen, dann HTML
         const promise = requestFeatureInfo('text/xml')
           .then((responseText) => {
             if (responseText) return responseText;
@@ -111,26 +105,23 @@ export function initMapClick(map) { // Funktion wird nur aufgerufen, wenn Tabell
           })
           .then((responseText) => {
             if (!responseText) return;
-
             let data = [];
-
             
-            // 👉 Format erkennen
             if (responseText.includes('FeatureInfoResponse')) {
-              
               data = parseArcGISXml(responseText, name);
             } else if (responseText.includes('gml:featureMember') || responseText.includes('FeatureCollection')) {
-              
-            // Das ist dein neues Format vom Emsland-Server!
               data = parseDeegreeGml(responseText, name);
-              
             } else if (responseText.includes('<body') || responseText.includes('<table')) {
               data = parseNibisHTML(responseText);
-            } else {
-              console.warn(`Unbekanntes Format bei Layer '${name}'`);
             }
 
             if (data.length > 0) {
+              // 👉 WMS-Daten mit Koordinaten und Layername "impfen"
+              data.forEach(item => {
+                item._clickCoord = coord;
+                item.origin_layer = name;
+              });
+
               currentClickResults[name] = {
                 data: data,
                 layer: layer
@@ -138,107 +129,81 @@ export function initMapClick(map) { // Funktion wird nur aufgerufen, wenn Tabell
             }
           })
           .catch((error) => {
-            console.warn(
-              `GetFeatureInfo fehlgeschlagen für Layer '${name}':`,
-              error
-            );
+            console.warn(`GetFeatureInfo Fehler bei '${name}':`, error);
           });
-        
+
         promises.push(promise);
       }
     });
-    //Promise für Tabelle
+
+    // Warten auf alle WMS-Anfragen
     Promise.all(promises).then(() => {
       if (requestId !== latestClickRequestId) return;
+
+      // 2. Vektor-Features abrufen und ebenfalls impfen
       const vectorResults = getVectorFeaturesAtClick(map, evt);
       Object.keys(vectorResults).forEach((layerName) => {
-        currentClickResults[layerName] = vectorResults[layerName];
-      });
-
-      const layerNames = Object.keys(currentClickResults);
-      if (layerNames.length > 0 && isTableEnabled()) {
-    
-        // Wir nehmen das erste gefundene Feature vom Klick
-        const clickedFeatureData = currentClickResults[layerNames[0]].data[0];
-        
-        // 2. ID-Key bestimmen (analog zu deiner showTable Logik)
-        const selector = document.getElementById('layer-selector');
-        const layerName = selector ? selector.value : "unknown";
-        const idKey = (layerName === 'fsk') ? 'OBJECTID' : 'ID_con';
-        const featureId = clickedFeatureData[idKey];
-        
-
-        // 3. In der bestehenden Tabulator-Instanz suchen
-        // 'table' muss die Instanz sein, die in showTable erstellt wurde
-        
-        if (typeof table !== 'undefined' && table && featureId !== undefined) {
-          
-          const rows = table.searchRows(idKey, "=", featureId);
-          if (rows.length > 0) {
-            const targetRow = rows[0];
-            // Zeile selektieren
-            table.deselectRow();
-            targetRow.select();
-            // Zur Zeile scrollen (Mitte des Containers)
-            table.scrollToRow(targetRow, "center", false);
-            // Karten-Highlight auslösen (deine bestehende Funktion)
-            highlightFeatureForRow(clickedFeatureData);
-            
-            // WICHTIG: Hier abbrechen, damit die Tabelle NICHT neu geladen wird
-            return; 
-          }
-        }
-
-        // 4. FALLBACK: Wenn Element nicht in Tabelle, dann wie bisher neu laden
-        updateSelector(layerNames);
-        showTableDebounced(currentClickResults[layerNames[0]].data);
-      }
-    });
-    //Promise für Popup
-    Promise.all(promises).then(() => {
-      if (requestId !== latestClickRequestId) return;
-      const vectorResults = getVectorFeaturesAtClick(map, evt);
-      Object.keys(vectorResults).forEach((layerName) => {
-        currentClickResults[layerName] = vectorResults[layerName];
+        const entry = vectorResults[layerName];
+        entry.data.forEach(item => {
+          item._clickCoord = coord;
+          item.origin_layer = layerName;
+        });
+        currentClickResults[layerName] = entry;
       });
 
       const layerNames = Object.keys(currentClickResults);
       if (layerNames.length === 0) return;
 
-      // 👉 FALL 1: Tabelle aktiv
+      // 👉 FALL 1: Tabelle aktiv (Split-Screen)
       if (isTableEnabled()) {
+        const clickedFeatureData = currentClickResults[layerNames[0]].data[0];
+        const selector = document.getElementById('layer-selector');
+        const currentSelectedLayer = selector ? selector.value : "unknown";
+        
+        // Prüfen, ob wir bereits im richtigen Layer sind -> dann nur Scrollen
+        if (typeof table !== 'undefined' && table && currentSelectedLayer === layerNames[0]) {
+          const idKey = (currentSelectedLayer === 'fsk') ? 'OBJECTID' : 'ID_con';
+          const featureId = clickedFeatureData[idKey];
+          const rows = table.searchRows(idKey, "=", featureId);
+
+          if (rows.length > 0) {
+            const targetRow = rows[0];
+            table.deselectRow();
+            targetRow.select();
+            table.scrollToRow(targetRow, "center", false);
+            highlightFeatureForRow(clickedFeatureData);
+            return; 
+          }
+        }
+
+        // Andernfalls: Tabelle neu laden (Daten enthalten nun _clickCoord)
         updateSelector(layerNames);
         showTableDebounced(currentClickResults[layerNames[0]].data);
-        return;
+        return; 
       }
 
-      // 👉 FALL 2: Tabelle NICHT aktiv → Popup
-      const layerName = layerNames[0];
-      const entry = currentClickResults[layerName];
+      // 👉 FALL 2: Tabelle NICHT aktiv → Popup anzeigen
+      const firstLayerName = layerNames[0];
+      const entry = currentClickResults[firstLayerName];
       if (!shouldShowPopup(entry.layer)) return;
-      const data = entry.data;
-      
-      //if (!shouldShowPopupLayerName(layerName)) return;
-      
-      popupContent.innerHTML = buildPopupContent(data, layerName); // Popup erstellen
-      console.log(data)
-      popupOverlay.setPosition(evt.coordinate); // Popup an der Klickposition anzeigen
 
-      // 👉 Button im Popup aktivieren
+      popupContent.innerHTML = buildPopupContent(entry.data, firstLayerName);
+      popupOverlay.setPosition(coord);
+
+      // Button im Popup konfigurieren
       setTimeout(() => {
-      const btn = document.getElementById('open-table-btn');
+        const btn = document.getElementById('open-table-btn');
         if (btn) {
           btn.onclick = () => {
-            updateSelector([layerName]);
-            showTableDebounced(data);
+            updateSelector([firstLayerName]);
+            showTableDebounced(entry.data); 
             popupOverlay.setPosition(undefined);
           };
         }
       }, 0);
     });
-});
+  });
 }
-
 function parseDeegreeGml(xmlString, layerName) {
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(xmlString, "text/xml");
@@ -639,7 +604,7 @@ function shouldShowPopup(layer) {
   if (isTableEnabled()) return false;
   const name = (layer?.get('name') || '').toLowerCase();
   console.log("Name:", name);
-  const allowedWmsLayers = ['uesg', 'fließgew', 'ALKIS', 'lsg', 'nsg', 'gewaesser', 'nibis bohrdaten'];
+  const allowedWmsLayers = ['uesg', 'fließgew', 'ALKIS', 'LSG', 'NSG', 'gewaesser', 'nibis bohrdaten'];
   const isVector = !layer?.getSource()?.getFeatureInfoUrl;
   return isVector || allowedWmsLayers.includes(name);
 }

@@ -97,31 +97,38 @@ html, body {
 /* Popup Styling */
 .ol-popup {
     background-color: white;
-    border: 2px solid black;
-    border-radius: 4px;
+    border: 1px solid black;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     position: relative;
+    /* Rechts Platz für das 'X' schaffen (ca. 25px) */
+    
+    min-width: 75px;
+    max-width: 250px; /* Hier kannst du die Breite festlegen */
 }
+
 
 .ol-popup-closer {
     position: absolute;
-    top: 0px;
-    right: 1px;
+    top: 1px;   /* Etwas weiter vom Rand weg sieht meist besser aus */
+    right: 2px;
     color: black;
     text-decoration: none;
-    font-size: 14px;
+    font-size: 12px; /* Etwas größer für bessere Bedienbarkeit am TV */
     font-weight: bold;
     cursor: pointer;
     
 }
-
 .ol-popup-closer:hover {
     color: #666;
 }
 
 .ol-popup-content {
-    padding: 10px;
+    padding: 2px;
     color: black;
+    font-size: 14px;
+    
+    /* UMBRUCH-LOGIK */
+    
 }
 
 /* 

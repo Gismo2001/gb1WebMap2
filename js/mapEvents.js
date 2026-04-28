@@ -676,10 +676,15 @@ function buildPopupContent(data, layerName) {
   let html = "";
 
   // 1. Die ersten zwei Attribute anzeigen
-  Object.entries(daten).slice(0, 2).forEach(([key, value]) => {
+ /*  Object.entries(daten).slice(0, 2).forEach(([key, value]) => {
     html += `<strong>${key}:</strong> ${value}<br>`;
   });
-
+  */
+  
+  // Werte sammeln und mit Leerzeichen verbinden
+  const topValues = Object.values(daten).slice(2, 3).join(" ");
+  html += `<strong>${topValues}</strong><br>`;
+  
   // 2. Fotolinks sammeln
   const fotoLinks = [];
   

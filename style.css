@@ -238,7 +238,7 @@ top: 4em;
     padding: 2px 5px;        /* Etwas Abstand zum Rand */
     background-color: #f8f9fa;
     border-bottom: 1px solid #ccc;
-    height: 30px;             /* Feste Höhe für ein sauberes Layout */
+    height: 25px;             /* Feste Höhe für ein sauberes Layout */
 }
 
 .header-controls-left {
@@ -251,10 +251,7 @@ top: 4em;
     background: #3f3f3f;      /* Ein schönes Rot */
     color: white;
     border: none;
-    padding: 2px 6px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: bold;
     transition: background 0.2s;
 }

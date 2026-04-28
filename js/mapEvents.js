@@ -56,6 +56,7 @@ export function getAllLayers(layerGroup, parentVisible = true, groupTitle = null
 export function initMapClick(map) { // Funktion wird nur aufgerufen, wenn Tabelle im Split aktiv ist
   
   map.on('singleclick', function (evt) {
+    
     // Jede Anfrage bekommt eine eindeutige ID, damit wir sicherstellen können, 
     // dass nur die Ergebnisse der aktuellsten Anfrage verarbeitet werden
     const requestId = ++latestClickRequestId; 
@@ -204,35 +205,34 @@ export function initMapClick(map) { // Funktion wird nur aufgerufen, wenn Tabell
 
       // 👉 FALL 1: Tabelle aktiv
       if (isTableEnabled()) {
-      updateSelector(layerNames);
-      showTableDebounced(currentClickResults[layerNames[0]].data);
-      return;
-    }
+        updateSelector(layerNames);
+        showTableDebounced(currentClickResults[layerNames[0]].data);
+        return;
+      }
 
-    // 👉 FALL 2: Tabelle NICHT aktiv → Popup
-    const layerName = layerNames[0];
-    const entry = currentClickResults[layerName];
+      // 👉 FALL 2: Tabelle NICHT aktiv → Popup
+      const layerName = layerNames[0];
+      const entry = currentClickResults[layerName];
+      if (!shouldShowPopup(entry.layer)) return;
+      const data = entry.data;
+      //if (!shouldShowPopupLayerName(layerName)) return;
+      
+      popupContent.innerHTML = buildPopupContent(data, layerName); // Popup erstellen
+      console.log(data)
+      popupOverlay.setPosition(evt.coordinate); // Popup an der Klickposition anzeigen
 
-    if (!shouldShowPopup(entry.layer)) return;
-
-    const data = entry.data;
-
-    //if (!shouldShowPopupLayerName(layerName)) return;
-    popupContent.innerHTML = buildPopupContent(data, layerName); // Popup erstellen
-    popupOverlay.setPosition(evt.coordinate); // Popup an der Klickposition anzeigen
-
-  // 👉 Button im Popup aktivieren
-  setTimeout(() => {
-    const btn = document.getElementById('open-table-btn');
-    if (btn) {
-      btn.onclick = () => {
-        updateSelector([layerName]);
-        showTableDebounced(data);
-        popupOverlay.setPosition(undefined);
-      };
-    }
-  }, 0);
-});
+      // 👉 Button im Popup aktivieren
+      setTimeout(() => {
+      const btn = document.getElementById('open-table-btn');
+        if (btn) {
+          btn.onclick = () => {
+            updateSelector([layerName]);
+            showTableDebounced(data);
+            popupOverlay.setPosition(undefined);
+          };
+        }
+      }, 0);
+    });
 });
 }
 
@@ -261,7 +261,7 @@ function parseDeegreeGml(xmlString, layerName) {
             // Wir nehmen den lokalen Namen (ohne "app:") für die Tabelle
             const key = child.localName; 
             const value = child.textContent.trim();
-            
+            console.log(`Attribut gefunden - Key: ${key}, Value: ${value}`);
             // Koordinaten-Tags überspringen wir für die Tabelle
             if (key !== "boundedBy" && key !== "geometry") {
                 entry[key] = value;
@@ -640,7 +640,12 @@ function shouldShowPopup(layer) {
   return isVector || allowedWmsLayers.includes(name);
 }
 
-
+function createFotoLink(url, label) {
+  if (url && url.trim() !== '') {
+    return `<a href="${url}" onclick="window.open('${url}', '_blank'); return false;">${label}</a>`;
+  }
+  return label;
+}
 export function initPopup(map) {
   
 
@@ -666,15 +671,33 @@ export function initPopup(map) {
 }
 function buildPopupContent(data, layerName) {
   if (!data || data.length === 0) return "<p>Keine Daten</p>";
-  console.log("Daten für Popup:", data);
-  const first = data[0];
-  let html = ""//`<b>${layerName}</b><br>`;
-  // 👉 nur wenige Attribute anzeigen!
-  Object.entries(first).slice(0, 2).forEach(([key, value]) => {
-    html += `${key}: ${value}<br>`;
+  
+  const daten = data[0];
+  let html = "";
+
+  // 1. Die ersten zwei Attribute anzeigen
+  Object.entries(daten).slice(0, 2).forEach(([key, value]) => {
+    html += `<strong>${key}:</strong> ${value}<br>`;
   });
 
-  // 👉 Link zur Tabelle
+  // 2. Fotolinks sammeln
+  const fotoLinks = [];
+  
+  // Wir prüfen für jedes Foto, ob ein Wert existiert
+  if (daten.foto1) fotoLinks.push(`<a href="${daten.foto1}" target="_blank" class="popup-link">Foto 1</a>`);
+  if (daten.foto2) fotoLinks.push(`<a href="${daten.foto2}" target="_blank" class="popup-link">Foto 2</a>`);
+  if (daten.foto3) fotoLinks.push(`<a href="${daten.foto3}" target="_blank" class="popup-link">Foto 3</a>`);
+  if (daten.foto4) fotoLinks.push(`<a href="${daten.foto4}" target="_blank" class="popup-link">Foto 4</a>`);
+
+  // 3. Wenn Links vorhanden sind, diese kommagetrennt einfügen
+  if (fotoLinks.length > 0) {
+    html += `<div style="margin-top: 8px;">`;
+    html += fotoLinks.join(", "); // Verbindet die Links mit " , "
+    html += `</div>`;
+  }
+
+  // 4. Link zur Tabelle
   html += `<br><button id="open-table-btn">Details anzeigen</button>`;
+  
   return html;
 }

@@ -11,6 +11,8 @@ import { closeTable } from './table.js';
 import { isGpsTrackingActive, startGpsTracking, stopGpsTracking } from './gps.js';
 import { handleCRSChange, ptnDelFindCoord, initPtn } from './ptn.js';
 
+import { createDgmKachLayer, createDomKachLayer } from './layers.js';
+
 
 
 import { saveAs } from 'file-saver';
@@ -70,7 +72,29 @@ export function createMainToolbar(map) {
 
   const toggleBtn2 = new Toggle({
     html: 'W',
-    title: 'Dateien',
+    title: 'DGM/DOM Kacheln',
+    onToggle: function (active) {
+      const layers = map.getAllLayers();
+      const dgm = layers.find(l => l.get('name') === 'dgmKacheln');
+      const dom = layers.find(l => l.get('name') === 'domKacheln');
+      
+      
+      [dgm, dom].forEach(layer => {
+        if (layer) {
+          if (layer.get('displayInLayerSwitcher') === true) {
+            layer.set('displayInLayerSwitcher', active);
+          } else {
+            createDgmKachLayer();
+            createDomKachLayer();
+      
+          }
+        }
+        layer.setVisible(active);
+      });
+      
+    },
+    
+    
   });
 
   const toggleBtn3 = new Toggle({
@@ -98,10 +122,6 @@ export function createMainToolbar(map) {
           b.setActive(false);
         }
       });
-
-      // Der Block, der tableToggleBtnInstance deaktiviert und closeTable() aufruft,
-      // wurde entfernt, damit die Tabelle offen bleibt.
-      //console.log('Button aktiviert:', btn.get('title'));
     });
   });
 
@@ -302,6 +322,7 @@ export function initPrintControl(map) {
 
 
 import WMSCapabilities from 'ol-ext/control/WMSCapabilities';
+
 // Wichtig: ol-ext CSS muss irgendwo geladen werden (z.B. in main.js oder index.html)
 // import 'ol-ext/dist/ol-ext.css'
 /**

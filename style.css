@@ -106,7 +106,6 @@ html, body {
     max-width: 250px; /* Hier kannst du die Breite festlegen */
 }
 
-
 .ol-popup-closer {
     position: absolute;
     top: 1px;   /* Etwas weiter vom Rand weg sieht meist besser aus */
@@ -126,6 +125,7 @@ html, body {
     padding: 2px;
     color: black;
     font-size: 14px;
+    overflow-wrap: anywhere;
     
     /* UMBRUCH-LOGIK */
     

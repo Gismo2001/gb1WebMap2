@@ -5,7 +5,6 @@ import 'ol-ext/dist/ol-ext.css';
 import 'tabulator-tables/dist/css/tabulator.min.css';
 
 import { createMap } from './js/map.js';
-
 import { createLayerStructure } from './js/layers.js';
 
 import { createLayerSwitcher } from './js/controls.js';
@@ -41,14 +40,18 @@ registerProjections();
 // 👉 Hier werden zuerst die Layer erstellt (layers.js)
 const layers = createLayerStructure();
 
+layers.forEach(layer => {
+  console.log("Layer:", layer.get('name'));
+  
+});
+
 // 👉 Mier wird map mit Layern erstellt (map.js)
 const map = createMap('map', layers);
-
-
 
 // 👉 LayerSwitcher wird hinzugefügt (control.js)
 const layerSwitcher = createLayerSwitcher(map);
 map.addControl(layerSwitcher);
+
 
 // Toolbar wird erstellt und hinzugefügt (control.js)
 const toolbar = createMainToolbar(map);
@@ -66,10 +69,9 @@ switcherToggle(layerSwitcher);
 
 initializeWMS(map);
 
-
 map.updateSize();
 
-initPtn(map);   // 👈 Diesen Aufruf unbedingt hinzufügen!
+
 
 document.getElementById('layer-selector').addEventListener('change', () => {
   // 1. Hole WMS Klick-Daten
@@ -87,6 +89,7 @@ document.getElementById('layer-selector').addEventListener('change', () => {
 
 // nach map-Erstellung
 initTable(map);
+initPtn(map);   // 👈 Diesen Aufruf unbedingt hinzufügen!
 
 //Eventlistener für den "Schließen"-Button der Tabelle, damit die Karte wieder 100% bekommt
 document.getElementById('close-table-btn') 

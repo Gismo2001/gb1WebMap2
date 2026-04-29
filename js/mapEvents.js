@@ -310,6 +310,7 @@ export function getVectorFeaturesAtClick(map, evt) {
   map.forEachFeatureAtPixel(evt.pixel, function (feature, layer) {
 
     const name = (layer?.get('name') || '').toLowerCase();
+    console.log("Layer im Vector-Click:", name);
     const title = (layer?.get('title') || '').toLowerCase();
 
     if (EXCLUDED_LAYERS.includes(name) || EXCLUDED_LAYERS.includes(title)) {
@@ -485,7 +486,14 @@ export function fileToggleInput(map) {
       const fileEnd = file.name.split('.').pop().toLowerCase();
 
       if (fileEnd === 'tif' || fileEnd === 'tiff') {
-        console.log('tiff-Datei - Hier müsste GeoTIFF-Logik hin');
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const arrayBuffer = e.target.result;
+          // Hier müsste die GeoTIFF-Logik hin, z.B. mit ol/source/GeoTIFF 
+          console.log('tiff-Datei - Hier müsste GeoTIFF-Logik hin');
+          console.log(arrayBuffer);
+        };
+        reader.readAsArrayBuffer(file);
       } 
       // 👉 NEU: Shapefile-Logik (ZIP)
       else if (fileEnd === 'zip') {
@@ -548,6 +556,7 @@ export function fileToggleInput(map) {
 }
 
 import { Style, Circle, Fill, Stroke } from 'ol/style';
+import Layer from 'ol/layer/Layer.js';
 
 // Wir definieren den Style einmal außerhalb, damit er nicht bei jedem 
 // Feature-Upload neu erstellt werden muss (besser für die Performance).
@@ -603,7 +612,7 @@ function addVectorLayerToMap(map, features, sourceName) {
 function shouldShowPopup(layer) {
   if (isTableEnabled()) return false;
   const name = (layer?.get('name') || '').toLowerCase();
-  console.log("Name:", name);
+  
   const allowedWmsLayers = ['uesg', 'fließgew', 'ALKIS', 'LSG', 'NSG', 'gewaesser', 'nibis bohrdaten'];
   const isVector = !layer?.getSource()?.getFeatureInfoUrl;
   return isVector || allowedWmsLayers.includes(name);
@@ -643,34 +652,46 @@ function buildPopupContent(data, layerName) {
   
   const daten = data[0];
   let html = "";
+  
+  console.log(layerName);
+  // 1. Überschrift bestimmen 🏷️
+  // Wir wandeln den Namen in Kleinbuchstaben um, um sicherzugehen
+  const normalizedLayerName = layerName.toLowerCase();
 
-  // 1. Die ersten zwei Attribute anzeigen
- /*  Object.entries(daten).slice(0, 2).forEach(([key, value]) => {
-    html += `<strong>${key}:</strong> ${value}<br>`;
-  });
-  */
+  if (normalizedLayerName === 'dgmkacheln' || normalizedLayerName === 'domkacheln') {
+    console.log("Bedingung ist jetzt erfüllt!");
+    if (daten.tile_id) {
+      html += `<strong>Kachel: ${daten.tile_id}</strong><br>`;
+    }
+  } else {
+    // Standard für alle anderen Layer
+    const topValues = Object.values(daten).slice(2, 3).join(" ");
+    html += `<strong>${topValues}</strong><br>`;
+  }
+
+  // 2. Kachel-Links (DGM oder DOM) hinzufügen 🔗
+  // Da dgm1 nur bei DGM-Kacheln und dom1 nur bei DOM-Kacheln vorkommt:
+  const kachelUrl = daten.dgm1 || daten.dom1;
+  if (kachelUrl) {
+    html += `<div style="margin-top: 5px;">`;
+    html += `<a href="${kachelUrl}" target="_blank" class="popup-link">Kachel-Objekt öffnen</a>`;
+    html += `</div>`;
+  }
   
-  // Werte sammeln und mit Leerzeichen verbinden
-  const topValues = Object.values(daten).slice(2, 3).join(" ");
-  html += `<strong>${topValues}</strong><br>`;
-  
-  // 2. Fotolinks sammeln
+  // 3. Fotolinks sammeln (für andere Layer) 📸
   const fotoLinks = [];
-  
-  // Wir prüfen für jedes Foto, ob ein Wert existiert
   if (daten.foto1) fotoLinks.push(`<a href="${daten.foto1}" target="_blank" class="popup-link">Foto 1</a>`);
   if (daten.foto2) fotoLinks.push(`<a href="${daten.foto2}" target="_blank" class="popup-link">Foto 2</a>`);
   if (daten.foto3) fotoLinks.push(`<a href="${daten.foto3}" target="_blank" class="popup-link">Foto 3</a>`);
   if (daten.foto4) fotoLinks.push(`<a href="${daten.foto4}" target="_blank" class="popup-link">Foto 4</a>`);
 
-  // 3. Wenn Links vorhanden sind, diese kommagetrennt einfügen
   if (fotoLinks.length > 0) {
     html += `<div style="margin-top: 8px;">`;
-    html += fotoLinks.join(", "); // Verbindet die Links mit " , "
+    html += fotoLinks.join(", ");
     html += `</div>`;
   }
 
-  // 4. Link zur Tabelle
+  // 4. Link zur Tabelle 📊
   html += `<br><button id="open-table-btn">Details anzeigen</button>`;
   
   return html;

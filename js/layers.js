@@ -602,6 +602,7 @@ export function createExpBwSonPunLayer() {
    });
 }
 
+// FSK-Layer
 export function createFskLayer(){
 return  new VectorLayer({
   source: new VectorSource({
@@ -612,16 +613,14 @@ return  new VectorLayer({
      }, 
     strategy: bboxStrategy
     }),
-  title: 'fsk',
-  name: 'fsk', 
-  permalink:'fsk', 
-  style: getStyleForArtFSK,
-  visible: false,
-  minResolution: 0,
-  maxResolution: 4
-})
-
-
+    title: 'fsk',
+    name: 'fsk', 
+    permalink:'fsk', 
+    style: getStyleForArtFSK,
+    visible: false,
+    minResolution: 0,
+    maxResolution: 4
+  })
 }
 
 // Bauwerke Linien
@@ -634,11 +633,11 @@ export function createExpBwSonLinLayer() {
       },
       strategy: bboxStrategy
     }),
-  title: 'Sonstige, Linien', 
-  name: 'son_lin', 
-  permalink:'son_lin', 
-  style: getStyleForArtSonLin,
-  visible: false 
+    title: 'Sonstige, Linien', 
+    name: 'son_lin', 
+    permalink:'son_lin', 
+    style: getStyleForArtSonLin,
+    visible: false 
   });
 }
 export function createExpGewInfoLayer() {
@@ -673,8 +672,6 @@ export function createExpBwUMassnLayer() {
   visible: false
   });
 }
-
-// FSK-Layer
 
 //WMS-Layer
 export function createGewWmsFgLayer() {
@@ -790,7 +787,6 @@ export function createwmsNibisLayer() {
   visible: false,
 });
 }
-
 export function createwmsAlkisLayer() {
   return new TileLayer({
   title: 'ALKIS',
@@ -809,6 +805,53 @@ export function createwmsAlkisLayer() {
   attributions: 'LGLN',
   visible: false,  
 });
+}
+
+
+export function createDgmKachLayer() {
+  return new VectorLayer({
+    source: new VectorSource({
+      format: new GeoJSON(),
+      url: function (extent) {
+        return '/data/dgm_kacheln_neu.geojson';  
+      },
+    }),
+    title: 'DGM-Kacheln',  
+    name: 'dgmKacheln',
+    style: new Style({
+      stroke: new Stroke({
+        color: 'rgba(0, 150, 255, 0.8)',
+        width: 1.5,
+      }),
+      fill: new Fill({
+        color: 'rgba(0, 150, 255, 0.1)',
+      }),
+    }),
+    visible: false,
+  });
+}
+
+export function createDomKachLayer() {
+  return new VectorLayer({
+    source: new VectorSource({
+      format: new GeoJSON(),
+      url: function (extent) {
+        return '/data/dom_kacheln_neu.geojson';  
+      },
+    }),
+    title: 'DOM-Kacheln',  
+    name: 'domKacheln',
+    style: new Style({
+    stroke: new Stroke({
+      color: 'rgba(255, 0, 0, 0.8)',
+      width: 1.5,
+    }),
+    fill: new Fill({
+      color: 'rgba(0, 150, 255, 0.1)',
+    }),
+    }),
+    visible: false,
+  });
 }
 
 export function createLayerStructure() {
@@ -876,7 +919,10 @@ export function createLayerStructure() {
   const que = createExpBwQueLayer();
   const ein = createExpBwEinLayer();
   const sonPun = createExpBwSonPunLayer();
- 
+
+  //DGM/DOM-Kacheln
+  const dgmKacheln = createDgmKachLayer();
+  const domKacheln = createDomKachLayer();
    
 
   return [
@@ -975,6 +1021,10 @@ export function createLayerStructure() {
         
       ]
     }),
+    
+    // 🏗️ DGM/DOM-Kacheln
+    dgmKacheln,
+    domKacheln
   ];
 }
 

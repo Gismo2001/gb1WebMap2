@@ -495,7 +495,7 @@ export function fileToggleInput(map) {
         };
         reader.readAsArrayBuffer(file);
       } 
-      // 👉 NEU: Shapefile-Logik (ZIP)
+      //Shapefile-Logik (ZIP)
       else if (fileEnd === 'zip') {
         const reader = new FileReader();
         reader.onload = async (e) => {
@@ -503,7 +503,7 @@ export function fileToggleInput(map) {
             const buffer = e.target.result;
             // shpjs macht aus dem Buffer ein GeoJSON-Objekt
             const geojson = await shp(buffer);
-            const sourceName = `Shapefile: ${zaehlerGeojson} ${fileName}`;
+            const sourceName = `shapefile:${zaehlerGeojson}_${fileName}`;
             zaehlerGeojson++;
 
             // Da shp() ein GeoJSON liefert, nutzen wir den GeoJSON-Format-Reader
@@ -529,11 +529,11 @@ export function fileToggleInput(map) {
 
           if (fileEnd === 'kml') {
             format = new KML({ extractStyles: true });
-            sourceName = `KML: ${zaehlerKML} ${fileName}`;
+            sourceName = `KML:${zaehlerKML}_${fileName}`;
             zaehlerKML++;
           } else {
             format = new GeoJSON();
-            sourceName = `GeoJson: ${zaehlerGeojson} ${fileName}`;
+            sourceName = `GeoJson:${zaehlerGeojson}_${fileName}`;
             zaehlerGeojson++;
           }
 

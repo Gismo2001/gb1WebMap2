@@ -118,9 +118,24 @@ if (filterBtn && tableElement) {
   // 👉 Layer-Info
   const selector = document.getElementById('layer-selector');
   const layerName = selector ? selector.value : "unknown";
-  const idKey = (layerName === 'fsk') ? 'OBJECTID' : 'ID_con';
+  
+  // Den Namen in Kleinbuchstaben normalisieren
+  const normalizedName = layerName.toLowerCase();
 
-  // 👉 Daten deduplizieren
+  let idKey;
+
+  if (normalizedName === 'fsk') {
+    idKey = 'OBJECTID';
+  } else if (normalizedName.startsWith('shapefile')) {
+    // Prüft, ob der Name mit "shapefile" beginnt 🔍
+    idKey = 'objectid';
+    
+  } else {
+    // Standard für alle anderen Layer
+    idKey = 'ID_con';
+  }
+
+  // 👉 Daten deduplizieren für Anzeige in Tabelle ("Details anzeigen")
   const uniqueData = (data || []).filter((item, index, self) => {
     const val = item[idKey];
     if (val === null || val === undefined) return true;
@@ -199,7 +214,9 @@ if (mapRef) mapRef.updateSize();
             }
           };
         });
-        if (layerName !== 'fsk') {
+        const normalizedName = layerName.toLowerCase();
+        console.log(normalizedName);  
+        if (normalizedName !== 'fsk') {
           const statKey = "stat_von";
           const idCol = definitions.find(col => col.field === idKey);
           const statCol = definitions.find(col => col.field === statKey);
@@ -209,7 +226,13 @@ if (mapRef) mapRef.updateSize();
           if (statCol) newOrder.push(statCol);
 
           return newOrder.concat(remainingCols);
-        }
+        } else if (normalizedName.startsWith("shapefile")) {
+          
+          
+        };
+
+        
+        
         return definitions;
       },
       headerVisible: true,
@@ -233,9 +256,7 @@ if (mapRef) mapRef.updateSize();
       });
 
       const tableHolder = tableElement.querySelector(".tabulator-tableholder");
-
       if (tableHolder) {
-
         // 👉 Doppelklick = Zoom
         tableHolder.ondblclick = (e) => {
           const rowElement = e.target.closest(".tabulator-row");
@@ -325,12 +346,13 @@ if (mapRef) mapRef.updateSize();
       table.deselectRow();
       row.select();
 
-      const isMobile = window.innerWidth <= 768;
+      /* const isMobile = window.innerWidth <= 768;
       if (!isMobile) {
         tableElement.focus({ preventScroll: true });
-      }
+      } */
 
       const rowData = row.getData();
+      console.log("Row-Daten bei Klick:", rowData);
       highlightFeatureForRow(rowData);
     });
 
@@ -477,33 +499,39 @@ export function highlightFeatureForRow(rowData) {
   if (!mapRef) return;
   const selector = document.getElementById('layer-selector');
   const layerName = selector ? selector.value : null;
+  
+  
   if (!layerName) return;
   let targetLayer = null;
+  
   mapRef.getLayers().getArray().forEach((l) => {
+   
     if (l.get('name') === layerName) targetLayer = l;
     
     if (!targetLayer && l.getLayers) {
+      
       l.getLayers().getArray().forEach((subL) => {
         if (subL.get('name') === layerName) targetLayer = subL;
       });
     }
   });
-
   if (!targetLayer) return;
+  
   const source = targetLayer.getSource();
   if (!source || typeof source.getFeatures !== 'function') return;
   
-  
-  // Schlüssel bestimmen je nach Layer, da nicht alle den gleichen haben
-  if (layerName === 'fsk') {
-    idKey = 'OBJECTID';
-  } else if (layerName === 'gew_umn' || layerName === 'umnLin') {
-    idKey = 'ID_Umn';
+  const normalizedName = layerName.toLowerCase();
+    
+  // Schlüssel bestimmen je nach Layer
+  if (normalizedName === 'fsk') {
+      idKey = 'OBJECTID';
+  } else if (normalizedName.startsWith("shapefile")) {
+      idKey = 'objectid';
+  } else if (normalizedName === 'gew_umn' || normalizedName === 'umnlin') {
+      idKey = 'ID_Umn';
   } else {
-    idKey = 'ID_con';
-  };
-
-  
+      idKey = 'ID_con';
+  }
 
   // 3. Feature suchen
   const features = source.getFeatures();

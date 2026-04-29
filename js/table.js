@@ -24,7 +24,7 @@ let clickTimeout = null;
 const hoverHighlightStyle = new Style({
   stroke: new Stroke({
     color: '#faa600',   // OpenLayers Standard-Blau
-    width: 4,
+    width: 16,
   }),
   fill: new Fill({
     color: 'rgba(51, 153, 255, 0.2)', // transparent!
@@ -472,6 +472,7 @@ function clearHighlightedFeature() {
 }
 
 export function highlightFeatureForRow(rowData) {
+  let idKey = null;
   clearHighlightedFeature();
   if (!mapRef) return;
   const selector = document.getElementById('layer-selector');
@@ -480,6 +481,7 @@ export function highlightFeatureForRow(rowData) {
   let targetLayer = null;
   mapRef.getLayers().getArray().forEach((l) => {
     if (l.get('name') === layerName) targetLayer = l;
+    
     if (!targetLayer && l.getLayers) {
       l.getLayers().getArray().forEach((subL) => {
         if (subL.get('name') === layerName) targetLayer = subL;
@@ -491,9 +493,17 @@ export function highlightFeatureForRow(rowData) {
   const source = targetLayer.getSource();
   if (!source || typeof source.getFeatures !== 'function') return;
   
-  // 2. Den richtigen ID-Schlüssel bestimmen
-  // Wenn der Layer 'fsk' heißt, nutze 'OBJECTID', sonst 'ID_con'
-  const idKey = (layerName === 'fsk') ? 'OBJECTID' : 'ID_con';
+  
+  // Schlüssel bestimmen je nach Layer, da nicht alle den gleichen haben
+  if (layerName === 'fsk') {
+    idKey = 'OBJECTID';
+  } else if (layerName === 'gew_umn' || layerName === 'umnLin') {
+    idKey = 'ID_Umn';
+  } else {
+    idKey = 'ID_con';
+  };
+
+  
 
   // 3. Feature suchen
   const features = source.getFeatures();

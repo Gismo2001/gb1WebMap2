@@ -310,7 +310,6 @@ export function getVectorFeaturesAtClick(map, evt) {
   map.forEachFeatureAtPixel(evt.pixel, function (feature, layer) {
 
     const name = (layer?.get('name') || '').toLowerCase();
-    console.log("Layer im Vector-Click:", name);
     const title = (layer?.get('title') || '').toLowerCase();
 
     if (EXCLUDED_LAYERS.includes(name) || EXCLUDED_LAYERS.includes(title)) {
@@ -335,6 +334,7 @@ export function getVectorFeaturesAtClick(map, evt) {
 
   return results;
 }
+
 export function getVisibleVectorFeatures(map) {
   const extent = map.getView().calculateExtent(map.getSize());
   const results = {};
@@ -607,8 +607,6 @@ function addVectorLayerToMap(map, features, sourceName) {
   }
 }
 
-
-
 function shouldShowPopup(layer) {
   if (isTableEnabled()) return false;
   const name = (layer?.get('name') || '').toLowerCase();
@@ -652,15 +650,12 @@ function buildPopupContent(data, layerName) {
   
   const daten = data[0];
   let html = "";
-  
-  console.log(layerName);
   // 1. Überschrift bestimmen 🏷️
   // Wir wandeln den Namen in Kleinbuchstaben um, um sicherzugehen
   const normalizedLayerName = layerName.toLowerCase();
 
   if (normalizedLayerName === 'dgmkacheln' || normalizedLayerName === 'domkacheln') {
-    console.log("Bedingung ist jetzt erfüllt!");
-    if (daten.tile_id) {
+   if (daten.tile_id) {
       html += `<strong>Kachel: ${daten.tile_id}</strong><br>`;
     }
   } else {

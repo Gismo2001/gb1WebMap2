@@ -637,7 +637,7 @@ export function createExpBwSonLinLayer() {
     name: 'son_lin', 
     permalink:'son_lin', 
     style: getStyleForArtSonLin,
-    visible: false 
+    visible: true 
   });
 }
 export function createExpGewInfoLayer() {
@@ -1000,6 +1000,7 @@ export function createLayerStructure() {
      // 🌊 Bauwerke Linien
     new LayerGroup({
       title: 'Bauw.(L)',
+      visible: false,
       layers: [
         umnLin,
         sonLin,

@@ -40,11 +40,6 @@ registerProjections();
 // 👉 Hier werden zuerst die Layer erstellt (layers.js)
 const layers = createLayerStructure();
 
-layers.forEach(layer => {
-  console.log("Layer:", layer.get('name'));
-  
-});
-
 // 👉 Mier wird map mit Layern erstellt (map.js)
 const map = createMap('map', layers);
 

@@ -72,7 +72,6 @@ export function showTable(data) {
   isTableActive = true;
   const container = document.getElementById("wms-table-container");
   const tableElement = document.getElementById("wms_data_table");
-  
   const filterBtn = document.getElementById("filter-toggle");
   
   if (!container || !tableElement) return;
@@ -141,8 +140,8 @@ if (filterBtn && tableElement) {
     if (val === null || val === undefined) return true;
     return index === self.findIndex((t) => t[idKey] === val);
   });
-
-  // 👉 Split.js
+  
+    // 👉 Split.js
   if (!splitInstance) {
     splitInstance = Split(['#map', '#wms-table-container'], {
       sizes: [70, 30],
@@ -215,7 +214,7 @@ if (mapRef) mapRef.updateSize();
           };
         });
         const normalizedName = layerName.toLowerCase();
-        console.log(normalizedName);  
+        
         if (normalizedName !== 'fsk') {
           const statKey = "stat_von";
           const idCol = definitions.find(col => col.field === idKey);

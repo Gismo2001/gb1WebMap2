@@ -298,7 +298,7 @@ return new TileLayer({
   opacity: 1,
   visible: false,
   source: new XYZ({
-    attributions: '© Google',
+    //attributions: '© Google',
     url: 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'
   })
  });
@@ -808,7 +808,7 @@ export function createwmsAlkisLayer() {
 }
 
 
-export function createDgmKachLayer() {
+export function createDgmKachelLayer() {
   return new VectorLayer({
     source: new VectorSource({
       format: new GeoJSON(),
@@ -921,8 +921,8 @@ export function createLayerStructure() {
   const sonPun = createExpBwSonPunLayer();
 
   //DGM/DOM-Kacheln
-  const dgmKacheln = createDgmKachLayer();
-  const domKacheln = createDomKachLayer();
+  //const DgmKacheln = createDgmKachLayer();
+  //const DomKacheln = createDomKachLayer();
    
 
   return [
@@ -1024,8 +1024,8 @@ export function createLayerStructure() {
     }),
     
     // 🏗️ DGM/DOM-Kacheln
-    dgmKacheln,
-    domKacheln
+    //const dgmKacheln = createDgmKachelLayer();
+    //const domKacheln = createDomKachelLayer();
   ];
 }
 

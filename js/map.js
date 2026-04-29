@@ -19,7 +19,7 @@ export function createMap(target = 'map', layers = []) {
         extent: [727361, 6839277, 858148, 6990951]
       }),
       new Attribution({
-        collapsible: false,
+        collapsible: true,
         html: '<a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>'
       })
     ]),

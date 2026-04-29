@@ -11,9 +11,7 @@ import { closeTable } from './table.js';
 import { isGpsTrackingActive, startGpsTracking, stopGpsTracking } from './gps.js';
 import { handleCRSChange, ptnDelFindCoord, initPtn } from './ptn.js';
 
-import { createDgmKachLayer, createDomKachLayer } from './layers.js';
-
-
+import { createDgmKachelLayer, createDomKachLayer } from './layers.js';
 
 import { saveAs } from 'file-saver';
 import { jsPDF } from 'jspdf';
@@ -31,6 +29,8 @@ import { Style, Text } from 'ol/style';
 
 
 let isTableActive = false;
+let isDgmActive = false;
+let isDomActive = false;
 let tableToggleBtnInstance = null;
 let gpsToggleBtnInstance = null;
 let ptnToogleBtnInstance = null;
@@ -69,31 +69,32 @@ export function createMainToolbar(map) {
     active: false,
     bar: createSubBarI(map),
   });
-
+  
+  //dgm/dom toggle button
   const toggleBtn2 = new Toggle({
     html: 'W',
-    title: 'DGM/DOM Kacheln',
+    title: 'DGM_DOM_Kacheln',
     onToggle: function (active) {
-      const layers = map.getAllLayers();
-      const dgm = layers.find(l => l.get('name') === 'dgmKacheln');
-      const dom = layers.find(l => l.get('name') === 'domKacheln');
+      const DgmLayer = createDgmKachelLayer();
+     
+      if (active) {
+      console.log(active)
+      //const DomLayer = createDomKachLayer();
+      map.addLayer(DgmLayer);
       
+      DgmLayer.set('displayInLayerSwitcher', true);
       
-      [dgm, dom].forEach(layer => {
-        if (layer) {
-          if (layer.get('displayInLayerSwitcher') === true) {
-            layer.set('displayInLayerSwitcher', active);
-          } else {
-            createDgmKachLayer();
-            createDomKachLayer();
+      DgmLayer.setVisible(true);
       
-          }
-        }
-        layer.setVisible(active);
-      });
+      } else if (!active) {
+       active = false;
+       console.log(active)
+       DgmLayer.setVisible(false);
+       DgmLayer.set('displayInLayerSwitcher', false);
+       map.removeLayer(DgmLayer);
       
+      }
     },
-    
     
   });
 

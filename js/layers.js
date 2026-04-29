@@ -618,8 +618,8 @@ return  new VectorLayer({
     permalink:'fsk', 
     style: getStyleForArtFSK,
     visible: false,
-    minResolution: 0,
-    maxResolution: 4
+    //minResolution: 0,
+    //maxResolution: 4
   })
 }
 

@@ -207,7 +207,7 @@ top: 4em;
   padding: 0;
   width: 1.375em;
   height: 1.375em;
-  border-radius: 5px;
+  border-radius: 0px;
   font-size: inherit;
 }
 
@@ -220,21 +220,9 @@ top: 4em;
 .ol-control.ol-layerswitcher .panel-container {
   overflow-y: auto;
   box-sizing: border-box;
-  margin: 1px;
-  padding-right: 0;
-  font-size: 12px;
+  
 }
 
-.ol-control.ol-layerswitcher .panel ul {
-  overflow: visible;
-}
-
-  .ol-control.ol-layerswitcher .layerup {
-  width: 2em;
-  background: none;
-  position: absolute;
-  right: .5em;
-}
   
   
 

@@ -46,12 +46,12 @@ export function initTable(map) {
 }
 
 export function updateSelector(names) {
+  
   const selector = document.getElementById('layer-selector');
   if (!selector) return;
-
   // 1. Den aktuell ausgewählten Wert zwischenspeichern
   const previousSelection = selector.value;
-// 2. Das Dropdown neu aufbauen
+  // 2. Das Dropdown neu aufbauen
   selector.replaceChildren();
   names.forEach((name) => {
     const option = document.createElement('option');
@@ -63,9 +63,7 @@ export function updateSelector(names) {
   if (names.includes(previousSelection)) {
     selector.value = previousSelection;
   } else {
-    // Optional: Falls der alte Layer weg ist, beim ersten bleiben 
-    // oder eine Standardaktion ausführen.
-    //console.log("Vorheriger Layer nicht mehr in der Liste.");
+    console.log("Vorheriger Layer nicht mehr in der Liste.");
   }
 }
 export function showTable(data) {

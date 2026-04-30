@@ -394,11 +394,12 @@ export function updateTableFromVisibleLayers(map) {
   } else {
     showTableDebounced([]);
     // Optional: Den Selector leeren oder auf einen Standardwert setzen
-    //updateSelector([]);
+    updateSelector([]);
   }
 }
 
-export function switcherDrawList(layerSwitcher) {//Eventhandler für Layerswitcher Click (nur bestimmte Element, z.B. Gruppe öffnen)
+//Eventhandler für Layerswitcher Click (nur bestimmte Element, z.B. Gruppe öffnen)
+export function switcherDrawList(layerSwitcher) {
 layerSwitcher.on('drawlist', (evt) => {
   
   var layer = evt.layer;
@@ -418,7 +419,6 @@ layerSwitcher.on('drawlist', (evt) => {
   });
 });
 }
-
 
 import { drawSearchPoint } from './ptn.js';
 
@@ -618,6 +618,7 @@ function shouldShowPopup(layer) {
 
 function createFotoLink(url, label) {
   if (url && url.trim() !== '') {
+    console.log('geclickt')
     return `<a href="${url}" onclick="window.open('${url}', '_blank'); return false;">${label}</a>`;
   }
   return label;

@@ -32,9 +32,10 @@ import { initPtn } from './js/ptn.js'; // 👈 Sicherstellen, dass initPtn impor
 import { initPrintControl } from './js/controls.js';
 import { initializeWMS } from './js/controls.js'; // Pfad anpassen
 
+//Variable für die Split-Instanz, damit sie global zugänglich ist
 let splitInstance = null;
 
-// Projektionen hier registrieren
+// Projektionen registrieren (Projection.js)
 registerProjections();
 
 // 👉 Hier werden zuerst die Layer erstellt (layers.js)
@@ -67,6 +68,18 @@ initializeWMS(map);
 map.updateSize();
 
 
+// Dieser Code kommt in deine Initialisierung (z.B. main.js), NICHT in die Funktion
+const container = document.getElementById('popup-content');
+container.addEventListener('click', function (event) {
+  // Prüfen, ob das geklickte Element die Klasse 'popup-link' hat
+  if (event.target.classList.contains('popup-link')) {
+    // Falls du das Standardverhalten (Link öffnen) verhindern willst:
+    event.preventDefault(); 
+    //const url = event.target.getAttribute('href');
+    console.log("Link im Popup wurde geklickt! URL:", url);
+    // Hier kannst du deine eigene Logik ausführen
+  }
+});
 
 document.getElementById('layer-selector').addEventListener('change', () => {
   // 1. Hole WMS Klick-Daten

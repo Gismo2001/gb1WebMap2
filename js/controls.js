@@ -69,33 +69,33 @@ export function createMainToolbar(map) {
     active: false,
     bar: createSubBarI(map),
   });
-  
+  const DgmLayer = createDgmKachelLayer();
   //dgm/dom toggle button
   const toggleBtn2 = new Toggle({
     html: 'W',
     title: 'DGM_DOM_Kacheln',
     onToggle: function (active) {
-      const DgmLayer = createDgmKachelLayer();
-     
       if (active) {
-      console.log(active)
-      //const DomLayer = createDomKachLayer();
-      map.addLayer(DgmLayer);
-      
-      DgmLayer.set('displayInLayerSwitcher', true);
-      
-      DgmLayer.setVisible(true);
+        isDgmActive = true;
+        console.log(isDgmActive);
+        // Prüfen, ob der Layer schon auf der Karte ist, falls nicht: hinzufügen
+        if (!map.getLayers().getArray().includes(DgmLayer)) {
+          map.addLayer(DgmLayer);
+        }
+        DgmLayer.set('displayInLayerSwitcher', true);
+        DgmLayer.setVisible(true);
+        //DgmLayer.set('displayInLayerSwitcher', true);
+        
       
       } else if (!active) {
-       active = false;
-       console.log(active)
-       DgmLayer.setVisible(false);
-       DgmLayer.set('displayInLayerSwitcher', false);
-       map.removeLayer(DgmLayer);
-      
+        isDgmActive = false;
+        console.log(isDgmActive);
+        //DgmLayer.set('displayInLayerSwitcher', false);
+        //DgmLayer.setVisible(false); 
+        map.removeLayer(DgmLayer);
+        
       }
     },
-    
   });
 
   const toggleBtn3 = new Toggle({
@@ -323,6 +323,8 @@ export function initPrintControl(map) {
 
 
 import WMSCapabilities from 'ol-ext/control/WMSCapabilities';
+//import { is } from 'core-js/core/object';
+//import { is } from 'core-js/core/object';
 
 // Wichtig: ol-ext CSS muss irgendwo geladen werden (z.B. in main.js oder index.html)
 // import 'ol-ext/dist/ol-ext.css'
@@ -331,17 +333,16 @@ import WMSCapabilities from 'ol-ext/control/WMSCapabilities';
  * @param {ol/Map} map 
  */
 export function initializeWMS(map) {
-    const cap = new WMSCapabilities({
-        
-        target: document.body, // Oder ein spezielles Div
-        srs: ['EPSG:3857', 'EPSG:4326', 'EPSG:25832'], // Deine Projektionen
-        cors: true,
-        popupLayer: true,
-        placeholder: 'WMS link hier einfügen...',
-        title: 'WMS-Dienste',
-        searchLabel: 'Suche',
-        services: {
-        'Verwaltungsgrenzen NI ': 'https://opendata.lgln.niedersachsen.de/doorman/noauth/verwaltungsgrenzen_wms',            
+  const cap = new WMSCapabilities({
+    target: document.body, // Oder ein spezielles Div
+    srs: ['EPSG:3857', 'EPSG:4326', 'EPSG:25832'], // Deine Projektionen
+    cors: true,
+    popupLayer: true,
+    placeholder: 'WMS link hier einfügen...',
+    title: 'WMS-Dienste',
+    searchLabel: 'Suche',
+    services: {
+      'Verwaltungsgrenzen NI ': 'https://opendata.lgln.niedersachsen.de/doorman/noauth/verwaltungsgrenzen_wms',            
         'Hydro, Umweltkarten NI ': 'https://www.umweltkarten-niedersachsen.de/arcgis/services/Hydro_wms/MapServer/WMSServer?VERSION=1.3.0.&SERVICE=WMS&REQUEST=GetCapabilities',  'WRRL, Umweltkarten NI ': 'https://www.umweltkarten-niedersachsen.de/arcgis/services/WRRL_wms/MapServer/WMSServer?VERSION=1.3.0.&SERVICE=WMS&REQUEST=GetCapabilities',
         'Natur, Umweltkarten NI': 'https://www.umweltkarten-niedersachsen.de/arcgis/services/Natur_wms/MapServer/WMSServer?VERSION=1.3.0.&SERVICE=WMS&REQUEST=GetCapabilities',
         'Natur, LK':'https://geodaten.emsland.de:443/core-services/services/lkel_fb67_naturschutz_und_forsten_wms?',
@@ -354,11 +355,11 @@ export function initializeWMS(map) {
         'Pegelonline, DE': 'https://www.pegelonline.wsv.de/webservices/gis/wms/aktuell/mnwmhw?request=GetCapabilities&service=WMS&version=1.3.0',
         'Inspire Hydro': 'https://sg.geodatenzentrum.de/wms_dlm250_inspire?Request=GetCapabilities&SERVICE=WMS',
         'Drenthe Geodata': 'https://services.geodataoverijssel.nl/geoserver/ows?'
-        },
-        trace: true
-    });
+    },
+  trace: true
+  });
 
-    map.addControl(cap);
+  map.addControl(cap);
 
     // Event-Handling wenn ein Layer ausgewählt wurde
     cap.on('load', (e) => {

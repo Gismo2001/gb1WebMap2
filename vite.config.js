@@ -1,24 +1,48 @@
 import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
 import legacy from '@vitejs/plugin-legacy';
 
 export default defineConfig({
   plugins: [
-    react(),
     legacy({
-      targets: [
-        'Chrome >= 49', // Chromium 53
-        'Firefox >= 45',
-        'Safari >= 10',
-        'Edge >= 15'
-      ],
+      targets: ['> 0.5%', 'last 2 versions', 'Firefox ESR', 'not dead', 'Safari >= 11'],
+      modernPolyfills: true,
       additionalLegacyPolyfills: ['regenerator-runtime/runtime'],
-      modernPolyfills: true
     })
   ],
   build: {
-    outDir: 'dist',
     sourcemap: true,
-    minify: 'terser'
-  }
+  },
+  server: {
+    host: '0.0.0.0',
+    proxy: {
+
+      // Proxy für LGN-STAC (bestehend)
+      '/lgln-stac': {
+        target: 'https://dgm.stac.lgln.niedersachsen.de',
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/lgln-stac/, ''),
+      },
+
+      // Proxy für DGM GeoTIFFs
+      '/dgm': {
+        target: 'https://dgm1.s3.eu-de.cloud-object-storage.appdomain.cloud',
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/dgm/, '')
+        },
+
+      // Proxy für DOM GeoTIFFs
+      '/dom': {
+        target: 'https://dom1.s3.eu-de.cloud-object-storage.appdomain.cloud',
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/dom/, ''),
+      }
+
+    },
+  },
+  preview: {
+    host: '0.0.0.0'
+  },
 });

@@ -31,5 +31,14 @@
     "split-grid": "^1.0.11",
     "split.js": "^1.6.5",
     "tabulator-tables": "^6.4.0"
-  }
+  },
+  "browserslist": [
+    "last 2 versions",
+    "> 1%",
+    "not dead",
+    "Chrome >= 58",
+    "Firefox >= 60",
+    "Safari >= 12",
+    "Edge >= 79"
+  ]
 }

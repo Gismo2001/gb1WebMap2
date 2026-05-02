@@ -5,6 +5,7 @@ import { TabulatorFull as Tabulator } from 'tabulator-tables';
 import 'tabulator-tables/dist/css/tabulator.min.css';
 import 'ol/ol.css';
 import 'ol-ext/dist/ol-ext.css';   // 👈 unbedingt notwendig!
+
 import { updateTableFromVisibleLayers } from './mapEvents.js';
 import { closeTable } from './table.js';
 
@@ -262,7 +263,7 @@ export function searchPlaceControlFunc() {
 export function initPrintControl(map) {
   
   // 1. Zusätzliche Canvas-Controls für das Druckbild hinzufügen
-  map.addControl(new CanvasAttribution());
+  //map.addControl(new CanvasAttribution());
   map.addControl(new CanvasTitle({ 
     title: 'Print-Preview', 
     visible: false,
@@ -323,11 +324,9 @@ export function initPrintControl(map) {
 
 
 import WMSCapabilities from 'ol-ext/control/WMSCapabilities';
-//import { is } from 'core-js/core/object';
-//import { is } from 'core-js/core/object';
 
 // Wichtig: ol-ext CSS muss irgendwo geladen werden (z.B. in main.js oder index.html)
-// import 'ol-ext/dist/ol-ext.css'
+ 
 /**
  * Initialisiert das WMS-Capabilities Control
  * @param {ol/Map} map 

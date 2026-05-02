@@ -5,26 +5,48 @@ import { FullScreen, Attribution, defaults as defaultControls, ZoomToExtent } fr
 import { DragRotateAndZoom, defaults as defaultInteractions } from 'ol/interaction';
 
 export function createMap(target = 'map', layers = []) {
-  return new Map({
+
+  // 👉 EIN eigenes Attribution-Control
+  const attribution = new Attribution({
+    collapsible: false, // wird später dynamisch gesetzt
+  });
+
+  const map = new Map({
     target,
     view: new View({
       center: fromLonLat([7.35, 52.7]),
       zoom: 9
     }),
-    theme: null, // hier ist mir nicht klar, was das macht: 
+    theme: null,
     layers,
-    controls: defaultControls().extend([
+
+    // 👉 WICHTIG: Default-Attribution deaktivieren!
+    controls: defaultControls({ attribution: false }).extend([
+      attribution,
       new FullScreen(),
       new ZoomToExtent({
         extent: [727361, 6839277, 858148, 6990951]
-      }),
-      new Attribution({
-        collapsible: true,
-        html: '<a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>'
       })
     ]),
-    interactions: defaultInteractions().extend([new DragRotateAndZoom()])
-  
-  });
-}
 
+    interactions: defaultInteractions().extend([
+      new DragRotateAndZoom()
+    ])
+  });
+
+  // 👉 RESPONSIVE Verhalten wie im OpenLayers-Beispiel
+  function checkSize() {
+    const size = map.getSize();
+    if (!size) return;
+
+    const small = size[0] < 600;
+
+    attribution.setCollapsible(small);
+    attribution.setCollapsed(small);
+  }
+
+  map.on('change:size', checkSize);
+  checkSize();
+
+  return map;
+}

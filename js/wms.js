@@ -1,4 +1,6 @@
 import WMSCapabilities from 'ol-ext/control/WMSCapabilities';
+
+
 export function initializeWMS(map) {
     const cap = new WMSCapabilities({
         

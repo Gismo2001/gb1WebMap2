@@ -51,7 +51,7 @@ html, body {
   left: 5px; 
   padding: 5px;
   background-color: #dbdbdb;
-}
+} 
  
 .ol-touch .ol-control.ol-layerswitcher .panel-container {
   margin: 1px;
@@ -318,4 +318,5 @@ top: 4em;
 .btn-control.active {
     box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
 }
+
 

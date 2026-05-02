@@ -229,7 +229,7 @@ function parseDeegreeGml(xmlString, layerName) {
             // Wir nehmen den lokalen Namen (ohne "app:") für die Tabelle
             const key = child.localName; 
             const value = child.textContent.trim();
-            console.log(`Attribut gefunden - Key: ${key}, Value: ${value}`);
+            //console.log(`Attribut gefunden - Key: ${key}, Value: ${value}`);
             // Koordinaten-Tags überspringen wir für die Tabelle
             if (key !== "boundedBy" && key !== "geometry") {
                 entry[key] = value;
@@ -526,7 +526,7 @@ export function fileToggleInput(map) {
           const content = e.target.result;
           let format;
           let sourceName;
-          console.log(fileName)
+          
           if (fileEnd === 'kml') {
             format = new KML({ extractStyles: true });
             sourceName = `KML:${zaehlerKML}_${fileName}`;
@@ -624,7 +624,7 @@ function shouldShowPopup(layer) {
 
 function createFotoLink(url, label) {
   if (url && url.trim() !== '') {
-    console.log('geclickt')
+    
     return `<a href="${url}" onclick="window.open('${url}', '_blank'); return false;">${label}</a>`;
   }
   return label;
@@ -656,7 +656,7 @@ function buildPopupContent(data, layerName) {
   
   // 1. Überschrift & Inhalt bestimmen 🏷️
   const normalizedLayerName = layerName.toLowerCase();
-  console.log(normalizedLayerName);
+  
 
   if (normalizedLayerName === 'fsk') {
     // Spezialfall für FSK: Eig1 als Überschrift, Suche als Zusatzinhalt

@@ -74,7 +74,7 @@ map.updateSize();
 
 const container = document.getElementById('popup-content');
 container.addEventListener('click', function (event) {
-  console.log('aufgerufen  ')
+  
   if (event.target.classList.contains('popup-link')) {
     //const kachelnVisible = dgmKachelLayer && dgmKachelLayer.getVisible();
     let featureFound = false;

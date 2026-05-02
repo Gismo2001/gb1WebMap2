@@ -220,6 +220,15 @@ function setupTableEvents(table, tableElement, idKey, layerName) {
     row.select();
     highlightFeatureForRow(row.getData());
   });
+   table.on("rowDblClick", (e, row) => {
+   const rowData = row.getData();
+    const layerName = document.getElementById('layer-selector').value;
+
+    if (mapRef && layerName) {
+      zoomToFeature(layerName, rowData);
+    }
+
+  });
 
   tableElement.onkeydown = (e) => {
     if (e.key === "ArrowUp" || e.key === "ArrowDown") {
@@ -313,12 +322,12 @@ function zoomToFeature(layerName, rowData) {
   });
 
   if (foundFeature) {
-    console.log("Feature gefunden! Zoome...");
+    
     const extent = foundFeature.getGeometry().getExtent();
     mapRef.getView().fit(extent, {
       padding: [50, 50, 50, 50],
       duration: 800,
-      maxZoom: 20
+      maxZoom: 14
     });
   } else {
     //console.warn("ID_con '" + rowData.ID_con + "' nicht in den Source-Features gefunden.");

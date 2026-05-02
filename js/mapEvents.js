@@ -661,7 +661,14 @@ function buildPopupContent(data, layerName) {
   if (normalizedLayerName === 'fsk') {
     // Spezialfall für FSK: Eig1 als Überschrift, Suche als Zusatzinhalt
     const ueberschrift = "Eigentümer: " + daten.Eig1 || "Keine Bezeichnung";
-    const info = "FSK: " + daten.Suche + "ID: " + daten.fsk || "" ;
+const info = (
+    `Gemark: ${daten.Gemark}<br>` +
+    `ID: ${daten.fsk}<br>` +
+    `Flur: ${daten.Flur}<br>` +
+    `Flurstk.: ${daten.Zaehler}/${daten.Flur}`
+) || "";
+
+
     
     
     html += `<strong>${ueberschrift}</strong><br>`;

@@ -96,6 +96,7 @@ html, body {
     padding: 2px 30px 2px 2px; 
     min-width: 75px;
     max-width: 250px; /* Hier kannst du die Breite festlegen */
+    
 }
 
 .ol-popup-closer {
@@ -155,6 +156,7 @@ html, body {
 
 #popup-content {
   user-select: text;
+  font-size: 12px; 
 }
 
 .ol-control.main-toolbar {

@@ -526,15 +526,21 @@ export function fileToggleInput(map) {
           const content = e.target.result;
           let format;
           let sourceName;
-
+          console.log(fileName)
           if (fileEnd === 'kml') {
             format = new KML({ extractStyles: true });
             sourceName = `KML:${zaehlerKML}_${fileName}`;
             zaehlerKML++;
           } else {
-            format = new GeoJSON();
-            sourceName = `GeoJson:${zaehlerGeojson}_${fileName}`;
-            zaehlerGeojson++;
+            if (fileName === 'exp_allgm_fsk') {
+              format = new GeoJSON();
+              sourceName = `fsk`;
+              
+            } else  {
+              format = new GeoJSON();
+              sourceName = `GeoJson:${zaehlerGeojson}_${fileName}`;
+              zaehlerGeojson++;
+            }
           }
 
           try {
@@ -655,7 +661,7 @@ function buildPopupContent(data, layerName) {
   if (normalizedLayerName === 'fsk') {
     // Spezialfall für FSK: Eig1 als Überschrift, Suche als Zusatzinhalt
     const ueberschrift = "Eigentümer: " + daten.Eig1 || "Keine Bezeichnung";
-    const info = `FSK: ${daten.Suche}<br>ID: ${daten.fsk}`;
+    const info = "FSK: " + daten.Suche + "ID: " + daten.fsk || "" ;
     
     
     html += `<strong>${ueberschrift}</strong><br>`;

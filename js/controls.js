@@ -221,30 +221,15 @@ return new Bar({ toggleOne: true, controls: [gpsToggleBtn, ptnToogleBtn, fileToo
 }
 
 
+
 export function createDataTable(map) {
   const table = new Tabulator('#wms_data_table', {
     height: '100%',
-    layout: 'fitData',
-    layout: "fitData",
-    // 👉 Hier die ID dynamisch pro Layer setzen!
-    persistenceID: "wms_table_" + normalizedName,
-    autoColumns: true,
-    columnDefaults: { tooltip: true },
-    placeholder: "Keine Objekte im Sichtbereich. Klicken Sie auf ein Objekt für Details.",
-    persistence: {
-      sort: true,
-      filter: true,
-      group: true,
-      page: true,
-      columns: true,
-      vertical: true, // 👈 Speichert die vertikale Scrollposition!
-      //horizontal: true
-    }
+    placeholder: "Warte auf Daten...",
   });
-
-  setTimeout(() => map.updateSize(), 50);
   return table;
 }
+
 
 export function isTableEnabled() {
   return isTableActive;

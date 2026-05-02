@@ -624,12 +624,9 @@ function createFotoLink(url, label) {
   return label;
 }
 export function initPopup(map) {
-  
-
   const container = document.getElementById('popup');
   const content = document.getElementById('popup-content');
   const closer = document.getElementById('popup-closer');
-
   popupOverlay = new Overlay({
     element: container,
     autoPan: true,
@@ -638,7 +635,6 @@ export function initPopup(map) {
 
   // ✅ WICHTIG – wieder aktivieren!
   map.addOverlay(popupOverlay);
-
   popupContent = content; // 👉 speichern!
 
   closer.onclick = function () {
@@ -651,12 +647,24 @@ function buildPopupContent(data, layerName) {
   
   const daten = data[0];
   let html = "";
-  // 1. Überschrift bestimmen 🏷️
-  // Wir wandeln den Namen in Kleinbuchstaben um, um sicherzugehen
+  
+  // 1. Überschrift & Inhalt bestimmen 🏷️
   const normalizedLayerName = layerName.toLowerCase();
+  console.log(normalizedLayerName);
 
-  if (normalizedLayerName === 'dgmkacheln' || normalizedLayerName === 'domkacheln') {
-   if (daten.tile_id) {
+  if (normalizedLayerName === 'fsk') {
+    // Spezialfall für FSK: Eig1 als Überschrift, Suche als Zusatzinhalt
+    const ueberschrift = "Eigentümer: " + daten.Eig1 || "Keine Bezeichnung";
+    const info = `FSK: ${daten.Suche}<br>ID: ${daten.fsk}`;
+    
+    
+    html += `<strong>${ueberschrift}</strong><br>`;
+    if (info) {
+      html += `<span>${info}</span><br>`;
+    }
+    
+  } else if (normalizedLayerName === 'dgmkacheln' || normalizedLayerName === 'domkacheln') {
+    if (daten.tile_id) {
       html += `<strong>Kachel: ${daten.tile_id}</strong><br>`;
     }
   } else {
@@ -666,7 +674,6 @@ function buildPopupContent(data, layerName) {
   }
 
   // 2. Kachel-Links (DGM oder DOM) hinzufügen 🔗
-  // Da dgm1 nur bei DGM-Kacheln und dom1 nur bei DOM-Kacheln vorkommt:
   const kachelUrl = daten.dgm1 || daten.dom1;
   if (kachelUrl) {
     html += `<div style="margin-top: 5px;">`;
@@ -674,7 +681,7 @@ function buildPopupContent(data, layerName) {
     html += `</div>`;
   }
   
-  // 3. Fotolinks sammeln (für andere Layer) 📸
+  // 3. Fotolinks sammeln 📸
   const fotoLinks = [];
   if (daten.foto1) fotoLinks.push(`<a href="${daten.foto1}" target="_blank" class="popup-link">Foto 1</a>`);
   if (daten.foto2) fotoLinks.push(`<a href="${daten.foto2}" target="_blank" class="popup-link">Foto 2</a>`);

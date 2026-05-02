@@ -71,70 +71,15 @@ export function showTable(data) {
   const container = document.getElementById("wms-table-container");
   const tableElement = document.getElementById("wms_data_table");
   const filterBtn = document.getElementById("filter-toggle");
+  const resetBtn = document.getElementById("table-reset");
 
   if (!container || !tableElement) return;
 
-  // 👉 1. Filter-Button Logik (einmalig binden oder prüfen)
-  if (filterBtn) {
-    filterBtn.onclick = () => {
-      tableElement.classList.toggle("hide-filters");
-      const filtersHidden = tableElement.classList.contains("hide-filters");
-      filtersHidden ? filterBtn.classList.remove("active") : filterBtn.classList.add("active");
-      if (table) table.redraw();
-    };
-    
-    if (!tableElement.classList.contains("hide-filters")) {
-      filterBtn.classList.add("active");
-    }
-  }
-
-  const resetBtn = document.getElementById("table-reset");
-
-if (resetBtn) {
-  resetBtn.onclick = () => {
-    if (table) {
-            // Den spezifischen Speicher-Schlüssel für diesen Layer generieren
-            const storageId = "tabulator-wms_table_" + normalizedName;
-            
-            // Nur den Speicher für diesen EINEN Layer löschen
-            localStorage.removeItem(storageId);
-
-            // Tabelle neu aufbauen
-            table.destroy();
-            table = null;
-            showTable(data); 
-            
-            console.log(`Layout für Layer ${normalizedName} zurückgesetzt.`);
-        }
-  };
-}
-  // 👉 2. Anzeige-Einstellungen
+  // 👉 1. UI-Zustand (Container & Split)
   container.style.display = "flex";
   const mapElement = document.getElementById("map");
   if (mapElement) mapElement.style.height = "";
 
-  // 👉 3. Layer-Name und ID-Key Bestimmung
-  const selector = document.getElementById('layer-selector');
-  const layerName = selector ? selector.value : "unknown";
-  const normalizedName = layerName.toLowerCase();
-
-  let idKey;
-  if (normalizedName === 'fsk') {
-    idKey = 'OBJECTID';
-  } else if (normalizedName.startsWith('shapefile')) {
-    idKey = 'objectid';
-  } else {
-    idKey = 'ID_con';
-  }
-
-  // 👉 4. Daten deduplizieren
-  const uniqueData = (data || []).filter((item, index, self) => {
-    const val = item[idKey];
-    if (val === null || val === undefined) return true;
-    return index === self.findIndex((t) => t[idKey] === val);
-  });
-
-  // 👉 5. Split.js Initialisierung
   if (!splitInstance) {
     splitInstance = Split(['#map', '#wms-table-container'], {
       sizes: [70, 30],
@@ -147,16 +92,52 @@ if (resetBtn) {
   }
   if (mapRef) mapRef.updateSize();
 
-  // 👉 6. TABELLEN-LOGIK: Aktualisieren oder Neuaufbau
-  // Wir prüfen, ob die Tabelle existiert UND ob es derselbe Layer ist
+  // 👉 2. Layer & Daten bestimmen (Muss vor dem Reset-Button kommen!)
+  const selector = document.getElementById('layer-selector');
+  const layerName = selector ? selector.value : "unknown";
+  const normalizedName = layerName.toLowerCase();
+
+  let idKey = (normalizedName === 'fsk') ? 'OBJECTID' : 
+             (normalizedName.startsWith('shapefile')) ? 'objectid' : 'ID_con';
+
+  // 👉 3. Reset-Button Logik (Jetzt kennt er normalizedName korrekt)
+  if (resetBtn) {
+    resetBtn.onclick = () => {
+      if (table) {
+        const storageId = "tabulator-wms_table_" + normalizedName;
+        localStorage.removeItem(storageId);
+        table.destroy();
+        table = null;
+        showTable(data); 
+        console.log(`Layout für Layer ${normalizedName} zurückgesetzt.`);
+      }
+    };
+  }
+
+  // 👉 4. Filter-Button Logik
+  if (filterBtn) {
+    filterBtn.onclick = () => {
+      tableElement.classList.toggle("hide-filters");
+      const filtersHidden = tableElement.classList.contains("hide-filters");
+      filtersHidden ? filterBtn.classList.remove("active") : filterBtn.classList.add("active");
+      if (table) table.redraw();
+    };
+    if (!tableElement.classList.contains("hide-filters")) filterBtn.classList.add("active");
+  }
+
+  // 👉 5. Daten vorbereiten
+  const uniqueData = (data || []).filter((item, index, self) => {
+    const val = item[idKey];
+    if (val === null || val === undefined) return true;
+    return index === self.findIndex((t) => t[idKey] === val);
+  });
+
+  // 👉 6. Tabellen-Logik: Update oder Neubau
   const previousLayer = tableElement.getAttribute("data-current-layer");
 
   if (table && previousLayer === normalizedName) {
-    // GLEICHER LAYER: Nur Daten tauschen -> Sortierung bleibt!
     table.replaceData(uniqueData);
-    console.log("Tabulator: Daten ersetzt (Sortierung beibehalten)");
   } else {
-    // NEUER LAYER oder ERSTER START: Tabelle (neu) aufbauen
     if (table) {
       table.destroy();
       table = null;
@@ -169,91 +150,51 @@ if (resetBtn) {
         data: uniqueData,
         height: "100%",
         layout: "fitData",
-        // 👉 Hier die ID dynamisch pro Layer setzen!
         persistenceID: "wms_table_" + normalizedName,
         movableColumns: true,
         placeholder: "Keine Objekte im Sichtbereich.",
         autoColumns: true,
         selectable: 1,
         persistence: {
-         sort: true,
+          sort: true,
           filter: true,
-          group: true,
-          page: true,
           columns: true,
-          vertical: true, // 👈 Speichert die vertikale Scrollposition!
-          //horizontal: true
+          scroll: true,
         },
+        persistenceMode: "local", 
         autoColumnsDefinitions: function(definitions) {
           definitions.forEach((column) => {
-            // Ein Kontextmenü für den Header hinzufügen
-            column.headerContextMenu = 
-            [
-              {
-                label: "Spalte ausblenden",
-                action: function(e, column) 
-                {
-                column.hide();            
-                }
-              },
-              {
-                label: "🔄 Alles zurücksetzen",
-                action: function() {
-                  document.getElementById("table-reset").click();
-                }
-              }
+            column.headerContextMenu = [
+              { label: "Spalte ausblenden", action: (e, col) => col.hide() },
+              { label: "🔄 Alles zurücksetzen", action: () => resetBtn.click() }
             ];
             column.headerFilter = "input";
             column.headerFilterPlaceholder = "Suche...";
-            
-            if (column.field === "stat_von") {
-              column.sorter = "number";
-            }
+            if (column.field === "stat_von") column.sorter = "number";
 
-            // Deine Custom Filter-Logik (Mathematische Operatoren & RegEx)
             column.headerFilterFunc = function(headerValue, rowValue) {
               if (!headerValue) return true;
               const val = String(rowValue || "").trim();
               const search = String(headerValue).trim();
               const match = search.match(/^(<=|>=|<|>)\s*(\d+(?:\.\d+)?)$/);
               if (match) {
-                const op = match[1];
-                const numS = parseFloat(match[2]);
-                const numR = parseFloat(val);
+                const op = match[1], numS = parseFloat(match[2]), numR = parseFloat(val);
                 if (isNaN(numR)) return false;
-                switch (op) {
-                  case "<": return numR < numS;
-                  case ">": return numR > numS;
-                  case "<=": return numR <= numS;
-                  case ">=": return numR >= numS;
-                }
+                if (op === "<") return numR < numS;
+                if (op === ">") return numR > numS;
+                if (op === "<=") return numR <= numS;
+                if (op === ">=") return numR >= numS;
               }
-              const regex = new RegExp(search.replace(/\*/g, ".*"), "i");
-              return regex.test(val);
+              return new RegExp(search.replace(/\*/g, ".*"), "i").test(val);
             };
           });
 
-          // Spalten-Sortierung (ID und stat_von nach vorne)
-          if (normalizedName !== 'fsk') {
-            const newOrder = definitions.filter(c => c.field === idKey || c.field === "stat_von");
-            const others = definitions.filter(c => c.field !== idKey && c.field !== "stat_von");
-            return newOrder.concat(others);
-          }
+          
           return definitions;
         },
-        // WICHTIG: Setze das Attribut erst, wenn die Tabelle bereit ist
-        tableBuilt: function() {
-            tableElement.setAttribute("data-current-layer", normalizedName);
-            // Ein minimaler Timeout hilft, damit die Engine die Zeilenhöhen berechnet hat
-            setTimeout(() => {
-            if (table) {
-                table.restoreVerticalScrollbarPosition();
-            }
-        }, 100);
-        }
+       
       });
 
-      // 👉 7. Interaktions-Events (Keyboard & Mouse)
       setupTableEvents(table, tableElement, idKey, layerName);
 
     } catch (err) {
@@ -261,7 +202,6 @@ if (resetBtn) {
     }
   }
 }
-
 // Hilfsfunktion für die Events (um showTable übersichtlich zu halten)
 function setupTableEvents(table, tableElement, idKey, layerName) {
   let isKeyboard = false;

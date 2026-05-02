@@ -333,14 +333,16 @@ import WMSCapabilities from 'ol-ext/control/WMSCapabilities';
  * @param {ol/Map} map 
  */
 export function initializeWMS(map) {
-  const cap = new WMSCapabilities({
+  var cap = new WMSCapabilities({
     target: document.body, // Oder ein spezielles Div
     srs: ['EPSG:3857', 'EPSG:4326', 'EPSG:25832'], // Deine Projektionen
     cors: true,
     popupLayer: true,
     placeholder: 'WMS link hier einfügen...',
     title: 'WMS-Dienste',
+    name: 'WMS-Dienste',
     searchLabel: 'Suche',
+    optional: 'token',
     services: {
       'Verwaltungsgrenzen NI ': 'https://opendata.lgln.niedersachsen.de/doorman/noauth/verwaltungsgrenzen_wms',            
         'Hydro, Umweltkarten NI ': 'https://www.umweltkarten-niedersachsen.de/arcgis/services/Hydro_wms/MapServer/WMSServer?VERSION=1.3.0.&SERVICE=WMS&REQUEST=GetCapabilities',  'WRRL, Umweltkarten NI ': 'https://www.umweltkarten-niedersachsen.de/arcgis/services/WRRL_wms/MapServer/WMSServer?VERSION=1.3.0.&SERVICE=WMS&REQUEST=GetCapabilities',
@@ -364,17 +366,27 @@ export function initializeWMS(map) {
     // Event-Handling wenn ein Layer ausgewählt wurde
     cap.on('load', (e) => {
         const layer = e.layer;
-        
-        // Den Titel aus den Metadaten holen, damit er im LayerSwitcher erscheint
         const rawTitle = (e.options.data && (e.options.data.title || e.options.data.Name)) || "WMS Layer";
+        const permalinkId = rawTitle.toLowerCase().replace(/\s+/g, '_');
         
-        // WICHTIG für deinen LayerSwitcher:
+        layer.set('permalink', permalinkId);
         layer.set('title', rawTitle);
         layer.set('name', rawTitle); // Falls du 'name' als ID nutzt
         
         // Layer der Karte hinzufügen
         map.addLayer(layer);
-        
+
+        // 4. Wir verzichten auf den sofortigen Aufruf von getLayerByLink,
+        // um den internen ol-ext Fehler komplett zu umgehen.
+        // Stattdessen triggern wir nur das generelle Update.
+        setTimeout(() => {
+        if (typeof permaFunktionality !== 'undefined' && permaFunktionality) {
+            // changed() reicht völlig aus, damit das Control 
+            // den neuen Layer bemerkt und in die URL schreibt.
+            permaFunktionality.changed();
+          
+        }
+    }, 250); // Etwas großzügigerer Puffer für die Stabilität
         
     });
 }

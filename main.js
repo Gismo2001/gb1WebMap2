@@ -32,6 +32,8 @@ import { initPtn } from './js/ptn.js'; // 👈 Sicherstellen, dass initPtn impor
 import { initPrintControl } from './js/controls.js';
 import { initializeWMS } from './js/controls.js'; // Pfad anpassen
 
+import { addDgmLayer, getLoadedDgmExtent,getLoadedDomExtent,getOverallDgmMinMax,getOverallDomMinMax, getMinMaxFromMetadata, enableDgmInteraction} from './js/dgmdom.js';
+
 //Variable für die Split-Instanz, damit sie global zugänglich ist
 let splitInstance = null;
 
@@ -68,18 +70,32 @@ initializeWMS(map);
 map.updateSize();
 
 
-// Dieser Code kommt in deine Initialisierung (z.B. main.js), NICHT in die Funktion
+
 const container = document.getElementById('popup-content');
 container.addEventListener('click', function (event) {
-  // Prüfen, ob das geklickte Element die Klasse 'popup-link' hat
+  console.log('aufgerufen  ')
   if (event.target.classList.contains('popup-link')) {
-    // Falls du das Standardverhalten (Link öffnen) verhindern willst:
-    event.preventDefault(); 
-    //const url = event.target.getAttribute('href');
-    console.log("Link im Popup wurde geklickt! URL:", url);
-    // Hier kannst du deine eigene Logik ausführen
+    //const kachelnVisible = dgmKachelLayer && dgmKachelLayer.getVisible();
+    let featureFound = false;
+    enableDgmInteraction();
+    const dgmData = addDgmLayer(tifUrl, bbox, props.tile_id);
+    loadedDgms.push({ tile_id: props.tile_id, bbox: bbox });
+    activeDgmRasterData.push(dgmData);
+    // Gesamt-Min/Max berechnen
+    const overall = getOverallDgmMinMax();
+    activeDgmRasterData.forEach(dgm => {
+      dgm.layer.setStyle(createGeoTiffStyle(overall.min, overall.max));
+    });
+     // Gesamt-BBox berechnen und Ansicht anpassen
+    const totalBBox = getLoadedDgmExtent();
+      if (totalBBox) {
+        //map.getView().fit(totalBBox, { padding: [50,50,50,50], duration: 700 });
+      }
+    container.style.display = 'none';
   }
 });
+
+
 
 document.getElementById('layer-selector').addEventListener('change', () => {
   // 1. Hole WMS Klick-Daten

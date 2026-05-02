@@ -59,6 +59,15 @@
       <a href="#" id="popup-closer" class="ol-popup-closer">✕</a>
       <div id="popup-content"></div>
     </div>
+    <input type="file" id="geojsonInput" accept=".geojson,.json" style="display: none;" multiple>
+      <div id="height-status-container" class="height-status">
+    Höhe: <span id="height-value-main">–</span> m
+  </div>
+
+  <div id="height-info-box" style="position: absolute; bottom: 20px; left: 20px; background: rgba(0,0,0,0.7); color: white; padding: 5px 10px; border-radius: 4px; pointer-events: none; display: none; z-index: 1000;">
+    HA: <span id="height-value-alt">-</span> m
+  </div>
+
   </div>
   <script type="module" src="/main.js"></script>
 </body>

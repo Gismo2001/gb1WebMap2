@@ -33,7 +33,6 @@ import { initPtn } from './js/ptn.js'; // 👈 Sicherstellen, dass initPtn impor
 import { initPrintControl } from './js/controls.js';
 import { initializeWMS } from './js/controls.js'; // Pfad anpassen
 
-import { addDgmLayer, getLoadedDgmExtent,getLoadedDomExtent,getOverallDgmMinMax,getOverallDomMinMax, getMinMaxFromMetadata, enableDgmInteraction} from './js/dgmdom.js';
 
 //Variable für die Split-Instanz, damit sie global zugänglich ist
 let splitInstance = null;
@@ -70,15 +69,24 @@ initializeWMS(map);
 
 map.updateSize();
 
+const dgmKachelLayer = createDgmKachelLayer();
 
-
+import { addDgmLayer, getLoadedDgmExtent,getLoadedDomExtent,getOverallDgmMinMax,getOverallDomMinMax, getMinMaxFromMetadata, enableDgmInteraction} from './js/dgmdom.js';
+import { createDgmKachelLayer } from './js/layers.js';
 const container = document.getElementById('popup-content');
 container.addEventListener('click', function (event) {
   
   if (event.target.classList.contains('popup-link')) {
-    //const kachelnVisible = dgmKachelLayer && dgmKachelLayer.getVisible();
+    const tifUrl = event.target.dataset.tif;
+    //const bbox = JSON.parse(event.target.dataset.bbox);
+    const tileId = event.target.dataset.id;
+    
+    const kachelnVisible = dgmKachelLayer && dgmKachelLayer.getVisible();
+    
     let featureFound = false;
-    enableDgmInteraction();
+    enableDgmInteraction(map);
+
+
     const dgmData = addDgmLayer(tifUrl, bbox, props.tile_id);
     loadedDgms.push({ tile_id: props.tile_id, bbox: bbox });
     activeDgmRasterData.push(dgmData);

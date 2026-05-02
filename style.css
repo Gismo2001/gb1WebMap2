@@ -93,9 +93,9 @@ html, body {
     position: relative;
     border-radius: 3px;
     /* Rechts Platz für das 'X' schaffen (ca. 25px) */
-    padding: 2px 30px 2px 2px; 
+    padding: 1px 30px 2px 1px; 
     min-width: 75px;
-    max-width: 250px; /* Hier kannst du die Breite festlegen */
+    max-width: 180px; /* Hier kannst du die Breite festlegen */
     
 }
 
@@ -301,7 +301,7 @@ top: 4em;
     cursor: pointer;
     background: #f8f9fa; /* Hellgrau */
     font-size: 12px;   /* Etwas kleinere Schrift */
-    font-weight: 500;
+    
     transition: all 0.2s ease; /* Sanfter Farbübergang */
 }
 
@@ -320,6 +320,21 @@ top: 4em;
 /* Kleiner Bonus: Ein Icon-Punkt oder Schatten, wenn aktiv */
 .btn-control.active {
     box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
+
+.height-status {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255,255,255,0.9);
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  z-index: 1000;
+  display: none;
+  pointer-events: none;
 }
 
 

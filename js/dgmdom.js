@@ -1,3 +1,5 @@
+import {bbox as bboxStrategy, tile} from 'ol/loadingstrategy.js';
+
 let activeDgmRasterLayers = [];  
 let activeDgmRasterData = [];  
 
@@ -17,6 +19,10 @@ let ismobile = false;
 let profilePoints = [];
 let profileDraw = null;
 
+let heightStatus = null;
+//const heightStatus = document.getElementById('height-status-container');
+let heightValue = null;
+//const heightValue = document.getElementById('height-value-main');
 
 //const dgmData = await addDgmLayer(tifUrl, bbox, props.tile_id);
 
@@ -153,20 +159,22 @@ export function getLoadedDomExtent() {
 
 
 // Code für DGM-Interaktion
-export function enableDgmInteraction() {
-  if (!dgmClickListener) {
-    dgmClickListener = map.on('singleclick', handleDgmClick);
-  }
-  if (!ismobile && !dgmPointerMoveListener) {
-    dgmPointerMoveListener = map.on('pointermove', handleDgmPointerMove);
-  }
-  
-}
+export function enableDgmInteraction(map) {
 
-async function handleDgmClick(evt) {
+  // 👉 Klick-Listener nur einmal setzen
+  if (!dgmClickListener) {
+    dgmClickListener = map.on('singleclick', (evt) => handleDgmClick(map, evt));
+  }
+
+  // 👉 PointerMove nur Desktop
+  if (!ismobile && !dgmPointerMoveListener) {
+    dgmPointerMoveListener = map.on('pointermove', handleDgmPointerMove());
+  }
+}
+export async function handleDgmClick(map, evt) {
   const kachelnVisible = dgmKachelLayer && dgmKachelLayer.getVisible();
-  
-  // Popup einmal holen oder erzeugen
+  console.log(evt.target.dataset);
+  // 👉 Popup holen oder erstellen
   let popup1 = document.getElementById('popup1');
   if (!popup1) {
     popup1 = document.createElement('div');
@@ -183,7 +191,9 @@ async function handleDgmClick(evt) {
     document.body.appendChild(popup1);
   }
 
-  // 🟢 FALL 1: Kachelauswahl
+  // =========================================================
+  // 🟢 FALL 1: DGM-Kacheln auswählen
+  // =========================================================
   if (kachelnVisible) {
     let featureFound = false;
 
@@ -191,47 +201,61 @@ async function handleDgmClick(evt) {
       featureFound = true;
 
       const props = feature.getProperties();
-      let originalTifUrl = props.dgm1; // Die URL von IBM (https://dgm1...)
 
+      const originalTifUrl = props.dgm1;
       const tifUrl = originalTifUrl.replace(
         'https://dgm1.s3.eu-de.cloud-object-storage.appdomain.cloud',
         '/dgm'
       );
+
       const bbox = feature.getGeometry().getExtent();
 
-      // prüfen ob bereits geladen
-      const alreadyLoaded = loadedDgms.some(d => d.tile_id === props.tile_id);
+      const alreadyLoaded = loadedDgms.some(
+        (d) => d.tile_id === props.tile_id
+      );
 
+      // 👉 Popup positionieren
       popup1.style.left = evt.pixel[0] + 'px';
       popup1.style.top = evt.pixel[1] + 'px';
 
-      popup1.innerHTML = `
-        <b>Kachel:</b> ${props.tile_id}<br>
-        <b>Datum:</b> ${props.Aktualitaet}<br>
-        ${alreadyLoaded ? '<i>bereits geladen</i><br>' : ''}
-        <button id="loadDgmBtn">DGM laden</button>
-      `;
+const safeBbox = bbox ? JSON.stringify(bbox) : 'null';
+      // 👉 Inhalt
+ popup1.innerHTML = `
+  <b>Kachel:</b> ${props.tile_id}<br>
+  <b>Datum:</b> ${props.Aktualitaet}<br>
+  ${alreadyLoaded ? '<i>bereits geladen</i><br>' : ''}
+   <button 
+    class="load-dgm-btn"
+    data-tif="${tifUrl}"
+    data-bbox='${safeBbox}'
+    data-id="${props.tile_id}"
+  >
+    DGM laden
+  </button>
+`;
+
       popup1.style.display = 'block';
 
+      // 👉 Button-Handler
       document.getElementById('loadDgmBtn').onclick = async function () {
         if (!alreadyLoaded) {
-          // DGM laden und Daten zurückbekommen
           const dgmData = await addDgmLayer(tifUrl, bbox, props.tile_id);
-          
-          // Layer als geladen markieren
-          loadedDgms.push({ tile_id: props.tile_id, bbox: bbox });
+
+          loadedDgms.push({ tile_id: props.tile_id, bbox });
           activeDgmRasterData.push(dgmData);
 
-          // Gesamt-Min/Max berechnen
           const overall = getOverallDgmMinMax();
-          activeDgmRasterData.forEach(dgm => {
-            dgm.layer.setStyle(createGeoTiffStyle(overall.min, overall.max));
+
+          activeDgmRasterData.forEach((dgm) => {
+            dgm.layer.setStyle(
+              createGeoTiffStyle(overall.min, overall.max)
+            );
           });
 
-          // Gesamt-BBox berechnen und Ansicht anpassen
           const totalBBox = getLoadedDgmExtent();
           if (totalBBox) {
-            //map.getView().fit(totalBBox, { padding: [50,50,50,50], duration: 700 });
+            // optional:
+            // map.getView().fit(totalBBox, { padding: [50,50,50,50], duration: 700 });
           }
         }
 
@@ -239,59 +263,90 @@ async function handleDgmClick(evt) {
       };
     });
 
-    if (!featureFound) popup1.style.display = 'none';
-    return;
-    if (!kachelnVisible) {
+    // 👉 Kein Feature getroffen
+    if (!featureFound) {
       popup1.style.display = 'none';
-      return;
-    }   
+    }
+
+    return; // 🔴 Wichtig: danach NICHT weiter machen!
   }
 
-const coord = map.getCoordinateFromPixel(evt.pixel);
+  // =========================================================
+  // 🔵 FALL 2: Höhenabfrage (DGM aktiv)
+  // =========================================================
 
-const dgmLayers = map.getLayers().getArray().filter((layer) => {
-  const name = layer.get('name');
-  return name && name.endsWith('DGM_GeoTiff') && layer.getVisible();
-});
+  const coord = map.getCoordinateFromPixel(evt.pixel);
 
-if (dgmLayers.length === 0) {
-  popup1.style.display = 'none';
-  return;
-}
+  const dgmLayers = map.getLayers().getArray().filter((layer) => {
+    const name = layer.get('name');
+    return name && name.endsWith('DGM_GeoTiff') && layer.getVisible();
+  });
 
-let height = null;
-let foundLayer = null;
-
-for (const layer of dgmLayers) {
-
-  // prüfen ob Klick im DGM-Extent liegt
-  if (!layer.bbox || !containsCoordinate(layer.bbox, coord)) {
-    continue;
+  if (dgmLayers.length === 0) {
+    popup1.style.display = 'none';
+    return;
   }
 
-  const val = await readHeightFromGeoTIFFLayer(layer, evt.pixel);
+  let height = null;
+  let foundLayer = null;
 
-  if (val !== null && val !== undefined && !Number.isNaN(val)) {
-    height = val;
-    foundLayer = layer;
-    break; // nur ein DGM möglich
+  for (const layer of dgmLayers) {
+    if (!layer.bbox || !containsCoordinate(layer.bbox, coord)) continue;
+
+    const val = await readHeightFromGeoTIFFLayer(layer, evt.pixel);
+
+    if (val !== null && val !== undefined && !Number.isNaN(val)) {
+      height = val;
+      foundLayer = layer;
+      break;
+    }
   }
+
+  popup1.style.left = evt.pixel[0] + 10 + 'px';
+  popup1.style.top = evt.pixel[1] - 15 + 'px';
+
+  if (height !== null) {
+    const layerNr = foundLayer.get('name').split('_')[0];
+
+    popup1.innerHTML = `H_Nr_${layerNr}: <b>${height.toFixed(2)}</b>`;
+  } else {
+    popup1.innerHTML = `<i>Keine DGM-Daten an dieser Position verfügbar</i>`;
+  }
+
+  popup1.style.display = 'block';
 }
+function handleDgmPointerMove(evt) {
+if (evt.dragging) return;
+  const pixel = evt.pixel;
+  const coord = evt.coordinate;
+  const visibleDgmLayers = activeDgmRasterLayers.filter(l => l.getVisible());
+  const heightStatus = document.getElementById('height-status');
+  if (visibleDgmLayers.length === 0) {
+    heightStatus.style.display = 'none';
+    return;
+  }
+  // passenden Layer finden
+  const activeLayer = visibleDgmLayers.find(layer =>
+    layer.bbox && containsCoordinate(layer.bbox, coord)
+  );
+  //console.log('Aktive DGM-Layer:', visibleDgmLayers.map(l => l.get('name')));
+  if (!activeLayer) {
+    heightStatus.style.display = 'none';
+    return;
+  }
 
-popup1.style.left = evt.pixel[0] + 10 + 'px';
-popup1.style.top = evt.pixel[1] - 15 + 'px';
+  const data = activeLayer.getData(pixel);
 
-if (height !== null) {
+  if (data && data[0] !== -9999 && !Number.isNaN(data[0])) {
 
-  const layerNr = foundLayer.get('name').split('_')[0];
+    const layerNr = activeLayer.get('name').split('_')[0];
+    const height = data[0];
 
-  popup1.innerHTML = `H_Nr_ ${layerNr}: <b>${height.toFixed(2)}</b>`;
+    heightValue.innerHTML = `Nr_${layerNr}: ${height.toFixed(2)} m`;
+    heightStatus.style.display = 'block';
 
-} else {
+  } else {
+    heightStatus.style.display = 'none';
+  }
 
-  popup1.innerHTML = `<i>Keine DGM-Daten an dieser Position verfügbar</i>`;
-
-}
-
-popup1.style.display = 'block';
 }

@@ -708,7 +708,7 @@ const info = (
   }
 
   // 4. Link zur Tabelle 📊
-  html += `<br><button id="open-table-btn">Details anzeigen</button>`;
+  html += `<br><button id="open-table-btn" style="font-size:12px;">Details anzeigen</button>`;
   
   return html;
 }

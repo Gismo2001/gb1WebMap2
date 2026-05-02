@@ -17,6 +17,7 @@ import { closeTable } from './js/table.js';
 import { switchLayerData } from './js/table.js';
 import { getTableActive } from './js/table.js';  
 
+
 import { initMapClick } from './js/mapEvents.js';
 import { initPopup } from './js/mapEvents.js';
 import { switcherDrawList } from './js/mapEvents.js';
@@ -97,6 +98,7 @@ container.addEventListener('click', function (event) {
 
 
 
+
 document.getElementById('layer-selector').addEventListener('change', () => {
   // 1. Hole WMS Klick-Daten
   const clickResults = getClickResults();
@@ -118,6 +120,7 @@ initPtn(map);   // 👈 Diesen Aufruf unbedingt hinzufügen!
 //Eventlistener für den "Schließen"-Button der Tabelle, damit die Karte wieder 100% bekommt
 document.getElementById('close-table-btn') 
   .addEventListener('click', closeTable);
+
 
 map.on('moveend', () => {
   // Nur wenn der User die Tabelle offen hat, führen wir das Update aus

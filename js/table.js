@@ -71,75 +71,70 @@ export function showTable(data) {
   const container = document.getElementById("wms-table-container");
   const tableElement = document.getElementById("wms_data_table");
   const filterBtn = document.getElementById("filter-toggle");
-  
+
   if (!container || !tableElement) return;
-  if (filterBtn && tableElement) {
-   const filterBtn = document.getElementById("filter-toggle");
-const tableElement = document.getElementById("wms_data_table");
 
-if (filterBtn && tableElement) {
+  // 👉 1. Filter-Button Logik (einmalig binden oder prüfen)
+  if (filterBtn) {
     filterBtn.onclick = () => {
-        // 1. Filter in der Tabelle umschalten
-        tableElement.classList.toggle("hide-filters");
-
-        // 2. Button-Hintergrund umschalten
-        // Wenn 'hide-filters' aktiv ist, ist der Filter weg -> also Button NICHT aktiv
-        const filtersHidden = tableElement.classList.contains("hide-filters");
-        
-        if (filtersHidden) {
-            filterBtn.classList.remove("active");
-        } else {
-            filterBtn.classList.add("active");
-        }
-
-        // 3. Tabelle neu berechnen
-        if (table) {
-            table.redraw(); 
-        }
+      tableElement.classList.toggle("hide-filters");
+      const filtersHidden = tableElement.classList.contains("hide-filters");
+      filtersHidden ? filterBtn.classList.remove("active") : filterBtn.classList.add("active");
+      if (table) table.redraw();
     };
-
-    // INITIALER ZUSTAND: 
-    // Falls die Tabelle beim Start 'hide-filters' hat, darf der Button kein 'active' haben.
-    // Falls sie ohne 'hide-filters' startet, füge 'active' hinzu:
+    
     if (!tableElement.classList.contains("hide-filters")) {
-        filterBtn.classList.add("active");
+      filterBtn.classList.add("active");
     }
+  }
+
+  const resetBtn = document.getElementById("table-reset");
+
+if (resetBtn) {
+  resetBtn.onclick = () => {
+    if (table) {
+            // Den spezifischen Speicher-Schlüssel für diesen Layer generieren
+            const storageId = "tabulator-wms_table_" + normalizedName;
+            
+            // Nur den Speicher für diesen EINEN Layer löschen
+            localStorage.removeItem(storageId);
+
+            // Tabelle neu aufbauen
+            table.destroy();
+            table = null;
+            showTable(data); 
+            
+            console.log(`Layout für Layer ${normalizedName} zurückgesetzt.`);
+        }
+  };
 }
-}
-  // 👉 Anzeige
+  // 👉 2. Anzeige-Einstellungen
   container.style.display = "flex";
   const mapElement = document.getElementById("map");
-  if (mapElement) {
-    mapElement.style.height = "";
-  }
-  // 👉 Layer-Info
+  if (mapElement) mapElement.style.height = "";
+
+  // 👉 3. Layer-Name und ID-Key Bestimmung
   const selector = document.getElementById('layer-selector');
   const layerName = selector ? selector.value : "unknown";
-  
-  // Den Namen in Kleinbuchstaben normalisieren
   const normalizedName = layerName.toLowerCase();
 
   let idKey;
-
   if (normalizedName === 'fsk') {
     idKey = 'OBJECTID';
   } else if (normalizedName.startsWith('shapefile')) {
-    // Prüft, ob der Name mit "shapefile" beginnt 🔍
     idKey = 'objectid';
-    
   } else {
-    // Standard für alle anderen Layer
     idKey = 'ID_con';
   }
 
-  // 👉 Daten deduplizieren für Anzeige in Tabelle ("Details anzeigen")
+  // 👉 4. Daten deduplizieren
   const uniqueData = (data || []).filter((item, index, self) => {
     const val = item[idKey];
     if (val === null || val === undefined) return true;
     return index === self.findIndex((t) => t[idKey] === val);
   });
-  
-    // 👉 Split.js
+
+  // 👉 5. Split.js Initialisierung
   if (!splitInstance) {
     splitInstance = Split(['#map', '#wms-table-container'], {
       sizes: [70, 30],
@@ -147,236 +142,166 @@ if (filterBtn && tableElement) {
       direction: 'vertical',
       gutterSize: 10,
       onDrag: () => { if (mapRef) mapRef.updateSize(); },
-      onDragEnd: (sizes) => {
-        if (sizes[1] <= 5) closeTable();
-      }
+      onDragEnd: (sizes) => { if (sizes[1] <= 5) closeTable(); }
     });
   }
-if (mapRef) mapRef.updateSize();
-  // 👉 Tabelle neu aufbauen
-  if (table) {
-    table.destroy();
-    table = null;
-  }
+  if (mapRef) mapRef.updateSize();
 
-  tableElement.innerHTML = "";
-  try {
-    table = new Tabulator("#wms_data_table", {
-      data: uniqueData,
-      height: "100%",
-      layout: "fitData",
-      placeholder: "Keine Objekte im Sichtbereich. Klicken Sie auf ein Objekt für Details.",
-      autoColumns: true,
-      autoColumnsDefinitions: function(definitions) {
-        definitions.forEach((column) => {
-          column.headerFilter = "input";
-          column.headerFilterPlaceholder = "Suche...";
-          // Wenn das Feld "stat_von" heißt, erzwinge numerische Sortierung
-          if (column.field === "stat_von") {
-            column.sorter = "number";
-            column.headerFilterPlaceholder = "z.B. <5000";
-          }
-          column.headerFilterFunc = function(headerValue, rowValue, rowData, filterParams) {
-            // Falls leer, alles anzeigen
-            if (headerValue === null || headerValue === undefined || headerValue === "") return true;
-            if (rowValue === null || rowValue === undefined) return false;
+  // 👉 6. TABELLEN-LOGIK: Aktualisieren oder Neuaufbau
+  // Wir prüfen, ob die Tabelle existiert UND ob es derselbe Layer ist
+  const previousLayer = tableElement.getAttribute("data-current-layer");
 
-            const val = String(rowValue).trim();
-            const search = String(headerValue).trim();
+  if (table && previousLayer === normalizedName) {
+    // GLEICHER LAYER: Nur Daten tauschen -> Sortierung bleibt!
+    table.replaceData(uniqueData);
+    console.log("Tabulator: Daten ersetzt (Sortierung beibehalten)");
+  } else {
+    // NEUER LAYER oder ERSTER START: Tabelle (neu) aufbauen
+    if (table) {
+      table.destroy();
+      table = null;
+    }
+    tableElement.innerHTML = "";
+    tableElement.setAttribute("data-current-layer", normalizedName);
 
-            // 1. Check auf mathematische Operatoren (<, >, <=, >=)
-            const match = search.match(/^(<=|>=|<|>)\s*(\d+(?:\.\d+)?)$/);
-            if (match) {
-              const operator = match[1];
-              const numSearch = parseFloat(match[2]);
-              const numRow = parseFloat(val);
-
-              if (isNaN(numRow)) return false;
-
-              switch (operator) {
-                case "<":  return numRow < numSearch;
-                case ">":  return numRow > numSearch;
-                case "<=": return numRow <= numSearch;
-                case ">=": return numRow >= numSearch;
+    try {
+      table = new Tabulator("#wms_data_table", {
+        data: uniqueData,
+        height: "100%",
+        layout: "fitData",
+        // 👉 Hier die ID dynamisch pro Layer setzen!
+        persistenceID: "wms_table_" + normalizedName,
+        movableColumns: true,
+        placeholder: "Keine Objekte im Sichtbereich.",
+        autoColumns: true,
+        selectable: 1,
+        persistence: {
+         sort: true,
+          filter: true,
+          group: true,
+          page: true,
+          columns: true,
+          vertical: true, // 👈 Speichert die vertikale Scrollposition!
+          //horizontal: true
+        },
+        autoColumnsDefinitions: function(definitions) {
+          definitions.forEach((column) => {
+            // Ein Kontextmenü für den Header hinzufügen
+            column.headerContextMenu = 
+            [
+              {
+                label: "Spalte ausblenden",
+                action: function(e, column) 
+                {
+                column.hide();            
+                }
+              },
+              {
+                label: "🔄 Alles zurücksetzen",
+                action: function() {
+                  document.getElementById("table-reset").click();
+                }
               }
+            ];
+            column.headerFilter = "input";
+            column.headerFilterPlaceholder = "Suche...";
+            
+            if (column.field === "stat_von") {
+              column.sorter = "number";
             }
 
-            // 2. Fallback: Deine Platzhalter-Logik (*) oder Teilstring-Suche
-            const regexString = search.replace(/\*/g, ".*");
-            try {
-              const regex = new RegExp(regexString, "i");
+            // Deine Custom Filter-Logik (Mathematische Operatoren & RegEx)
+            column.headerFilterFunc = function(headerValue, rowValue) {
+              if (!headerValue) return true;
+              const val = String(rowValue || "").trim();
+              const search = String(headerValue).trim();
+              const match = search.match(/^(<=|>=|<|>)\s*(\d+(?:\.\d+)?)$/);
+              if (match) {
+                const op = match[1];
+                const numS = parseFloat(match[2]);
+                const numR = parseFloat(val);
+                if (isNaN(numR)) return false;
+                switch (op) {
+                  case "<": return numR < numS;
+                  case ">": return numR > numS;
+                  case "<=": return numR <= numS;
+                  case ">=": return numR >= numS;
+                }
+              }
+              const regex = new RegExp(search.replace(/\*/g, ".*"), "i");
               return regex.test(val);
-            } catch (e) {
-              return val.includes(search);
+            };
+          });
+
+          // Spalten-Sortierung (ID und stat_von nach vorne)
+          if (normalizedName !== 'fsk') {
+            const newOrder = definitions.filter(c => c.field === idKey || c.field === "stat_von");
+            const others = definitions.filter(c => c.field !== idKey && c.field !== "stat_von");
+            return newOrder.concat(others);
+          }
+          return definitions;
+        },
+        // WICHTIG: Setze das Attribut erst, wenn die Tabelle bereit ist
+        tableBuilt: function() {
+            tableElement.setAttribute("data-current-layer", normalizedName);
+            // Ein minimaler Timeout hilft, damit die Engine die Zeilenhöhen berechnet hat
+            setTimeout(() => {
+            if (table) {
+                table.restoreVerticalScrollbarPosition();
             }
-          };
-        });
-        const normalizedName = layerName.toLowerCase();
-        
-        if (normalizedName !== 'fsk') {
-          const statKey = "stat_von";
-          const idCol = definitions.find(col => col.field === idKey);
-          const statCol = definitions.find(col => col.field === statKey);
-          const remainingCols = definitions.filter(col => col.field !== idKey && col.field !== statKey);
-          const newOrder = [];
-          if (idCol) newOrder.push(idCol);
-          if (statCol) newOrder.push(statCol);
-
-          return newOrder.concat(remainingCols);
-        } else if (normalizedName.startsWith("shapefile")) {
-          
-          
-        };
-
-        
-        
-        return definitions;
-      },
-      headerVisible: true,
-      selectable: 1,
-      scrollToRowIfVisible: false,
-    });
-
-    // ==============================
-    // 👉 INTERAKTION
-    // ==============================
-
-    let isKeyboardNavigation = false;
-    let lastHighlightedId = null;
-
-    table.on("tableBuilt", () => {
-      requestAnimationFrame(() => {
-        const isMobile = window.innerWidth <= 768;
-        if (!isMobile) {
-          tableElement.focus({ preventScroll: true });
+        }, 100);
         }
       });
 
-      const tableHolder = tableElement.querySelector(".tabulator-tableholder");
-      if (tableHolder) {
-        // 👉 Doppelklick = Zoom
-        tableHolder.ondblclick = (e) => {
-          const rowElement = e.target.closest(".tabulator-row");
-          if (rowElement) {
-            const row = table.getRow(rowElement);
-            if (row && mapRef) {
-              zoomToFeature(layerName, row.getData());
-            }
-          }
-        };
+      // 👉 7. Interaktions-Events (Keyboard & Mouse)
+      setupTableEvents(table, tableElement, idKey, layerName);
 
-        // 👉 Tastatur aktivieren
-        tableElement.setAttribute("tabindex", "0");
-
-        tableElement.onkeydown = (e) => {
-          if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-            isKeyboardNavigation = true;
-            e.preventDefault();
-
-            const selected = table.getSelectedRows();
-            let next;
-
-            if (selected.length > 0) {
-              next = (e.key === "ArrowDown")
-                ? selected[0].getNextRow()
-                : selected[0].getPrevRow();
-            } else {
-              next = table.getRows()[0];
-            }
-
-            if (next) {
-              table.deselectRow();
-              next.select();
-
-              const rowElement = next.getElement();
-              rowElement.scrollIntoView({
-                block: "nearest",
-                inline: "nearest",
-                behavior: "auto"
-              });
-
-              const rowData = next.getData();
-
-              // 👉 Highlight nur wenn neues Feature
-              if (rowData[idKey] !== lastHighlightedId) {
-                highlightFeatureForRow(rowData);
-                lastHighlightedId = rowData[idKey];
-              }
-            }
-          }
-
-          // 👉 ENTER = Zoom
-          if (e.key === "Enter") {
-            e.preventDefault();
-
-            const selected = table.getSelectedRows();
-            if (selected.length > 0 && mapRef) {
-              zoomToFeature(layerName, selected[0].getData());
-            }
-          }
-        };
-      }
-
-      // 👉 Maus bewegt → zurück zu Mausmodus
-      tableElement.addEventListener("mousemove", () => {
-        isKeyboardNavigation = false;
-      });
-    });
-
-    // 👉 Hover nur wenn nicht Tastatur aktiv
-    table.on("rowMouseOver", (e, row) => {
-      if (!isKeyboardNavigation) {
-        highlightFeatureForRow(row.getData());
-      }
-    });
-
-    table.on("rowMouseOut", () => {
-      if (!isKeyboardNavigation) {
-        clearHighlightedFeature();
-      }
-    });
-
-    // 👉 Klick
-    table.on("rowClick", function(e, row) {
-      isKeyboardNavigation = false;
-
-      table.deselectRow();
-      row.select();
-
-      /* const isMobile = window.innerWidth <= 768;
-      if (!isMobile) {
-        tableElement.focus({ preventScroll: true });
-      } */
-
-      const rowData = row.getData();
-      console.log("Row-Daten bei Klick:", rowData);
-      highlightFeatureForRow(rowData);
-    });
-
-    // 👉 Link-Klick
-    table.on("cellClick", function (e, cell) {
-      const value = cell.getValue();
-
-      if (typeof value === "string" && /^https?:\/\//i.test(value)) {
-        e.stopPropagation();
-        window.open(value, "_blank", "noopener,noreferrer");
-        return;
-      }
-
-      const row = cell.getRow();
-      table.deselectRow();
-      row.select();
-
-      const rowData = row.getData();
-      highlightFeatureForRow(rowData);
-    });
-
-  } catch (err) {
-    console.error("Fehler beim Erstellen der Tabulator-Instanz:", err);
+    } catch (err) {
+      console.error("Tabulator Fehler:", err);
+    }
   }
 }
 
+// Hilfsfunktion für die Events (um showTable übersichtlich zu halten)
+function setupTableEvents(table, tableElement, idKey, layerName) {
+  let isKeyboard = false;
 
+  table.on("tableBuilt", () => {
+    tableElement.setAttribute("tabindex", "0");
+    if (window.innerWidth > 768) tableElement.focus({ preventScroll: true });
+  });
+
+  table.on("rowMouseOver", (e, row) => { if (!isKeyboard) highlightFeatureForRow(row.getData()); });
+  table.on("rowMouseOut", () => { if (!isKeyboard) clearHighlightedFeature(); });
+  
+  table.on("rowClick", (e, row) => {
+    isKeyboard = false;
+    table.deselectRow();
+    row.select();
+    highlightFeatureForRow(row.getData());
+  });
+
+  tableElement.onkeydown = (e) => {
+    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+      isKeyboard = true;
+      e.preventDefault();
+      const selected = table.getSelectedRows()[0];
+      const next = (e.key === "ArrowDown") ? (selected?.getNextRow() || table.getRows()[0]) : selected?.getPrevRow();
+      if (next) {
+        table.deselectRow();
+        next.select();
+        next.getElement().scrollIntoView({ block: "nearest" });
+        highlightFeatureForRow(next.getData());
+      }
+    }
+    if (e.key === "Enter") {
+      const selected = table.getSelectedRows()[0];
+      if (selected) zoomToFeature(layerName, selected.getData());
+    }
+  };
+  
+  tableElement.addEventListener("mousemove", () => { isKeyboard = false; });
+}
 export function showTableDebounced(data) {
   clearTimeout(showTableTimeout);
   showTableTimeout = setTimeout(() => {

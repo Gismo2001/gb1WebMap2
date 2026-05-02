@@ -137,6 +137,7 @@ html, body {
 }
 /* Das Div, in dem Tabulator sitzt */
 #wms_data_table {
+    height: 100%;
     width: 100%;
     flex-grow: 1;
     overflow: hidden; /* Tabulator regelt das Scrollen intern */

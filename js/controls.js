@@ -24,14 +24,16 @@ import CanvasScaleLine from 'ol-ext/control/CanvasScaleLine';
 import { fileToggleInput } from './mapEvents.js';
 import { Style, Text } from 'ol/style';
 
+import { isDgmActive, setDgmActive  } from './dgmdom.js';
+
 
 
 
 
 
 let isTableActive = false;
-let isDgmActive = false;
-let isDomActive = false;
+
+
 let tableToggleBtnInstance = null;
 let gpsToggleBtnInstance = null;
 let ptnToogleBtnInstance = null;
@@ -70,21 +72,21 @@ export function createMainToolbar(map) {
     active: false,
     bar: createSubBarI(map),
   });
-  const DgmLayer = createDgmKachelLayer();
+  const DgmKachelLayer = createDgmKachelLayer();
   //dgm/dom toggle button
   const toggleBtn2 = new Toggle({
     html: 'W',
     title: 'DGM_DOM_Kacheln',
     onToggle: function (active) {
       if (active) {
-        isDgmActive = true;
-        console.log(isDgmActive);
+         setDgmActive(true);
+        
         // Prüfen, ob der Layer schon auf der Karte ist, falls nicht: hinzufügen
-        if (!map.getLayers().getArray().includes(DgmLayer)) {
-          map.addLayer(DgmLayer);
+        if (!map.getLayers().getArray().includes(DgmKachelLayer)) {
+          map.addLayer(DgmKachelLayer);
         }
-        DgmLayer.set('displayInLayerSwitcher', true);
-        DgmLayer.setVisible(true);
+        DgmKachelLayer.set('displayInLayerSwitcher', true);
+        DgmKachelLayer.setVisible(true);
         //DgmLayer.set('displayInLayerSwitcher', true);
         
       
@@ -93,7 +95,7 @@ export function createMainToolbar(map) {
         console.log(isDgmActive);
         //DgmLayer.set('displayInLayerSwitcher', false);
         //DgmLayer.setVisible(false); 
-        map.removeLayer(DgmLayer);
+        map.removeLayer(DgmKachelLayer);
         
       }
     },

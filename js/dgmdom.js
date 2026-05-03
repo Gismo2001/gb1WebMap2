@@ -22,9 +22,15 @@ let profileDraw = null;
 let heightStatus = null;
 //const heightStatus = document.getElementById('height-status-container');
 let heightValue = null;
-//const heightValue = document.getElementById('height-value-main');
 
+//const heightValue = document.getElementById('height-value-main');
 //const dgmData = await addDgmLayer(tifUrl, bbox, props.tile_id);
+export let isDgmActive = false;
+export function setDgmActive(value) {
+  isDgmActive = value;
+}
+
+export let isDomActive = false;
 
 
 export function addDgmLayer(map, tifUrl, props) {

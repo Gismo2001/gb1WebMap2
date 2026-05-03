@@ -15,15 +15,13 @@ import { EXCLUDED_LAYERS } from './config.js';
 import Overlay from 'ol/Overlay.js';
 import { toStringHDMS } from 'ol/coordinate'; // z.B. für Koordinatenanzeige
 
-
+import { isDgmActive, setDgmActive } from './dgmdom.js';
 
 let currentClickResults = {};
 let latestClickRequestId = 0;
 
 let popupOverlay;
 let popupContent;
-
-
 
 
 export function getAllLayers(layerGroup, parentVisible = true, groupTitle = null) {
@@ -194,10 +192,12 @@ async function handleClickResult(currentClickResults, coord) {
   let chosenLayer = layerNames[0];
   let chosenIndex = 0;
 
-  // 👉 Auswahl nötig?
   const needsSelection =
+  !isDgmActive && (
     layerNames.length > 1 ||
-    currentClickResults[layerNames[0]].data.length > 1;
+    currentClickResults[layerNames[0]].data.length > 1
+  );
+
 
   if (needsSelection) {
     const choice = await askUserToChoose(currentClickResults);
@@ -754,7 +754,16 @@ function buildPopupContent(data, layerName) {
   const kachelUrl = daten.dgm1 || daten.dom1;
   if (kachelUrl) {
     html += `<div style="margin-top: 5px;">`;
-    html += `<a href="${kachelUrl}" target="_blank" class="popup-link">Kachel-Objekt öffnen</a>`;
+    html += `
+    <a href="#" 
+     class="popup-link"
+     data-tif="${daten.dgm1 || daten.dom1}"
+     data-tile_id="${daten.tile_id}"
+     data-bbox='${JSON.stringify(daten.bbox || null)}'>
+     Kachel laden
+    </a>
+    `;
+
     html += `</div>`;
   }
   

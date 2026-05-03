@@ -33,6 +33,10 @@ import { initPtn } from './js/ptn.js'; // 👈 Sicherstellen, dass initPtn impor
 import { initPrintControl } from './js/controls.js';
 import { initializeWMS } from './js/controls.js'; // Pfad anpassen
 
+import { isDgmActive, addDgmLayer, getLoadedDgmExtent,getLoadedDomExtent,getOverallDgmMinMax,getOverallDomMinMax, getMinMaxFromMetadata, enableDgmInteraction} from './js/dgmdom.js';
+import { createDgmKachelLayer } from './js/layers.js';
+
+
 
 //Variable für die Split-Instanz, damit sie global zugänglich ist
 let splitInstance = null;
@@ -71,39 +75,38 @@ map.updateSize();
 
 const dgmKachelLayer = createDgmKachelLayer();
 
-import { addDgmLayer, getLoadedDgmExtent,getLoadedDomExtent,getOverallDgmMinMax,getOverallDomMinMax, getMinMaxFromMetadata, enableDgmInteraction} from './js/dgmdom.js';
-import { createDgmKachelLayer } from './js/layers.js';
 const container = document.getElementById('popup-content');
 container.addEventListener('click', function (event) {
-  
   if (event.target.classList.contains('popup-link')) {
+
     const tifUrl = event.target.dataset.tif;
-    //const bbox = JSON.parse(event.target.dataset.bbox);
-    const tileId = event.target.dataset.id;
-    
-    const kachelnVisible = dgmKachelLayer && dgmKachelLayer.getVisible();
-    
-    let featureFound = false;
+    const tileId = event.target.dataset.tile_id;
+    const bbox = JSON.parse(event.target.dataset.bbox);
+
+    console.log("tifUrl:", tifUrl);
+    console.log("tileId:", tileId);
+    console.log("bbox:", bbox);
+
     enableDgmInteraction(map);
 
+    const dgmData = addDgmLayer(tifUrl, bbox, tileId);
 
-    const dgmData = addDgmLayer(tifUrl, bbox, props.tile_id);
-    loadedDgms.push({ tile_id: props.tile_id, bbox: bbox });
+    loadedDgms.push({ tile_id: tileId, bbox: bbox });
     activeDgmRasterData.push(dgmData);
-    // Gesamt-Min/Max berechnen
+
     const overall = getOverallDgmMinMax();
     activeDgmRasterData.forEach(dgm => {
       dgm.layer.setStyle(createGeoTiffStyle(overall.min, overall.max));
     });
-     // Gesamt-BBox berechnen und Ansicht anpassen
+
     const totalBBox = getLoadedDgmExtent();
-      if (totalBBox) {
-        //map.getView().fit(totalBBox, { padding: [50,50,50,50], duration: 700 });
-      }
+    if (totalBBox) {
+      // map.getView().fit(totalBBox, { padding: [50,50,50,50], duration: 700 });
+    }
+
     container.style.display = 'none';
   }
 });
-
 
 
 

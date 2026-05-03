@@ -15,6 +15,8 @@ import { EXCLUDED_LAYERS } from './config.js';
 import Overlay from 'ol/Overlay.js';
 import { toStringHDMS } from 'ol/coordinate'; // z.B. für Koordinatenanzeige
 
+
+
 let currentClickResults = {};
 let latestClickRequestId = 0;
 
@@ -60,7 +62,6 @@ export function initMapClick(map) {
     if (!isTableEnabled()) {
       popupOverlay.setPosition(undefined);
     }
-
     const requestId = ++latestClickRequestId;
     const promises = [];
     const viewResolution = map.getView().getResolution();
@@ -68,7 +69,6 @@ export function initMapClick(map) {
     
     // Aktuelle Ergebnisse zurücksetzen
     currentClickResults = {};
-
     const allLayers = getAllLayers(map);
     allLayers.forEach((obj) => {
       const layer = obj.layer;
@@ -78,7 +78,6 @@ export function initMapClick(map) {
           QUERY_LAYERS: layer.getSource().getParams().LAYERS,
           LAYERS: layer.getSource().getParams().LAYERS,
         };
-
         function requestFeatureInfo(infoFormat) {
           const url = layer.getSource().getFeatureInfoUrl(
             coord,
@@ -88,7 +87,6 @@ export function initMapClick(map) {
           );
 
           if (!url) return Promise.resolve(null);
-
           return fetch(url)
             .then((res) => res.text())
             .then((text) => {
@@ -136,7 +134,7 @@ export function initMapClick(map) {
       }
     });
 
-    // Warten auf alle WMS-Anfragen
+    // WMS-Anfragen
     Promise.all(promises).then(() => {
       if (requestId !== latestClickRequestId) return;
 
@@ -182,28 +180,92 @@ export function initMapClick(map) {
         return; 
       }
 
-      // 👉 FALL 2: Tabelle NICHT aktiv → Popup anzeigen
-      const firstLayerName = layerNames[0];
-      const entry = currentClickResults[firstLayerName];
-      if (!shouldShowPopup(entry.layer)) return;
+     // 👉 FALL 2: Tabelle NICHT aktiv → Popup anzeigen
+    handleClickResult(currentClickResults, coord);
 
-      popupContent.innerHTML = buildPopupContent(entry.data, firstLayerName);
-      popupOverlay.setPosition(coord);
-
-      // Button im Popup konfigurieren
-      setTimeout(() => {
-        const btn = document.getElementById('open-table-btn');
-        if (btn) {
-          btn.onclick = () => {
-            updateSelector([firstLayerName]);
-            showTableDebounced(entry.data); 
-            popupOverlay.setPosition(undefined);
-          };
-        }
-      }, 0);
     });
   });
 }
+
+async function handleClickResult(currentClickResults, coord) {
+
+  const layerNames = Object.keys(currentClickResults);
+
+  let chosenLayer = layerNames[0];
+  let chosenIndex = 0;
+
+  // 👉 Auswahl nötig?
+  const needsSelection =
+    layerNames.length > 1 ||
+    currentClickResults[layerNames[0]].data.length > 1;
+
+  if (needsSelection) {
+    const choice = await askUserToChoose(currentClickResults);
+    chosenLayer = choice.layer;
+    chosenIndex = choice.index;
+  }
+
+
+  const entry = currentClickResults[chosenLayer];
+  const featureData = entry.data[chosenIndex];
+
+  if (!shouldShowPopup(entry.layer)) return;
+
+  popupContent.innerHTML = buildPopupContent([featureData], chosenLayer);
+  popupOverlay.setPosition(coord);
+
+  setTimeout(() => {
+    const btn = document.getElementById('open-table-btn');
+    if (btn) {
+      btn.onclick = () => {
+        updateSelector([chosenLayer]);
+        showTableDebounced([featureData]);
+        popupOverlay.setPosition(undefined);
+      };
+    }
+  }, 0);
+}
+
+function askUserToChoose(currentClickResults) {
+  return new Promise(resolve => {
+    const box = document.getElementById('feature-select-dropdown');
+    const select = document.getElementById('feature-select');
+    const closeBtn = document.getElementById('close-select-btn');
+
+
+    select.innerHTML = ''; // alte Optionen löschen
+
+    // Optionen aufbauen
+    for (const layerName in currentClickResults) {
+      const entry = currentClickResults[layerName];
+
+      entry.data.forEach((feat, idx) => {
+        const opt = document.createElement('option');
+        opt.value = `${layerName}::${idx}`;
+        opt.textContent = `${layerName}: ${feat.name || 'Feature ' + (idx + 1)}`;
+        select.appendChild(opt);
+      });
+    }
+
+    // Dropdown anzeigen
+    box.classList.remove('hidden');
+
+    // Auswahl-Event
+    select.onchange = () => {
+      const [layer, index] = select.value.split('::');
+      box.classList.add('hidden');
+      resolve({ layer, index: Number(index) });
+    };
+
+    // Close-Button
+    closeBtn.onclick = () => {
+      box.classList.add('hidden');
+      resolve(null);
+    };
+  });
+}
+
+
 function parseDeegreeGml(xmlString, layerName) {
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(xmlString, "text/xml");
@@ -400,7 +462,7 @@ export function updateTableFromVisibleLayers(map) {
 
 //Eventhandler für Layerswitcher Click (nur bestimmte Element, z.B. Gruppe öffnen)
 export function switcherDrawList(layerSwitcher) {
-layerSwitcher.on('drawlist', (evt) => {
+  layerSwitcher.on('drawlist', (evt) => {
   
   var layer = evt.layer;
   // Klick-Listener auf den Label-Text hinzufügen
@@ -463,10 +525,7 @@ import VectorLayer from 'ol/layer/Vector';
 
 let zaehlerGeojson = 1;
 let zaehlerKML = 1;
-
 let fileInput;
-
-
 export function fileToggleInput(map) {
   if (!fileInput) {
     fileInput = document.createElement('input');
@@ -564,12 +623,44 @@ export function fileToggleInput(map) {
 import { Style, Circle, Fill, Stroke } from 'ol/style';
 import Layer from 'ol/layer/Layer.js';
 
+
+import { getStyleForArtFSK } from './utils.js';
+
+function addVectorLayerToMap(map, features, sourceName) {
+  const vectorSource = new VectorSource({
+    features: features
+  });
+
+  // 👉 Style abhängig vom sourceName auswählen
+  const style = sourceName === 'fsk'
+    ? getStyleForArtFSK
+    : uploadStyle;
+
+  
+
+  const vectorLayer = new VectorLayer({
+    source: vectorSource,
+    title: sourceName,
+    name: sourceName,
+    style: style
+  });
+
+  map.addLayer(vectorLayer);
+
+  if (features.length > 0) {
+    map.getView().fit(vectorSource.getExtent(), {
+      padding: [50, 50, 50, 50],
+      duration: 1000,
+      maxZoom: 18
+    });
+  }
+}
 // Wir definieren den Style einmal außerhalb, damit er nicht bei jedem 
 // Feature-Upload neu erstellt werden muss (besser für die Performance).
 const uploadStyle = new Style({
   // Style für Polygone und die Füllung von Kreisen
   fill: new Fill({
-    color: 'rgba(255, 0, 0, 0.2)', // Rot mit 20% Deckkraft
+    color: 'rgba(46, 32, 243, 0.2)', // Rot mit 20% Deckkraft
   }),
   // Style für Linien und die Umrandung von Kreisen/Polygonen
   stroke: new Stroke({
@@ -588,30 +679,6 @@ const uploadStyle = new Style({
     }),
   }),
 });
-
-function addVectorLayerToMap(map, features, sourceName) {
-  const vectorSource = new VectorSource({
-    features: features
-  });
-
-  const vectorLayer = new VectorLayer({
-    source: vectorSource,
-    title: sourceName,
-    name: sourceName,
-    // 👉 Hier wird der neue Style zugewiesen
-    style: uploadStyle 
-  });
-  
-  map.addLayer(vectorLayer);
-
-  if (features.length > 0) {
-    map.getView().fit(vectorSource.getExtent(), {
-      padding: [50, 50, 50, 50],
-      duration: 1000,
-      maxZoom: 18
-    });
-  }
-}
 
 function shouldShowPopup(layer) {
   if (isTableEnabled()) return false;
@@ -661,15 +728,12 @@ function buildPopupContent(data, layerName) {
   if (normalizedLayerName === 'fsk') {
     // Spezialfall für FSK: Eig1 als Überschrift, Suche als Zusatzinhalt
     const ueberschrift = "Eigentümer: " + daten.Eig1 || "Keine Bezeichnung";
-const info = (
-    `Gemark: ${daten.Gemark}<br>` +
-    `ID: ${daten.fsk}<br>` +
-    `Flur: ${daten.Flur}<br>` +
-    `Flurstk.: ${daten.Zaehler}/${daten.Flur}`
-) || "";
-
-
-    
+    const info = (
+      `Gemark: ${daten.Gemark}<br>` +
+      `ID: ${daten.fsk}<br>` +
+      `Flur: ${daten.Flur}<br>` +
+      `Flurstk.: ${daten.Zaehler}/${daten.Flur}`
+    ) || "";
     
     html += `<strong>${ueberschrift}</strong><br>`;
     if (info) {
@@ -712,3 +776,16 @@ const info = (
   
   return html;
 }
+
+document.addEventListener('click', (e) => {
+  const box = document.getElementById('feature-select-dropdown');
+
+  // Wenn Dropdown unsichtbar → nichts tun
+  if (box.classList.contains('hidden')) return;
+
+  // Wenn Klick IN der Box → nichts tun
+  if (box.contains(e.target)) return;
+
+  // Sonst → schließen
+  box.classList.add('hidden');
+});

@@ -25,6 +25,7 @@
 </head>
 <body>
   <div id="main-layout" style="height: 100dvh; display: flex; flex-direction: column; overflow: hidden;">
+  
     <div id="map" class="split" style="width: 100%; position: relative;"></div>
     <div id="coordinate_selection" style="position: absolute; top: 10px; left: 50%; transform: translateX(-50%); background: white; padding: 10px; border-radius: 8px; border: 1px solid #ccc; z-index: 1100; display: none;">
     <select name="coord_choice" id="coord_select">
@@ -36,7 +37,16 @@
       <option value="EPSG:31466">EPSG:31466 (GK, 2M)</option>
     </select>
      <button id="start-coord-input" style="margin-left: 5px;">📍 Koordinate eingeben</button>
-    </div> 
+    </div>
+     <div id="feature-select-dropdown" class="hidden">
+  <div class="fsd-header">
+    <label for="feature-select">Auswahl:</label>
+    <button id="close-select-btn" class="close-select-btn">×</button>
+  </div>
+  <select id="feature-select"></select>
+</div>
+
+
    
     <div id="wms-table-container" class="split">
       <div id="table-header">
@@ -67,7 +77,7 @@
   <div id="height-info-box" style="position: absolute; bottom: 20px; left: 20px; background: rgba(0,0,0,0.7); color: white; padding: 5px 10px; border-radius: 4px; pointer-events: none; display: none; z-index: 1000;">
     HA: <span id="height-value-alt">-</span> m
   </div>
-
+  
   </div>
   <script type="module" src="/main.js"></script>
 </body>

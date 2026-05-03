@@ -25,61 +25,82 @@
 </head>
 <body>
   <div id="main-layout" style="height: 100dvh; display: flex; flex-direction: column; overflow: hidden;">
-  
-    <div id="map" class="split" style="width: 100%; position: relative;"></div>
-    <div id="coordinate_selection" style="position: absolute; top: 10px; left: 50%; transform: translateX(-50%); background: white; padding: 10px; border-radius: 8px; border: 1px solid #ccc; z-index: 1100; display: none;">
-    <select name="coord_choice" id="coord_select">
-      <option value="EPSG:32632" selected>EPSG:32632 (UTM, WGS84)</option>
-      <option value="EPSG:25832">EPSG:25832 (UTM, ETRS89)</option>
-      <option value="EPSG:3857">EPSG:3857 (Web Mercator)</option>
-      <option value="EPSG:4326 (Breite,Länge!)">EPSG:4326 (Länge-/Breite)</option>
-      <option value="EPSG:31467">EPSG:31467 (GK, 3M)</option>
-      <option value="EPSG:31466">EPSG:31466 (GK, 2M)</option>
-    </select>
-     <button id="start-coord-input" style="margin-left: 5px;">📍 Koordinate eingeben</button>
-    </div>
-     <div id="feature-select-dropdown" class="hidden">
-  <div class="fsd-header">
-    <label for="feature-select">Auswahl:</label>
-    <button id="close-select-btn" class="close-select-btn">×</button>
-  </div>
-  <select id="feature-select"></select>
-</div>
 
+    <!-- MAP-BEREICH -->
+    <div id="map" class="split" style="width: 100%; position: relative;">
 
-   
+      <!-- FEATURE-AUSWAHL DROPDOWN -->
+      <div id="feature-select-dropdown" class="hidden">
+        <div class="fsd-header">
+          <label for="feature-select">Auswahl:</label>
+          <button id="close-select-btn" class="close-select-btn">×</button>
+        </div>
+        <select id="feature-select"></select>
+      </div>
+
+      <!-- KOORDINATEN-EINGABE -->
+      <div id="coordinate_selection"
+           style="position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+                  background: white; padding: 10px; border-radius: 8px; border: 1px solid #ccc;
+                  z-index: 1100; display: none;">
+        <select name="coord_choice" id="coord_select">
+          <option value="EPSG:32632" selected>EPSG:32632 (UTM, WGS84)</option>
+          <option value="EPSG:25832">EPSG:25832 (UTM, ETRS89)</option>
+          <option value="EPSG:3857">EPSG:3857 (Web Mercator)</option>
+          <option value="EPSG:4326 (Breite,Länge!)">EPSG:4326 (Länge-/Breite)</option>
+          <option value="EPSG:31467">EPSG:31467 (GK, 3M)</option>
+          <option value="EPSG:31466">EPSG:31466 (GK, 2M)</option>
+        </select>
+        <button id="start-coord-input" style="margin-left: 5px;">📍 Koordinate eingeben</button>
+      </div>
+
+    </div> <!-- ENDE MAP -->
+
+    <!-- TABELLENBEREICH -->
     <div id="wms-table-container" class="split">
       <div id="table-header">
         <div class="header-controls-left">
           <strong>Ebene:</strong>
           <select id="layer-selector"></select>
-         </div>
+        </div>
+
         <div id="table-controls">
           <button id="filter-toggle" class="btn-control">Filtern</button>
-          <!-- In deiner index.html oder wo die Steuerelemente liegen -->
           <button id="table-reset" title="Tabellenlayout zurücksetzen">🔄</button>
         </div>
-        
+
         <button id="close-table-btn">✕ Schließen</button>
       </div>
+
       <div id="wms_data_table" class="hide-filters"></div>
     </div>
-    
+
+    <!-- POPUP -->
     <div id="popup" class="ol-popup">
       <a href="#" id="popup-closer" class="ol-popup-closer">✕</a>
       <div id="popup-content"></div>
     </div>
-    <input type="file" id="geojsonInput" accept=".geojson,.json" style="display: none;" multiple>
-      <div id="height-status-container" class="height-status">
-    Höhe: <span id="height-value-main">–</span> m
-  </div>
 
-  <div id="height-info-box" style="position: absolute; bottom: 20px; left: 20px; background: rgba(0,0,0,0.7); color: white; padding: 5px 10px; border-radius: 4px; pointer-events: none; display: none; z-index: 1000;">
-    HA: <span id="height-value-alt">-</span> m
-  </div>
-  
-  </div>
+    <!-- FILE INPUT -->
+    <input type="file" id="geojsonInput" accept=".geojson,.json" style="display: none;" multiple>
+
+    <!-- HÖHENANZEIGE -->
+    <div id="height-status-container" class="height-status">
+      Höhe: <span id="height-value-main">–</span> m
+    </div>
+
+    <div id="height-info-box"
+         style="position: absolute; bottom: 20px; left: 20px;
+                background: rgba(0,0,0,0.7); color: white;
+                padding: 5px 10px; border-radius: 4px;
+                pointer-events: none; display: none; z-index: 1000;">
+      HA: <span id="height-value-alt">-</span> m
+    </div>
+
+  </div> <!-- ENDE main-layout -->
+
   <script type="module" src="/main.js"></script>
 </body>
+
 
 </html>

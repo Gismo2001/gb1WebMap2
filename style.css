@@ -29,14 +29,24 @@ html, body {
 
  
 @media (max-width: 768px) {
-  
+   #feature-select-dropdown {
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    font-size: 12px;
+  }
+
+  #feature-select-dropdown select {
+    font-size: 12px;
+  }
+
 .ol-control button {
     width: 1.30em; 
     height: 1.30em;
     font-size: 1.2em;
   }
 
-  
   .ol-touch .ol-control button,
   .ol-touch .ol-control.ol-layerswitcher button {
     width: 30px;
@@ -77,6 +87,7 @@ html, body {
   height: 10px;
   width: 10px;
 }
+
 }
 
 
@@ -337,45 +348,6 @@ top: 4em;
   pointer-events: none;
 }
 
-#feature-select-dropdown {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: white;
-  padding: 8px 10px;
-  border-radius: 6px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
-  z-index: 9999;
-  font-size: 14px;
-}
-
-#feature-select-dropdown.hidden {
-  display: none;
-}
-
-#feature-select-dropdown select {
-  font-size: 14px;
-  padding: 4px;
-  max-width: 180px;
-}
-
-/* Mobile Optimierung */
-@media (max-width: 600px) {
-  #feature-select-dropdown {
-    top: auto;
-    bottom: 10px;
-    right: 10px;
-    left: 10px;
-    width: auto;
-    font-size: 16px;
-  }
-
-  #feature-select-dropdown select {
-    width: 100%;
-    font-size: 16px;
-    padding: 6px;
-  }
-}
 
 
 .fsd-header {
@@ -386,7 +358,7 @@ top: 4em;
 .close-select-btn {
   background: transparent;
   border: none;
-  font-size: 20px;
+  font-size: 12px;
   cursor: pointer;
   padding: 0 4px;
   line-height: 1;
@@ -395,6 +367,32 @@ top: 4em;
 .close-select-btn:hover {
   color: #c00;
 }
+#feature-select-dropdown {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  padding: 8px 10px;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+  z-index: 2000;
 
+  /* Deine Wünsche */
+  width: 200px;
+  font-size: 12px;
+}
 
+#feature-select-dropdown select {
+  width: 100%;
+  font-size: 12px;
+}
+
+#feature-select-dropdown.hidden {
+  display: none;
+}
+
+.close-select-btn:hover {
+  color: #c00;
+}
 

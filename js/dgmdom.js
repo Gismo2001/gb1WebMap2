@@ -167,16 +167,17 @@ export function getLoadedDomExtent() {
 // Code für DGM-Interaktion
 export function enableDgmInteraction(map) {
 
-  // 👉 Klick-Listener nur einmal setzen
+ /*  // 👉 Klick-Listener nur einmal setzen
   if (!dgmClickListener) {
     dgmClickListener = map.on('singleclick', (evt) => handleDgmClick(map, evt));
   }
 
   // 👉 PointerMove nur Desktop
   if (!ismobile && !dgmPointerMoveListener) {
-    dgmPointerMoveListener = map.on('pointermove', handleDgmPointerMove());
-  }
+    dgmPointerMoveListener = map.on('pointermove', handleDgmPointerMove(evt));
+  }  */
 }
+
 export async function handleDgmClick(map, evt) {
   const kachelnVisible = dgmKachelLayer && dgmKachelLayer.getVisible();
   console.log(evt.target.dataset);

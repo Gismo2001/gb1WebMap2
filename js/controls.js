@@ -83,7 +83,7 @@ export function createMainToolbar(map) {
         
         // Prüfen, ob der Layer schon auf der Karte ist, falls nicht: hinzufügen
         if (!map.getLayers().getArray().includes(DgmKachelLayer)) {
-          map.addLayer(DgmKachelLayer);
+          //map.addLayer(DgmKachelLayer);
         }
         DgmKachelLayer.set('displayInLayerSwitcher', true);
         DgmKachelLayer.setVisible(true);
@@ -91,11 +91,12 @@ export function createMainToolbar(map) {
         
       
       } else if (!active) {
-        isDgmActive = false;
-        console.log(isDgmActive);
+          setDgmActive(false);
+          console.log(isDgmActive);
+          //disableDgmInteraction();
         //DgmLayer.set('displayInLayerSwitcher', false);
         //DgmLayer.setVisible(false); 
-        map.removeLayer(DgmKachelLayer);
+        //map.removeLayer(DgmKachelLayer);
         
       }
     },

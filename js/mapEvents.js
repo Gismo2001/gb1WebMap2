@@ -239,12 +239,26 @@ function askUserToChoose(currentClickResults) {
     for (const layerName in currentClickResults) {
       const entry = currentClickResults[layerName];
 
-      entry.data.forEach((feat, idx) => {
-        const opt = document.createElement('option');
-        opt.value = `${layerName}::${idx}`;
-        opt.textContent = `${layerName}: ${feat.name || 'Feature ' + (idx + 1)}`;
-        select.appendChild(opt);
-      });
+      // Eindeutige Features pro Layer erzeugen
+const uniqueData = [];
+const seen = new Set();
+
+entry.data.forEach((feat, idx) => {
+  const key = JSON.stringify(feat); // oder feat.id, falls vorhanden
+  if (!seen.has(key)) {
+    seen.add(key);
+    uniqueData.push({ feat, idx });
+  }
+});
+
+// Dropdown-Optionen erzeugen
+uniqueData.forEach(({ feat, idx }) => {
+  const opt = document.createElement('option');
+  opt.value = `${layerName}::${idx}`;
+  opt.textContent = `${layerName}: ${feat.name || 'Feature ' + (idx + 1)}`;
+  select.appendChild(opt);
+});
+
     }
 
     // Dropdown anzeigen
@@ -723,8 +737,6 @@ function buildPopupContent(data, layerName) {
   
   // 1. Überschrift & Inhalt bestimmen 🏷️
   const normalizedLayerName = layerName.toLowerCase();
-  
-
   if (normalizedLayerName === 'fsk') {
     // Spezialfall für FSK: Eig1 als Überschrift, Suche als Zusatzinhalt
     const ueberschrift = "Eigentümer: " + daten.Eig1 || "Keine Bezeichnung";
@@ -750,22 +762,30 @@ function buildPopupContent(data, layerName) {
     html += `<strong>${topValues}</strong><br>`;
   }
 
-  // 2. Kachel-Links (DGM oder DOM) hinzufügen 🔗
-  const kachelUrl = daten.dgm1 || daten.dom1;
-  if (kachelUrl) {
-    html += `<div style="margin-top: 5px;">`;
-    html += `
-    <a href="#" 
-     class="popup-link"
-     data-tif="${daten.dgm1 || daten.dom1}"
-     data-tile_id="${daten.tile_id}"
-     data-bbox='${JSON.stringify(daten.bbox || null)}'>
-     Kachel laden
-    </a>
-    `;
+ // 2. Kachel-Links (DGM oder DOM) hinzufügen 🔗
+const kachelUrl = daten.dgm1 || daten.dom1;
 
-    html += `</div>`;
+if (kachelUrl) {
+
+  // BBOX aus Feature-Geometrie berechnen
+  let bbox = null;
+  if (daten.geometry && typeof daten.geometry.getExtent === "function") {
+    bbox = daten.geometry.getExtent();
   }
+
+  html += `<div style="margin-top: 5px;">`;
+  html += `
+    <a href="#"
+       class="popup-link"
+       data-tif="${daten.dgm1 || daten.dom1}"
+       data-tile_id="${daten.tile_id}"
+       data-bbox='${JSON.stringify(bbox)}'>
+       Kachel laden
+    </a>
+  `;
+  html += `</div>`;
+}
+
   
   // 3. Fotolinks sammeln 📸
   const fotoLinks = [];

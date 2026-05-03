@@ -60,6 +60,8 @@ export function getAllLayers(layerGroup, parentVisible = true, groupTitle = null
 export function initMapClick(map) {
   map.on('singleclick', function (evt) {
     // für Handy
+    
+    evt.hitTolerance = 10;
     const now = Date.now();
     if (now - lastTap < 250) {
     // zweiter Tap → ignorieren

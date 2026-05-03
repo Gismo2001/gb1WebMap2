@@ -653,7 +653,7 @@ export function createExpGewInfoLayer() {
   name: 'gew_info',
   permalink: 'gew_info', 
   style: getStyleForArtGewInfo,
-  visible: false
+  visible: true
   });
 }
 export function createExpBwUMassnLayer() {
@@ -1011,15 +1011,14 @@ export function createLayerStructure() {
     new LayerGroup({
       title: 'Bauw.(P)',
       layers: [
-        sle,
-        weh,
-        bruAndere,
-        bruNlwkn,
-        due,
-        que,
+        sonPun,
         ein,
-        sonPun
-        
+        que,
+        due,
+        bruNlwkn,
+        bruAndere,
+        weh,
+        sle,
       ]
     }),
     

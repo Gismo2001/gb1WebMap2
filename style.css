@@ -33,13 +33,9 @@ html, body {
     top: 8px;
     left: 50%;
     transform: translateX(-50%);
-    width: 90%;
-    font-size: 12px;
+   
   }
 
-  #feature-select-dropdown select {
-    font-size: 12px;
-  }
 
 .ol-control button {
     width: 1.30em; 
@@ -358,15 +354,12 @@ top: 4em;
 .close-select-btn {
   background: transparent;
   border: none;
-  font-size: 12px;
+  font-size: 14px;
   cursor: pointer;
   padding: 0 4px;
   line-height: 1;
 }
 
-.close-select-btn:hover {
-  color: #c00;
-}
 #feature-select-dropdown {
   position: absolute;
   top: 10px;
@@ -377,8 +370,6 @@ top: 4em;
   border-radius: 6px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.25);
   z-index: 2000;
-
-  /* Deine Wünsche */
   width: 200px;
   font-size: 12px;
 }
@@ -386,6 +377,8 @@ top: 4em;
 #feature-select-dropdown select {
   width: 100%;
   font-size: 12px;
+  padding-right: 20px; /* Platz für den Pfeil */
+  box-sizing: border-box;
 }
 
 #feature-select-dropdown.hidden {

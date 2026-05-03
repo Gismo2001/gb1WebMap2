@@ -23,6 +23,9 @@ let latestClickRequestId = 0;
 let popupOverlay;
 let popupContent;
 
+//für Handy
+let lastTap = 0;
+
 
 export function getAllLayers(layerGroup, parentVisible = true, groupTitle = null) {
   let layers = [];
@@ -56,6 +59,13 @@ export function getAllLayers(layerGroup, parentVisible = true, groupTitle = null
 
 export function initMapClick(map) {
   map.on('singleclick', function (evt) {
+    // für Handy
+    const now = Date.now();
+    if (now - lastTap < 250) {
+    // zweiter Tap → ignorieren
+    return;
+    }
+  lastTap = now;
     // 1. Sofortiges Feedback: Popup schließen, wenn Tabelle nicht aktiv ist
     if (!isTableEnabled()) {
       popupOverlay.setPosition(undefined);
@@ -186,6 +196,14 @@ export function initMapClick(map) {
 }
 
 async function handleClickResult(currentClickResults, coord) {
+  // 🔥 Duplikate entfernen (Mobile fix)
+  for (const layerName of Object.keys(currentClickResults)) {
+    const entry = currentClickResults[layerName];
+
+    entry.data = entry.data.filter((v, i, a) =>
+    a.findIndex(t => JSON.stringify(t) === JSON.stringify(v)) === i
+    );
+  }
 
   const layerNames = Object.keys(currentClickResults);
 
@@ -240,24 +258,24 @@ function askUserToChoose(currentClickResults) {
       const entry = currentClickResults[layerName];
 
       // Eindeutige Features pro Layer erzeugen
-const uniqueData = [];
-const seen = new Set();
+      const uniqueData = [];
+      const seen = new Set();
 
-entry.data.forEach((feat, idx) => {
-  const key = JSON.stringify(feat); // oder feat.id, falls vorhanden
-  if (!seen.has(key)) {
-    seen.add(key);
-    uniqueData.push({ feat, idx });
-  }
-});
-
-// Dropdown-Optionen erzeugen
-uniqueData.forEach(({ feat, idx }) => {
-  const opt = document.createElement('option');
-  opt.value = `${layerName}::${idx}`;
-  opt.textContent = `${layerName}: ${feat.name || 'Feature ' + (idx + 1)}`;
-  select.appendChild(opt);
-});
+      entry.data.forEach((feat, idx) => {
+      const key = JSON.stringify(feat); // oder feat.id, falls vorhanden
+      if (!seen.has(key)) {
+        seen.add(key);
+        uniqueData.push({ feat, idx });
+      }
+      });
+      console.log(uniqueData)
+      // Dropdown-Optionen erzeugen
+      uniqueData.forEach(({ feat, idx }) => {
+        const opt = document.createElement('option');
+        opt.value = `${layerName}::${idx}`;
+        opt.textContent = `${layerName}: ${feat.name || 'Feature ' + (idx + 1)}`;
+        select.appendChild(opt);
+      });
 
     }
 

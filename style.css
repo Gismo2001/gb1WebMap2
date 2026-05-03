@@ -33,7 +33,6 @@ html, body {
     top: 8px;
     left: 50%;
     transform: translateX(-50%);
-   
   }
 
 
@@ -41,6 +40,7 @@ html, body {
     width: 1.30em; 
     height: 1.30em;
     font-size: 1.2em;
+    
   }
 
   .ol-touch .ol-control button,
@@ -84,6 +84,33 @@ html, body {
   width: 10px;
 }
 
+}
+
+ /* Style für den Print-Button P */
+ .get-position {
+  position: absolute;
+  bottom: 20px;
+  left: 10px;
+  padding: 3px 3px; 
+  cursor: pointer;
+  font-size: 12px;         
+  background-color: #f10404;
+  border: 1px solid #ccc;
+  border-radius: 2px;
+}
+.height-status {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255,255,255,0.9);
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  z-index: 1000;
+  display: none;
+  pointer-events: none;
 }
 
 
@@ -156,10 +183,29 @@ html, body {
 /* Optional: Verhindert, dass die Karte beim ersten Laden zu klein ist */
 
 
-
-.ol-control * {
-  font-size: 14px; /* Hier kannst du die gewünschte Größe für alle Elemente innerhalb des Div-Containers angeben */
+.map:-webkit-full-screen {
+  height: 100%;
+  margin: 0;
 }
+
+.map:fullscreen {
+  height: 100%;
+}
+
+.ol-button {
+  text-align: center;
+
+}
+
+.ol-full-screen {
+  right: .5em;
+  top: 0.375em;
+}
+
+.map .ol-rotate {
+  top: calc(100vh - 100px)
+}
+
 
 #popup-content {
   user-select: text;

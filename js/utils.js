@@ -1,5 +1,13 @@
 import {Circle as CircleStyle, Fill, RegularShape, Icon, Stroke, Style, Text} from 'ol/style';
 import MultiPoint from 'ol/geom/MultiPoint';
+import { mapRef } from './table.js';
+
+
+
+
+
+
+
 
 
 // BW-Style Punkte
@@ -372,6 +380,13 @@ const Km500scalStyle = function(feature, km, resolution) {
     }
 };
 
+function getLayerByName(name) {
+  if (!mapRef) return null;
+
+  return mapRef.getLayers().getArray().find(layer => {
+    return layer.get('name') === name || layer.get('title') === name;
+  }) || null;
+};
 
 export {
     SleStyle,
@@ -389,6 +404,8 @@ export {
     Km100scalStyle,
     Km500scalStyle,
     getStyleForArtFSK,
+    getLayerByName,
 
     
 };
+

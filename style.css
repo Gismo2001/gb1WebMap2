@@ -435,3 +435,9 @@ top: 4em;
   color: #c00;
 }
 
+.table-link {
+  color: #0078ff;
+  text-decoration: underline;
+  cursor: pointer;
+}
+

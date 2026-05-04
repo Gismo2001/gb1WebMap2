@@ -3,10 +3,14 @@ import 'tabulator-tables/dist/css/tabulator.min.css';
 import Split from 'split.js';
 import { deactivateTableToggle } from './controls'; 
 
+import { getLayerByName } from './utils'; 
+
 let splitInstance = null;
 let isTableActive = false; 
-let mapRef = null;
+
+export let mapRef = null;
 export let table = null;
+
 let resizeObserver = null;
 let tableReady = false;
 let showTableTimeout;
@@ -164,6 +168,28 @@ export function showTable(data) {
         persistenceMode: "local", 
         autoColumnsDefinitions: function(definitions) {
           definitions.forEach((column) => {
+            // URL‑Formatter
+            column.formatter = function(cell) {
+              const value = cell.getValue();
+              if (!value) return value;
+
+              if (isUrl(value)) {
+                return `<span class="table-link">${value}</span>`;
+              }
+
+              return value;
+            };
+
+            // Klick‑Event für URL‑Zellen
+            column.cellClick = function(e, cell) {
+              const value = cell.getValue();
+              if (!value) return;
+
+              if (isUrl(value)) {
+                window.open(value.startsWith("http") ? value : "https://" + value, "_blank");
+              }
+            };
+
             column.headerContextMenu = [
               { label: "Spalte ausblenden", action: (e, col) => col.hide() },
               { label: "🔄 Alles zurücksetzen", action: () => resetBtn.click() }
@@ -220,15 +246,19 @@ function setupTableEvents(table, tableElement, idKey, layerName) {
     row.select();
     highlightFeatureForRow(row.getData());
   });
-   table.on("rowDblClick", (e, row) => {
-   const rowData = row.getData();
+  table.on("rowDblClick", (e, row) => {
+    const rowData = row.getData();
     const layerName = document.getElementById('layer-selector').value;
 
-    if (mapRef && layerName) {
+    const layer = getLayerByName(layerName);
+    const source = layer?.getSource();
+
+    // ❗ Nur zoomen, wenn der Layer Features hat
+    if (source && typeof source.getFeatures === "function") {
       zoomToFeature(layerName, rowData);
     }
-
   });
+
 
   tableElement.onkeydown = (e) => {
     if (e.key === "ArrowUp" || e.key === "ArrowDown") {
@@ -251,6 +281,7 @@ function setupTableEvents(table, tableElement, idKey, layerName) {
   
   tableElement.addEventListener("mousemove", () => { isKeyboard = false; });
 }
+
 export function showTableDebounced(data) {
   clearTimeout(showTableTimeout);
   showTableTimeout = setTimeout(() => {
@@ -292,49 +323,32 @@ export function getTableActive() {
 
 function zoomToFeature(layerName, rowData) {
   if (!mapRef) return;
-  let targetLayer = null;
-  mapRef.getLayers().getArray().forEach(l => {
-    if (l.get('name') === layerName) targetLayer = l;
-    // Falls Layer in Gruppen sind:
-    if (!targetLayer && l.getLayers) {
-       l.getLayers().getArray().forEach(subL => {
-         if (subL.get('name') === layerName) targetLayer = subL;
-       });
-    }
-  });
 
-  if (!targetLayer) {
-    console.error("Layer '" + layerName + "' nicht auf Karte gefunden.");
+  const layer = getLayerByName(layerName);
+  if (!layer) return;
+
+  const source = layer.getSource();
+
+  if (!source || typeof source.getFeatures !== "function") {
+    console.warn("Zoom übersprungen (kein Vektorlayer):", layerName);
     return;
   }
 
-  const source = targetLayer.getSource();
   const features = source.getFeatures();
-  //console.log("Anzahl Features im Source:", features.length);
+  if (!features.length) return;
 
-  // Suche nach ID_con
-  const foundFeature = features.find(f => {
-    const props = f.getProperties();
-    // String-Vergleich um Typ-Konflikte (Zahl vs Text) zu vermeiden
-    return props.ID_con !== null &&
-      props.ID_con !== undefined &&
-      String(props.ID_con) === String(rowData.ID_con);
+  const found = features.find(f => 
+    String(f.get("ID_con")) === String(rowData.ID_con)
+  );
+
+  if (!found) return;
+
+  const extent = found.getGeometry().getExtent();
+  mapRef.getView().fit(extent, {
+    padding: [50, 50, 50, 50],
+    duration: 800,
+    maxZoom: 14
   });
-
-  if (foundFeature) {
-    
-    const extent = foundFeature.getGeometry().getExtent();
-    mapRef.getView().fit(extent, {
-      padding: [50, 50, 50, 50],
-      duration: 800,
-      maxZoom: 14
-    });
-  } else {
-    //console.warn("ID_con '" + rowData.ID_con + "' nicht in den Source-Features gefunden.");
-    if (features.length > 0) {
-      //console.log("Beispiel-ID aus erstem Feature:", features[0].get('ID_con'));
-    }
-  }
 }
 
 function initResizeObserver() {
@@ -426,4 +440,9 @@ export function highlightFeatureForRow(rowData) {
   // 4. Highlight setzen
   feature.setStyle(hoverHighlightStyle);
   highlightedFeature = feature;
+}
+
+function isUrl(value) {
+  if (!value) return false;
+  return /^https?:\/\/|^www\./i.test(value);
 }

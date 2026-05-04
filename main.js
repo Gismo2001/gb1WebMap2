@@ -48,7 +48,9 @@ registerProjections();
 const layers = createLayerStructure();
 
 // 👉 Mier wird map mit Layern erstellt (map.js)
-const map = createMap('map', layers);
+export const map = createMap('map', layers);
+
+
 
 // 👉 LayerSwitcher wird hinzugefügt (control.js)
 const layerSwitcher = createLayerSwitcher(map);

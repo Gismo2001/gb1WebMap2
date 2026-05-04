@@ -6,7 +6,7 @@ import { DragRotateAndZoom, defaults as defaultInteractions } from 'ol/interacti
 
 export function createMap(target = 'map', layers = []) {
 
-  // 👉 EIN eigenes Attribution-Control
+  
   const attribution = new Attribution({
     collapsible: false, // wird später dynamisch gesetzt
   });
@@ -20,7 +20,7 @@ export function createMap(target = 'map', layers = []) {
     theme: null,
     layers,
 
-    // 👉 WICHTIG: Default-Attribution deaktivieren!
+    
     controls: defaultControls({ attribution: false }).extend([
       attribution,
       new FullScreen(),

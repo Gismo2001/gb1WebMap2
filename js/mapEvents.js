@@ -211,11 +211,9 @@ async function handleClickResult(currentClickResults, coord) {
 
   let chosenLayer = layerNames[0];
   let chosenIndex = 0;
-
+  console.log(chosenLayer)
   const needsSelection =
-  !isDgmActive && (
-    layerNames.length > 1 ||
-    currentClickResults[layerNames[0]].data.length > 1
+   !isDgmActive && (layerNames.length > 1   ||   currentClickResults[layerNames[0]].data.length > 1
   );
 
 

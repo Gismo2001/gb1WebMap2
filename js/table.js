@@ -180,15 +180,16 @@ export function showTable(data) {
               return value;
             };
 
-            // Klick‑Event für URL‑Zellen
             column.cellClick = function(e, cell) {
               const value = cell.getValue();
               if (!value) return;
 
               if (isUrl(value)) {
+                e.stopPropagation();   // ❗ verhindert rowClick/rowDblClick
                 window.open(value.startsWith("http") ? value : "https://" + value, "_blank");
-              }
-            };
+                }
+        };
+
 
             column.headerContextMenu = [
               { label: "Spalte ausblenden", action: (e, col) => col.hide() },
@@ -239,33 +240,36 @@ function setupTableEvents(table, tableElement, idKey, layerName) {
 
   table.on("rowMouseOver", (e, row) => { if (!isKeyboard) highlightFeatureForRow(row.getData()); });
   table.on("rowMouseOut", () => { if (!isKeyboard) clearHighlightedFeature(); });
-  
+
   table.on("rowClick", (e, row) => {
-    isKeyboard = false;
-    table.deselectRow();
-    row.select();
+    console.log("rowClick detail:", e.detail);
+    if (e.detail === 2) return; // Doppelklick → hier nichts tun
     highlightFeatureForRow(row.getData());
   });
-  table.on("rowDblClick", (e, row) => {
+
+  // 🔥 NEU: Doppel‑Klick auf ZELLE → Zoom
+  table.on("cellDblClick", (e, cell) => {
+    const row = cell.getRow();
     const rowData = row.getData();
     const layerName = document.getElementById('layer-selector').value;
 
     const layer = getLayerByName(layerName);
     const source = layer?.getSource();
 
-    // ❗ Nur zoomen, wenn der Layer Features hat
     if (source && typeof source.getFeatures === "function") {
       zoomToFeature(layerName, rowData);
     }
   });
 
-
   tableElement.onkeydown = (e) => {
+    console.log("key aufgerufen")
     if (e.key === "ArrowUp" || e.key === "ArrowDown") {
       isKeyboard = true;
       e.preventDefault();
       const selected = table.getSelectedRows()[0];
-      const next = (e.key === "ArrowDown") ? (selected?.getNextRow() || table.getRows()[0]) : selected?.getPrevRow();
+      const next = (e.key === "ArrowDown")
+        ? (selected?.getNextRow() || table.getRows()[0])
+        : selected?.getPrevRow();
       if (next) {
         table.deselectRow();
         next.select();
@@ -278,7 +282,7 @@ function setupTableEvents(table, tableElement, idKey, layerName) {
       if (selected) zoomToFeature(layerName, selected.getData());
     }
   };
-  
+
   tableElement.addEventListener("mousemove", () => { isKeyboard = false; });
 }
 
@@ -371,7 +375,7 @@ function initResizeObserver() {
   resizeObserver.observe(tableContainer);
 }
 
-function clearHighlightedFeature() {
+export function clearHighlightedFeature() {
   if (highlightedFeature) {
     highlightedFeature.setStyle(undefined);
     highlightedFeature = null;
@@ -379,20 +383,30 @@ function clearHighlightedFeature() {
 }
 
 export function highlightFeatureForRow(rowData) {
+  const layerName = rowData.origin_layer || 
+                    (document.getElementById('layer-selector') ? document.getElementById('layer-selector').value : null);
+  
+  if (!layerName) {
+    console.warn("Highlight abgebrochen: Kein LayerName in rowData oder Selector gefunden.", rowData);
+    return;
+  }
   let idKey = null;
   clearHighlightedFeature();
   if (!mapRef) return;
+  
   const selector = document.getElementById('layer-selector');
-  const layerName = selector ? selector.value : null;
   
-  
-  if (!layerName) return;
+  if (!layerName) {
+    console.warn("Highlight abgebrochen: Kein LayerName gefunden");
+    return;
+  }
   let targetLayer = null;
   
   mapRef.getLayers().getArray().forEach((l) => {
+  
    
     if (l.get('name') === layerName) targetLayer = l;
-    
+     
     if (!targetLayer && l.getLayers) {
       
       l.getLayers().getArray().forEach((subL) => {

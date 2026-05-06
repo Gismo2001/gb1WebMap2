@@ -3,7 +3,7 @@
 import { updateSelector, showTableDebounced, closeTable } from './table.js';
 
 import { isTableEnabled } from './controls.js';
-import { table, highlightFeatureForRow } from './table.js';
+import { table, highlightFeatureForRow, clearHighlightedFeature } from './table.js';
 
 import GeoTIFF from 'ol/source/GeoTIFF';
 import GeoTIFFSource from 'ol/source/GeoTIFF';
@@ -60,7 +60,7 @@ export function getAllLayers(layerGroup, parentVisible = true, groupTitle = null
 export function initMapClick(map) {
   map.on('singleclick', function (evt) {
     // für Handy
-    
+    clearHighlightedFeature();
     evt.hitTolerance = 10;
     const now = Date.now();
     if (now - lastTap < 250) {
@@ -205,13 +205,14 @@ async function handleClickResult(currentClickResults, coord) {
     entry.data = entry.data.filter((v, i, a) =>
     a.findIndex(t => JSON.stringify(t) === JSON.stringify(v)) === i
     );
+
   }
 
   const layerNames = Object.keys(currentClickResults);
 
   let chosenLayer = layerNames[0];
   let chosenIndex = 0;
-  console.log(chosenLayer)
+  
   const needsSelection =
    !isDgmActive && (layerNames.length > 1   ||   currentClickResults[layerNames[0]].data.length > 1
   );
@@ -231,6 +232,12 @@ async function handleClickResult(currentClickResults, coord) {
 
   popupContent.innerHTML = buildPopupContent([featureData], chosenLayer);
   popupOverlay.setPosition(coord);
+  featureData.origin_layer = chosenLayer; 
+  
+  if (typeof highlightFeatureForRow === 'function') {
+      
+      highlightFeatureForRow(featureData);
+  }
 
   setTimeout(() => {
     const btn = document.getElementById('open-table-btn');
@@ -243,6 +250,7 @@ async function handleClickResult(currentClickResults, coord) {
     }
   }, 0);
 }
+
 
 function askUserToChoose(currentClickResults) {
   return new Promise(resolve => {
@@ -268,7 +276,7 @@ function askUserToChoose(currentClickResults) {
         uniqueData.push({ feat, idx });
       }
       });
-      console.log(uniqueData)
+      
       // Dropdown-Optionen erzeugen
       uniqueData.forEach(({ feat, idx }) => {
         const opt = document.createElement('option');

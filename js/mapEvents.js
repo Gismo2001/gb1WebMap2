@@ -61,7 +61,7 @@ export function initMapClick(map) {
   map.on('singleclick', function (evt) {
     // für Handy
     clearHighlightedFeature();
-    evt.hitTolerance = 10;
+   
     const now = Date.now();
     if (now - lastTap < 250) {
     // zweiter Tap → ignorieren
@@ -410,7 +410,7 @@ export function getVectorFeaturesAtClick(map, evt) {
   const results = {};
 
   map.forEachFeatureAtPixel(evt.pixel, function (feature, layer) {
-
+     evt.hitTolerance = 15;
     const name = (layer?.get('name') || '').toLowerCase();
     const title = (layer?.get('title') || '').toLowerCase();
 

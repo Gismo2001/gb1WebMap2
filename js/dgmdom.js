@@ -205,6 +205,7 @@ export async function handleDgmClick(map, evt) {
     let featureFound = false;
 
     map.forEachFeatureAtPixel(evt.pixel, (feature) => {
+      evt.hitTolerance = 10;
       featureFound = true;
 
       const props = feature.getProperties();

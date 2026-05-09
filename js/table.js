@@ -177,22 +177,12 @@ export function showTable(data) {
               const value = cell.getValue();
               if (!value) return value;
               if (isUrl(value)) {
-                return `<span class="table-link">${value}</span>`;
+                return `<span class="table-link">${cell.getColumn().getDefinition().title}</span>`;
               }
               return value;
             };
 
-            column.cellClick = function(e, cell) {
-              const value = cell.getValue();
-              if (!value) return;
-
-              if (isUrl(value)) {
-                e.stopPropagation();   // ❗ verhindert rowClick/rowDblClick
-                window.open(value.startsWith("http") ? value : "https://" + value, "_blank");
-                }
-            }; 
-
-
+            
             column.headerContextMenu = [
               { label: "Spalte ausblenden", action: (e, col) => col.hide() },
               { label: "🔄 Alles zurücksetzen", action: () => resetBtn.click() }
@@ -233,21 +223,17 @@ export function showTable(data) {
 }
 // Hilfsfunktion für die Events (um showTable übersichtlich zu halten)
 function setupTableEvents(table, tableElement, idKey, layerName) {
-
   // =====================================================
   // TABLE BUILT
   // =====================================================
-
   table.on("tableBuilt", () => {
     
     tableElement.setAttribute("tabindex", "0");
     focusTable(tableElement);
   });
-
   // =====================================================
   // ROW SELECTION
   // =====================================================
-
   table.on("rowSelectionChanged", (data, rows) => {
 
     if (!rows.length) return;
@@ -256,44 +242,59 @@ function setupTableEvents(table, tableElement, idKey, layerName) {
 
     highlightFeatureForRow(row.getData());
   });
-
   // =====================================================
   // MOUSE OVER
   // =====================================================
-
   table.on("rowMouseOver", (e, row) => {
 
     if (interactionMode === "keyboard") return;
 
     highlightFeatureForRow(row.getData());
   });
-
   table.on("rowMouseOut", () => {
 
     if (interactionMode === "keyboard") return;
 
     clearHighlightedFeature();
   });
-
   // =====================================================
   // ROW CLICK
   // =====================================================
-
   table.on("rowClick", (e, row) => {
     interactionMode = "mouse";
     selectAndHighlightRow(table, row);
     focusTable(tableElement);
   });
-
   // =====================================================
   // DOUBLE CLICK → ZOOM
   // =====================================================
-
   table.on("rowDblClick", (e, row) => {
 
     const rowData = row.getData();
 
     zoomToFeature(layerName, rowData);
+  });
+  // =====================================================
+  // ROW CLICK
+  // =====================================================
+  table.on("cellClick", (e, cell) => {
+    const value = cell.getValue();
+    if (!value) return;
+    // 👉 URL öffnen
+    if (isUrl(value)) {
+      e.stopPropagation();
+      window.open(
+        value.startsWith("http")
+          ? value
+          : "https://" + value,
+        "_blank"
+      );
+      return;
+    }
+
+    // 👉 normale Tabellenlogik
+    const row = cell.getRow();
+    highlightFeatureForRow(row.getData());
   });
 
   // =====================================================
@@ -368,7 +369,6 @@ function setupTableEvents(table, tableElement, idKey, layerName) {
   });
 
   let pressTimer;
-
   table.on("rowTouchStart", (e, row) => {
     pressTimer = setTimeout(() => {
       zoomToFeature(layerName, row.getData());
@@ -381,6 +381,31 @@ function setupTableEvents(table, tableElement, idKey, layerName) {
 
   table.on("rowTouchMove", () => {
     clearTimeout(pressTimer);
+  });
+  // 👉 MOBILE TAP
+  table.on("cellTap", (e, cell) => {
+    const value = cell.getValue();
+    // 👉 URL?
+    if (value && isUrl(value)) {
+        e.stopPropagation();
+        window.open(
+        value.startsWith("http")
+          ? value
+          : "https://" + value,
+        "_blank"
+      );
+      return;
+    }
+    const row = cell.getRow();
+    table.deselectRow();
+    row.select();
+    highlightFeatureForRow(row.getData());
+
+  });
+  // 👉 MOBILE DOUBLE TAP
+  table.on("cellDblTap", (e, cell) => {
+    const row = cell.getRow();
+    zoomToFeature(layerName, row.getData());
   });
 }
 

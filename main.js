@@ -33,8 +33,12 @@ import { initPtn } from './js/ptn.js'; // 👈 Sicherstellen, dass initPtn impor
 import { initPrintControl } from './js/controls.js';
 import { initializeWMS } from './js/controls.js'; // Pfad anpassen
 
-import { isDgmActive, addDgmLayer, getLoadedDgmExtent,getLoadedDomExtent,getOverallDgmMinMax,getOverallDomMinMax, getMinMaxFromMetadata, enableDgmInteraction} from './js/dgmdom.js';
+import { isDgmActive, addDgmLayer, getLoadedDgmExtent,getLoadedDomExtent,getOverallDgmMinMax,getOverallDomMinMax, getMinMaxFromMetadata, enableDgmInteraction, createGeoTiffStyle} from './js/dgmdom.js';
 import { createDgmKachelLayer } from './js/layers.js';
+import { fromArrayBuffer } from 'geotiff';
+
+let loadedDgms = [];   // speichert {tile_id, bbox}
+let activeDgmRasterData = [];  
 
 
 
@@ -78,34 +82,20 @@ map.updateSize();
 const dgmKachelLayer = createDgmKachelLayer();
 
 const container = document.getElementById('popup-content');
-container.addEventListener('click', function (event) {
+container.addEventListener('click', async function (event) {
+
   if (event.target.classList.contains('popup-link')) {
 
     const tifUrl = event.target.dataset.tif;
     const tileId = event.target.dataset.tile_id;
     const bbox = JSON.parse(event.target.dataset.bbox);
-
-    console.log("tifUrl:", tifUrl);
-    console.log("tileId:", tileId);
-    console.log("bbox:", bbox);
-
     enableDgmInteraction(map);
-
-    const dgmData = addDgmLayer(tifUrl, bbox, tileId);
-
-    loadedDgms.push({ tile_id: tileId, bbox: bbox });
-    activeDgmRasterData.push(dgmData);
-
-    const overall = getOverallDgmMinMax();
-    activeDgmRasterData.forEach(dgm => {
-      dgm.layer.setStyle(createGeoTiffStyle(overall.min, overall.max));
-    });
-
+    
+    const dgmData = await addDgmLayer(map, tifUrl, bbox, tileId);
     const totalBBox = getLoadedDgmExtent();
     if (totalBBox) {
       // map.getView().fit(totalBBox, { padding: [50,50,50,50], duration: 700 });
     }
-
     container.style.display = 'none';
   }
 });

@@ -83,7 +83,7 @@ export function createMainToolbar(map) {
         
         // Prüfen, ob der Layer schon auf der Karte ist, falls nicht: hinzufügen
         if (!map.getLayers().getArray().includes(DgmKachelLayer)) {
-          //map.addLayer(DgmKachelLayer);
+          map.addLayer(DgmKachelLayer);
         }
         DgmKachelLayer.set('displayInLayerSwitcher', true);
         DgmKachelLayer.setVisible(true);

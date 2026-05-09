@@ -1,11 +1,16 @@
 import {bbox as bboxStrategy, tile} from 'ol/loadingstrategy.js';
 
+import { WebGLTile as WebGLTileLayer } from 'ol/layer.js';
+import { fromArrayBuffer } from 'geotiff';
+
 let activeDgmRasterLayers = [];  
 let activeDgmRasterData = [];  
 
 let dgmClickListener = null;
 let dgmPointerMoveListener = null;
 let loadedDgms = [];   // speichert {tile_id, bbox}
+
+
 
 let activeDomRasterLayers = [];  
 let activeDomRasterData = [];  
@@ -32,91 +37,147 @@ export function setDgmActive(value) {
 
 export let isDomActive = false;
 
+import GeoTIFFSource from 'ol/source/GeoTIFF.js';
 
-export function addDgmLayer(map, tifUrl, props) {
-    let dgmLayerCounter = 0;
-    const { min, max, raster, width, height } =  getMinMaxFromMetadata(tifUrl);
-    const TiffSource1 = new GeoTIFFSource({ 
-        sources: [{ url }], 
-        projection: 'EPSG:25832', 
-        normalize: false, 
-        crossOrigin: 'anonymous', // Wichtig!
-        sourceOptions: { allowFullFile: false, cache: true }, 
-    });
-    const layerNameWithCounter = `${dgmLayerCounter}_${id1} DGM_GeoTiff`;
-    const GeoTIFFLayer1 = new WebGLTileLayer({
-        source: TiffSource1,
-        title: layerNameWithCounter,
-        name: layerNameWithCounter,
-        visible: true,
-        //willReadFrequently: true,
-        style: createGeoTiffStyle(min, max), // dynamische Graustufen
-    });
-    GeoTIFFLayer1.bbox = bbox;
-    const dgmData = { raster, width, height, bbox, min, max, layer: GeoTIFFLayer1 };
-    activeDgmRasterData.push(dgmData);
-    const overall = getOverallDgmMinMax();
-    activeDgmRasterData.forEach(dgm => {
-        dgm.layer.setStyle(createGeoTiffStyle(overall.min, overall.max));
-    });
-    const totalBBox = getLoadedDgmExtent();
-    if (totalBBox) {
-        // map.getView().fit(totalBBox, { padding: [50, 50, 50, 50], duration: 700 });
-    }
-    return dgmData;
+let dgmLayerCounter = 0;
 
-};
+export async function addDgmLayer(map, url, bbox, id1) {
 
+  dgmLayerCounter++;
+
+  // 👉 Proxy verwenden
+  const proxyUrl = url.replace(
+    'https://dgm1.s3.eu-de.cloud-object-storage.appdomain.cloud',
+    '/dgm'
+  );
+
+  const { min, max } =
+    await getMinMaxFromMetadata(proxyUrl);
+
+  const TiffSource1 = new GeoTIFFSource({
+    sources: [{ url: proxyUrl }],
+    projection: 'EPSG:25832',
+    normalize: false,
+    crossOrigin: 'anonymous',
+    sourceOptions: {
+      allowFullFile: false,
+      cache: true
+    },
+  });
+
+  const layerNameWithCounter =
+    `${dgmLayerCounter}_${id1} DGM_GeoTiff`;
+
+  const GeoTIFFLayer1 = new WebGLTileLayer({
+    source: TiffSource1,
+    title: layerNameWithCounter,
+    name: layerNameWithCounter,
+    visible: true,
+    style: createGeoTiffStyle(min, max),
+  });
+
+  GeoTIFFLayer1.bbox = bbox;
+
+  map.addLayer(GeoTIFFLayer1);
+
+  activeDgmRasterLayers.push(GeoTIFFLayer1);
+
+  const dgmData = {
+    bbox,
+    min,
+    max,
+    layer: GeoTIFFLayer1
+  };
+
+  activeDgmRasterData.push(dgmData);
+
+  const overall = getOverallDgmMinMax();
+
+  activeDgmRasterData.forEach(dgm => {
+    dgm.layer.setStyle(
+      createGeoTiffStyle(overall.min, overall.max)
+    );
+  });
+
+  return dgmData;
+}
 export async function getMinMaxFromMetadata(url) {
+
   try {
-    const response = fetch(url);
+
+    // 👉 Proxy verwenden
+    const proxyUrl = url.replace(
+      'https://dgm1.s3.eu-de.cloud-object-storage.appdomain.cloud',
+      '/dgm'
+    );
+
+    const response = await fetch(proxyUrl);
+
     if (!response.ok) {
-      // Wenn Netlify eine 404 oder 500 Seite liefert, bricht er hier ab
-      // statt zu versuchen, das HTML als TIFF zu parsen.
       throw new Error(`Server lieferte Status ${response.status}`);
     }
 
-    const buffer = response.arrayBuffer();
-    
-    // Prüfen, ob die ersten Bytes überhaupt ein TIFF sind (II oder MM)
+    const buffer = await response.arrayBuffer();
+
+    // TIFF-Prüfung
     const view = new Uint8Array(buffer.slice(0, 2));
-    const isTiff = (view[0] === 0x49 && view[1] === 0x49) || (view[0] === 0x4d && view[1] === 0x4d);
-    
+
+    const isTiff =
+      (view[0] === 0x49 && view[1] === 0x49) ||
+      (view[0] === 0x4d && view[1] === 0x4d);
+
     if (!isTiff) {
-      throw new Error("Die empfangenen Daten sind kein gültiges GeoTIFF (evtl. Proxy-Fehlerseite).");
+      throw new Error("Keine gültige TIFF-Datei");
     }
 
-    const tiff = fromArrayBuffer(buffer);
-    const image = tiff.getImage();
+    const tiff = await fromArrayBuffer(buffer);
+
+    const image = await tiff.getImage();
+
     const meta = image.getGDALMetadata();
 
-    // ... Rest deiner Statistik-Logik bleibt gleich ...
     if (meta?.STATISTICS_MINIMUM && meta?.STATISTICS_MAXIMUM) {
-      return { 
-        min: parseFloat(meta.STATISTICS_MINIMUM), 
-        max: parseFloat(meta.STATISTICS_MAXIMUM) 
+
+      return {
+        min: parseFloat(meta.STATISTICS_MINIMUM),
+        max: parseFloat(meta.STATISTICS_MAXIMUM)
       };
     }
 
+    // Fallback
     const raster = await image.readRasters({ samples: [0] });
+
     const band = raster[0];
-    let min = Infinity, max = -Infinity;
-    
+
+    let min = Infinity;
+    let max = -Infinity;
+
     for (let i = 0; i < band.length; i += 10) {
+
       const v = band[i];
-      if (v !== -9999 && !v.isNaN) { // Nutze v.isNaN oder !isNaN(v)
+
+      if (v !== -9999 && !Number.isNaN(v)) {
+
         if (v < min) min = v;
         if (v > max) max = v;
       }
     }
-    return { min: min === Infinity ? 0 : min, max: max === -Infinity ? 100 : max };
+
+    return {
+      min: min === Infinity ? 0 : min,
+      max: max === -Infinity ? 100 : max
+    };
 
   } catch (err) {
+
     console.error('Statistik-Fehler:', err);
-    return { min: 0, max: 100 };
+
+    return {
+      min: 0,
+      max: 100
+    };
   }
 }
-
 export function getOverallDgmMinMax() {
   if(activeDgmRasterData.length === 0) return null;
 
@@ -357,4 +418,29 @@ if (evt.dragging) return;
     heightStatus.style.display = 'none';
   }
 
+}
+
+export function createGeoTiffStyle(minHeight, maxHeight) {
+  const NO_DATA = -9999;
+  const range = (maxHeight - minHeight) || 1;
+  const step = (p) => minHeight + range * p;
+  return {
+    color: [
+      'case',
+      // WICHTIG: Prüfe zusätzlich auf <= 0, um den blauen Rahmen zu vermeiden
+      ['any', ['==', ['band', 1], NO_DATA], ['<=', ['band', 1], 0], ['<', ['band', 1], minHeight]],
+      [0, 0, 0, 0],
+      
+      [
+        'interpolate',
+        ['linear'],
+        ['band', 1],
+        minHeight, [30, 60, 150, 1],      // Dunkelblau (Tief)
+        step(0.15), [60, 180, 75, 1],     // Saftiges Grün (Flachland)
+        step(0.4),  [220, 220, 100, 1],   // Sandiges Gelb (Hügel)
+        step(0.7),  [120, 70, 30, 1],     // Dunkelbraun (Hochland)
+        maxHeight,  [255, 255, 255, 1]    // Weiß (Gipfel)
+      ]
+    ]
+  };
 }

@@ -787,6 +787,27 @@ export function createwmsNibisLayer() {
   visible: false,
 });
 }
+export function createwmsNlstbvLayer() {
+  return new TileLayer({
+  title: "Nlstbv_Daten", // Für die Anzeige im LayerSwitcher
+  name: "Nlstbv_Daten",
+  permalink: "nlstbv_Daten", 
+  source: new TileWMS({
+    url: 'http://geoportal.geodaten.niedersachsen.de/geonetwork/srv/de/iso19139.xml?id=59',
+    params: {
+      'LAYERS': 'BAB',
+      'FORMAT': 'image/png',
+      'TRANSPARENT': true,
+      'TILED': true,
+      'VERSION': '1.3.0' // Sicherstellen, dass die Koordinatenordnung stimmt
+    },
+    attributions: '© NLStbV Niedersachsen',
+    crossOrigin: 'anonymous' // Wichtig, falls du später Export-Funktionen nutzt
+  }),
+  visible: false,
+});
+}
+
 export function createwmsAlkisLayer() {
   return new TileLayer({
   title: 'ALKIS',
@@ -898,6 +919,7 @@ export function createLayerStructure() {
   const nsgWms = createwmsNsgLayer();
   const lsgWms = createwmsLsgLayer() ;
   const nibisWms = createwmsNibisLayer();
+  const nlstbvWms = createwmsNlstbvLayer();
   const alkisWms = createwmsAlkisLayer();
 
   //Kilometrierung
@@ -977,6 +999,7 @@ export function createLayerStructure() {
       visible: false,
       layers: [
         alkisWms,
+        nlstbvWms,
         nibisWms,
         nsgWms,
         lsgWms,

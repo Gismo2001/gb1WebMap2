@@ -1,6 +1,7 @@
 import {Circle as CircleStyle, Fill, RegularShape, Icon, Stroke, Style, Text} from 'ol/style';
 import MultiPoint from 'ol/geom/MultiPoint';
 import { mapRef } from './table.js';
+import { getAllLayers } from './mapEvents.js'
 
 
 
@@ -380,12 +381,27 @@ const Km500scalStyle = function(feature, km, resolution) {
     }
 };
 
-function getLayerByName(name) {
+function getLayerByName(nameToFind) {
   if (!mapRef) return null;
+  const layers = getAllLayers(mapRef);
 
-  return mapRef.getLayers().getArray().find(layer => {
-    return layer.get('name') === name || layer.get('title') === name;
-  }) || null;
+
+ 
+  const found = layers.find((obj) => {
+    const layer = obj.layer;
+    
+    const name = (layer.get('name') || '').toLowerCase();
+    const title = (layer.get('title') || '').toLowerCase();
+    return (
+      name === nameToFind.toLowerCase() ||
+      title === nameToFind.toLowerCase()
+    );
+    console.log(name)
+    console.log(nameToFind.toLowerCase)
+    
+  });
+
+  return found ? found.layer : null;
 };
 
 export {

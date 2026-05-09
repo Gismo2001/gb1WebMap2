@@ -24,6 +24,9 @@ import CircleStyle from 'ol/style/Circle';
 let highlightedFeature = null;
 let clickTimeout = null;
 
+let interactionMode = "mouse"; 
+// "mouse" | "keyboard"
+
 
 const hoverHighlightStyle = new Style({
   stroke: new Stroke({
@@ -159,6 +162,7 @@ export function showTable(data) {
         placeholder: "Keine Objekte im Sichtbereich.",
         autoColumns: true,
         selectable: 1,
+        selectableRows:true, //make rows selectable
         persistence: {
           sort: true,
           filter: true,
@@ -172,11 +176,9 @@ export function showTable(data) {
             column.formatter = function(cell) {
               const value = cell.getValue();
               if (!value) return value;
-
               if (isUrl(value)) {
                 return `<span class="table-link">${value}</span>`;
               }
-
               return value;
             };
 
@@ -188,7 +190,7 @@ export function showTable(data) {
                 e.stopPropagation();   // ❗ verhindert rowClick/rowDblClick
                 window.open(value.startsWith("http") ? value : "https://" + value, "_blank");
                 }
-        };
+            }; 
 
 
             column.headerContextMenu = [
@@ -221,7 +223,7 @@ export function showTable(data) {
         },
        
       });
-
+     
       setupTableEvents(table, tableElement, idKey, layerName);
 
     } catch (err) {
@@ -231,59 +233,155 @@ export function showTable(data) {
 }
 // Hilfsfunktion für die Events (um showTable übersichtlich zu halten)
 function setupTableEvents(table, tableElement, idKey, layerName) {
-  let isKeyboard = false;
+
+  // =====================================================
+  // TABLE BUILT
+  // =====================================================
 
   table.on("tableBuilt", () => {
+    
     tableElement.setAttribute("tabindex", "0");
-    if (window.innerWidth > 768) tableElement.focus({ preventScroll: true });
+    focusTable(tableElement);
   });
 
-  table.on("rowMouseOver", (e, row) => { if (!isKeyboard) highlightFeatureForRow(row.getData()); });
-  table.on("rowMouseOut", () => { if (!isKeyboard) clearHighlightedFeature(); });
+  // =====================================================
+  // ROW SELECTION
+  // =====================================================
 
-  table.on("rowClick", (e, row) => {
-    console.log("rowClick detail:", e.detail);
-    if (e.detail === 2) return; // Doppelklick → hier nichts tun
+  table.on("rowSelectionChanged", (data, rows) => {
+
+    if (!rows.length) return;
+
+    const row = rows[0];
+
     highlightFeatureForRow(row.getData());
   });
 
-  // 🔥 NEU: Doppel‑Klick auf ZELLE → Zoom
-  table.on("cellDblClick", (e, cell) => {
-    const row = cell.getRow();
-    const rowData = row.getData();
-    const layerName = document.getElementById('layer-selector').value;
+  // =====================================================
+  // MOUSE OVER
+  // =====================================================
 
-    const layer = getLayerByName(layerName);
-    const source = layer?.getSource();
+  table.on("rowMouseOver", (e, row) => {
 
-    if (source && typeof source.getFeatures === "function") {
-      zoomToFeature(layerName, rowData);
-    }
+    if (interactionMode === "keyboard") return;
+
+    highlightFeatureForRow(row.getData());
   });
 
+  table.on("rowMouseOut", () => {
+
+    if (interactionMode === "keyboard") return;
+
+    clearHighlightedFeature();
+  });
+
+  // =====================================================
+  // ROW CLICK
+  // =====================================================
+
+  table.on("rowClick", (e, row) => {
+    interactionMode = "mouse";
+    selectAndHighlightRow(table, row);
+    focusTable(tableElement);
+  });
+
+  // =====================================================
+  // DOUBLE CLICK → ZOOM
+  // =====================================================
+
+  table.on("rowDblClick", (e, row) => {
+
+    const rowData = row.getData();
+
+    zoomToFeature(layerName, rowData);
+  });
+
+  // =====================================================
+  // KEYBOARD NAVIGATION
+  // =====================================================
+
   tableElement.onkeydown = (e) => {
-    console.log("key aufgerufen")
+
+    const rows = table.getRows();
+
+    if (!rows.length) return;
+
+    const selected = table.getSelectedRows()[0];
+
+    // -------------------------------------------------
+    // UP / DOWN
+    // -------------------------------------------------
+
     if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-      isKeyboard = true;
+
+      interactionMode = "keyboard";
+
       e.preventDefault();
-      const selected = table.getSelectedRows()[0];
-      const next = (e.key === "ArrowDown")
-        ? (selected?.getNextRow() || table.getRows()[0])
-        : selected?.getPrevRow();
-      if (next) {
-        table.deselectRow();
-        next.select();
-        next.getElement().scrollIntoView({ block: "nearest" });
-        highlightFeatureForRow(next.getData());
+
+      let nextRow;
+
+      if (!selected) {
+
+        nextRow = rows[0];
+
+      } else {
+
+        nextRow = e.key === "ArrowDown"
+          ? selected.getNextRow()
+          : selected.getPrevRow();
+      }
+
+      if (nextRow) {
+        selectAndHighlightRow(table, nextRow);
       }
     }
+
+    // -------------------------------------------------
+    // ENTER → ZOOM
+    // -------------------------------------------------
+
     if (e.key === "Enter") {
-      const selected = table.getSelectedRows()[0];
-      if (selected) zoomToFeature(layerName, selected.getData());
+
+      e.preventDefault();
+      
+      zoomSelectedRow(table, layerName);
+    }
+
+    // -------------------------------------------------
+    // ESC → Highlight entfernen
+    // -------------------------------------------------
+
+    if (e.key === "Escape") {
+
+      clearHighlightedFeature();
+
+      table.deselectRow();
     }
   };
 
-  tableElement.addEventListener("mousemove", () => { isKeyboard = false; });
+  // =====================================================
+  // MOUSEMOVE → zurück zu Mausmodus
+  // =====================================================
+
+  tableElement.addEventListener("mousemove", () => {
+    interactionMode = "mouse";
+  });
+
+  let pressTimer;
+
+  table.on("rowTouchStart", (e, row) => {
+    pressTimer = setTimeout(() => {
+      zoomToFeature(layerName, row.getData());
+    }, 600);
+  });
+
+  table.on("rowTouchEnd", () => {
+    clearTimeout(pressTimer);
+  });
+
+  table.on("rowTouchMove", () => {
+    clearTimeout(pressTimer);
+  });
 }
 
 export function showTableDebounced(data) {
@@ -324,36 +422,6 @@ export function getTableActive() {
   return isTableActive;
 }
 
-
-function zoomToFeature(layerName, rowData) {
-  if (!mapRef) return;
-
-  const layer = getLayerByName(layerName);
-  if (!layer) return;
-
-  const source = layer.getSource();
-
-  if (!source || typeof source.getFeatures !== "function") {
-    console.warn("Zoom übersprungen (kein Vektorlayer):", layerName);
-    return;
-  }
-
-  const features = source.getFeatures();
-  if (!features.length) return;
-
-  const found = features.find(f => 
-    String(f.get("ID_con")) === String(rowData.ID_con)
-  );
-
-  if (!found) return;
-
-  const extent = found.getGeometry().getExtent();
-  mapRef.getView().fit(extent, {
-    padding: [50, 50, 50, 50],
-    duration: 800,
-    maxZoom: 14
-  });
-}
 
 function initResizeObserver() {
   const tableContainer = document.getElementById("wms_data_table");
@@ -437,11 +505,10 @@ export function highlightFeatureForRow(rowData) {
   const feature = features.find((f) => {
   const props = f.getProperties();
     
-    // Wir vergleichen dynamisch den Wert des jeweiligen Keys
-    const featId = props[idKey];
-    const rowId = rowData[idKey];
-
-    return featId !== null && 
+  // dynamisch vergleichen mit dem Wert des jeweiligen Keys
+  const featId = props[idKey];
+  const rowId = rowData[idKey];
+  return featId !== null && 
            featId !== undefined && 
            String(featId) === String(rowId);
   });
@@ -454,6 +521,92 @@ export function highlightFeatureForRow(rowData) {
   // 4. Highlight setzen
   feature.setStyle(hoverHighlightStyle);
   highlightedFeature = feature;
+}
+
+function zoomToFeature(layerName, rowData) {
+  if (!mapRef) return;
+  // 👉 Layer rekursiv suchen
+  const layer = getLayerByName(layerName);
+  console.log("Gefundener Layer:", layer);
+  if (!layer) {
+    console.warn("Layer nicht gefunden:", layerName);
+    return;
+  }
+  const source = layer.getSource();
+  // 👉 Nur echte VectorLayer erlauben
+  if (!source || typeof source.getFeatures !== "function") {
+    console.warn("Zoom übersprungen (kein Vektorlayer):", layerName);
+    return;
+  }
+
+  const features = source.getFeatures();
+  if (!features.length) {
+    console.warn("Keine Features im Layer:", layerName);
+    return;
+  }
+
+  // 👉 passende ID bestimmen
+  const idKey = rowData.ID_con !== undefined
+    ? "ID_con"
+    : rowData.OBJECTID !== undefined
+      ? "OBJECTID"
+      : null;
+
+  if (!idKey) {
+    console.warn("Keine passende ID gefunden");
+    return;
+  }
+
+  // 👉 passendes Feature suchen
+  const found = features.find(f =>
+    String(f.get(idKey)) === String(rowData[idKey])
+  );
+
+  if (!found) {
+    console.warn("Feature nicht gefunden:", rowData);
+    return;
+  }
+
+  const geometry = found.getGeometry();
+  if (!geometry) {
+    console.warn("Feature ohne Geometrie");
+    return;
+  }
+
+  const extent = geometry.getExtent();
+  mapRef.getView().fit(extent, {
+    padding: [50, 50, 50, 50],
+    duration: 800,
+    maxZoom: 16
+  });
+}
+
+function zoomSelectedRow(table, layerName) {
+  const selected = table.getSelectedRows()[0];
+  if (!selected) return;
+  
+  zoomToFeature(layerName, selected.getData());
+}
+
+
+function selectAndHighlightRow(table, row) {
+  if (!row) return;
+
+  table.deselectRow();
+  row.select();
+
+  row.getElement().scrollIntoView({
+    block: "nearest",
+    inline: "nearest"
+  });
+
+  highlightFeatureForRow(row.getData());
+}
+
+function focusTable(tableElement) {
+  if (window.innerWidth > 768) {
+    tableElement.focus({ preventScroll: true });
+  }
 }
 
 function isUrl(value) {

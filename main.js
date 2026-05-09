@@ -100,8 +100,6 @@ container.addEventListener('click', async function (event) {
   }
 });
 
-
-
 document.getElementById('layer-selector').addEventListener('change', () => {
   // 1. Hole WMS Klick-Daten
   const clickResults = getClickResults();

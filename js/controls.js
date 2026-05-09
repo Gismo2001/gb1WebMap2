@@ -24,7 +24,7 @@ import CanvasScaleLine from 'ol-ext/control/CanvasScaleLine';
 import { fileToggleInput } from './mapEvents.js';
 import { Style, Text } from 'ol/style';
 
-import { isDgmActive, setDgmActive  } from './dgmdom.js';
+import { isDgmActive, setDgmActive, disableDgmInteraction  } from './dgmdom.js';
 
 
 
@@ -93,7 +93,7 @@ export function createMainToolbar(map) {
       } else if (!active) {
           setDgmActive(false);
           console.log(isDgmActive);
-          //disableDgmInteraction();
+          disableDgmInteraction();
         //DgmLayer.set('displayInLayerSwitcher', false);
         //DgmLayer.setVisible(false); 
         //map.removeLayer(DgmKachelLayer);

@@ -207,35 +207,25 @@ async function handleClickResult(currentClickResults, coord) {
     );
 
   }
-
   const layerNames = Object.keys(currentClickResults);
-
   let chosenLayer = layerNames[0];
   let chosenIndex = 0;
-  
   const needsSelection =
    !isDgmActive && (layerNames.length > 1   ||   currentClickResults[layerNames[0]].data.length > 1
   );
-
-
   if (needsSelection) {
     const choice = await askUserToChoose(currentClickResults);
     chosenLayer = choice.layer;
     chosenIndex = choice.index;
   }
-
-
   const entry = currentClickResults[chosenLayer];
   const featureData = entry.data[chosenIndex];
-
   if (!shouldShowPopup(entry.layer)) return;
-
   popupContent.innerHTML = buildPopupContent([featureData], chosenLayer);
   popupOverlay.setPosition(coord);
   featureData.origin_layer = chosenLayer; 
   
   if (typeof highlightFeatureForRow === 'function') {
-      
       highlightFeatureForRow(featureData);
   }
 
@@ -410,7 +400,7 @@ export function getVectorFeaturesAtClick(map, evt) {
   const results = {};
 
   map.forEachFeatureAtPixel(evt.pixel, function (feature, layer) {
-     evt.hitTolerance = 15;
+     //hitTolerance = 15;
     const name = (layer?.get('name') || '').toLowerCase();
     const title = (layer?.get('title') || '').toLowerCase();
 

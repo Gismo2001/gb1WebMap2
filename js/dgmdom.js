@@ -24,12 +24,10 @@ let ismobile = false;
 let profilePoints = [];
 let profileDraw = null;
 
-let heightStatus = null;
-//const heightStatus = document.getElementById('height-status-container');
-let heightValue = null;
+let heightStatus = document.getElementById('height-status');
+let heightValue = document.getElementById('height-value');
 
-//const heightValue = document.getElementById('height-value-main');
-//const dgmData = await addDgmLayer(tifUrl, bbox, props.tile_id);
+//const dgmData = await addDgmLayer(map, tifUrl, bbox, props.tile_id);
 export let isDgmActive = false;
 export function setDgmActive(value) {
   isDgmActive = value;
@@ -225,24 +223,35 @@ export function getLoadedDomExtent() {
 }
 
 
-// Code für DGM-Interaktion
-export function enableDgmInteraction(map) {
 
- /*  // 👉 Klick-Listener nur einmal setzen
-  if (!dgmClickListener) {
-    dgmClickListener = map.on('singleclick', (evt) => handleDgmClick(map, evt));
-  }
-
-  // 👉 PointerMove nur Desktop
-  if (!ismobile && !dgmPointerMoveListener) {
-    dgmPointerMoveListener = map.on('pointermove', handleDgmPointerMove(evt));
-  }  */
+export function createGeoTiffStyle(minHeight, maxHeight) {
+  const NO_DATA = -9999;
+  const range = (maxHeight - minHeight) || 1;
+  const step = (p) => minHeight + range * p;
+  return {
+    color: [
+      'case',
+      // WICHTIG: Prüfe zusätzlich auf <= 0, um den blauen Rahmen zu vermeiden
+      ['any', ['==', ['band', 1], NO_DATA], ['<=', ['band', 1], 0], ['<', ['band', 1], minHeight]],
+      [0, 0, 0, 0],
+      
+      [
+        'interpolate',
+        ['linear'],
+        ['band', 1],
+        minHeight, [30, 60, 150, 1],      // Dunkelblau (Tief)
+        step(0.15), [60, 180, 75, 1],     // Saftiges Grün (Flachland)
+        step(0.4),  [220, 220, 100, 1],   // Sandiges Gelb (Hügel)
+        step(0.7),  [120, 70, 30, 1],     // Dunkelbraun (Hochland)
+        maxHeight,  [255, 255, 255, 1]    // Weiß (Gipfel)
+      ]
+    ]
+  };
 }
-
 export async function handleDgmClick(map, evt) {
   const kachelnVisible = dgmKachelLayer && dgmKachelLayer.getVisible();
-  console.log(evt.target.dataset);
-  // 👉 Popup holen oder erstellen
+  
+  
   let popup1 = document.getElementById('popup1');
   if (!popup1) {
     popup1 = document.createElement('div');
@@ -256,7 +265,8 @@ export async function handleDgmClick(map, evt) {
       font-size: 13px;
       z-index: 10000;
     `;
-    document.body.appendChild(popup1);
+   const mapTarget = map.getTargetElement();
+    mapTarget.appendChild(popup1);
   }
 
   // =========================================================
@@ -266,7 +276,7 @@ export async function handleDgmClick(map, evt) {
     let featureFound = false;
 
     map.forEachFeatureAtPixel(evt.pixel, (feature) => {
-      evt.hitTolerance = 10;
+      hitTolerance = 10;
       featureFound = true;
 
       const props = feature.getProperties();
@@ -287,31 +297,29 @@ export async function handleDgmClick(map, evt) {
       popup1.style.left = evt.pixel[0] + 'px';
       popup1.style.top = evt.pixel[1] + 'px';
 
-const safeBbox = bbox ? JSON.stringify(bbox) : 'null';
+      const safeBbox = bbox ? JSON.stringify(bbox) : 'null';
       // 👉 Inhalt
- popup1.innerHTML = `
+      popup1.innerHTML = `
   <b>Kachel:</b> ${props.tile_id}<br>
   <b>Datum:</b> ${props.Aktualitaet}<br>
   ${alreadyLoaded ? '<i>bereits geladen</i><br>' : ''}
-   <button 
-    class="load-dgm-btn"
-    data-tif="${tifUrl}"
-    data-bbox='${safeBbox}'
-    data-id="${props.tile_id}"
-  >
+  <button class="load-dgm-btn">
     DGM laden
   </button>
 `;
+      document.getElementById('loadDgmBtn')
 
       popup1.style.display = 'block';
 
       // 👉 Button-Handler
       document.getElementById('loadDgmBtn').onclick = async function () {
         if (!alreadyLoaded) {
-          const dgmData = await addDgmLayer(tifUrl, bbox, props.tile_id);
+          const dgmData = await addDgmLayer(map, tifUrl, bbox, props.tile_id);
+          
+          
 
           loadedDgms.push({ tile_id: props.tile_id, bbox });
-          activeDgmRasterData.push(dgmData);
+          //activeDgmRasterData.push(dgmData);
 
           const overall = getOverallDgmMinMax();
 
@@ -385,20 +393,28 @@ const safeBbox = bbox ? JSON.stringify(bbox) : 'null';
   popup1.style.display = 'block';
 }
 function handleDgmPointerMove(evt) {
-if (evt.dragging) return;
+
+  if (evt.dragging) return;
+
+  if (!heightStatus || !heightValue) return;
+
   const pixel = evt.pixel;
   const coord = evt.coordinate;
-  const visibleDgmLayers = activeDgmRasterLayers.filter(l => l.getVisible());
-  const heightStatus = document.getElementById('height-status');
+
+  const visibleDgmLayers =
+    activeDgmRasterLayers.filter(l => l.getVisible());
+
   if (visibleDgmLayers.length === 0) {
     heightStatus.style.display = 'none';
     return;
   }
+
   // passenden Layer finden
   const activeLayer = visibleDgmLayers.find(layer =>
-    layer.bbox && containsCoordinate(layer.bbox, coord)
+    layer.bbox &&
+    containsCoordinate(layer.bbox, coord)
   );
-  //console.log('Aktive DGM-Layer:', visibleDgmLayers.map(l => l.get('name')));
+
   if (!activeLayer) {
     heightStatus.style.display = 'none';
     return;
@@ -406,41 +422,56 @@ if (evt.dragging) return;
 
   const data = activeLayer.getData(pixel);
 
-  if (data && data[0] !== -9999 && !Number.isNaN(data[0])) {
+  if (
+    data &&
+    data[0] !== -9999 &&
+    !Number.isNaN(data[0])
+  ) {
 
-    const layerNr = activeLayer.get('name').split('_')[0];
+    const layerNr =
+      activeLayer.get('name').split('_')[0];
+
     const height = data[0];
 
-    heightValue.innerHTML = `Nr_${layerNr}: ${height.toFixed(2)} m`;
+    heightValue.innerHTML =
+      `Nr_${layerNr}: ${height.toFixed(2)} m`;
+
     heightStatus.style.display = 'block';
 
   } else {
+
     heightStatus.style.display = 'none';
   }
-
 }
+export function enableDgmInteraction(map) {
 
-export function createGeoTiffStyle(minHeight, maxHeight) {
-  const NO_DATA = -9999;
-  const range = (maxHeight - minHeight) || 1;
-  const step = (p) => minHeight + range * p;
-  return {
-    color: [
-      'case',
-      // WICHTIG: Prüfe zusätzlich auf <= 0, um den blauen Rahmen zu vermeiden
-      ['any', ['==', ['band', 1], NO_DATA], ['<=', ['band', 1], 0], ['<', ['band', 1], minHeight]],
-      [0, 0, 0, 0],
-      
-      [
-        'interpolate',
-        ['linear'],
-        ['band', 1],
-        minHeight, [30, 60, 150, 1],      // Dunkelblau (Tief)
-        step(0.15), [60, 180, 75, 1],     // Saftiges Grün (Flachland)
-        step(0.4),  [220, 220, 100, 1],   // Sandiges Gelb (Hügel)
-        step(0.7),  [120, 70, 30, 1],     // Dunkelbraun (Hochland)
-        maxHeight,  [255, 255, 255, 1]    // Weiß (Gipfel)
-      ]
-    ]
-  };
+   // 👉 Klick-Listener  setzen
+  if (!dgmClickListener) {
+    dgmClickListener = map.on('singleclick', (evt) => handleDgmClick(map, evt));
+  }
+
+  // 👉 PointerMove nur Desktop
+  if (!ismobile && !dgmPointerMoveListener) {
+    dgmPointerMoveListener = map.on(
+      'pointermove',
+      (evt) => handleDgmPointerMove(evt)
+    );
+  }  
+}
+export function disableDgmInteraction() {
+  //const heightStatus = document.getElementById('height-status');
+  //const heightValue = document.getElementById('height-value');
+  if (dgmClickListener) {
+    unByKey(dgmClickListener);
+    dgmClickListener = null;
+  }
+  if (dgmPointerMoveListener) {
+    unByKey(dgmPointerMoveListener);
+    dgmPointerMoveListener = null;
+  }
+  const popup1 = document.getElementById('popup1');
+  if (popup1) popup1.style.display = 'none';
+  if (heightStatus) heightStatus.style.display = 'none';
+  if (heightValue) heightValue.style.display = 'none';
+ 
 }

@@ -92,6 +92,7 @@ container.addEventListener('click', async function (event) {
     enableDgmInteraction(map);
     
     const dgmData = await addDgmLayer(map, tifUrl, bbox, tileId);
+    
     const totalBBox = getLoadedDgmExtent();
     if (totalBBox) {
       // map.getView().fit(totalBBox, { padding: [50,50,50,50], duration: 700 });

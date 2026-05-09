@@ -35,7 +35,7 @@ export let isDomActive = false;
 
 export function addDgmLayer(map, tifUrl, props) {
     let dgmLayerCounter = 0;
-    const { min, max, raster, width, height } =  getMinMaxFromMetadata(url);
+    const { min, max, raster, width, height } =  getMinMaxFromMetadata(tifUrl);
     const TiffSource1 = new GeoTIFFSource({ 
         sources: [{ url }], 
         projection: 'EPSG:25832', 

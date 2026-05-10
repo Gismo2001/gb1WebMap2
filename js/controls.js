@@ -27,12 +27,7 @@ import { Style, Text } from 'ol/style';
 import { isDgmActive, setDgmActive, disableDgmInteraction  } from './dgmdom.js';
 
 
-
-
-
-
 let isTableActive = false;
-
 
 let tableToggleBtnInstance = null;
 let gpsToggleBtnInstance = null;

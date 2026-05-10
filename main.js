@@ -79,17 +79,18 @@ initializeWMS(map);
 
 map.updateSize();
 
-const dgmKachelLayer = createDgmKachelLayer();
+  export const dgmKachelLayer = createDgmKachelLayer();
 
-const container = document.getElementById('popup-content');
-container.addEventListener('click', async function (event) {
+  const container = document.getElementById('popup-content');
+  container.addEventListener('click', async function (event) {
 
-  if (event.target.classList.contains('popup-link')) {
+    if (event.target.classList.contains('popup-link')) {
 
-    const tifUrl = event.target.dataset.tif;
-    const tileId = event.target.dataset.tile_id;
-    const bbox = JSON.parse(event.target.dataset.bbox);
-    enableDgmInteraction(map);
+      const tifUrl = event.target.dataset.tif;
+      const tileId = event.target.dataset.tile_id;
+      const bbox = JSON.parse(event.target.dataset.bbox);
+      console.log("bbox bei Click-Event:", bbox);
+      enableDgmInteraction(map);
     
     const dgmData = await addDgmLayer(map, tifUrl, bbox, tileId);
     

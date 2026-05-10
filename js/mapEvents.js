@@ -219,9 +219,12 @@ async function handleClickResult(currentClickResults, coord) {
     chosenIndex = choice.index;
   }
   const entry = currentClickResults[chosenLayer];
-  const featureData = entry.data[chosenIndex];
+  const selected = entry.data[chosenIndex];
+  const featureData = selected.properties;
+  const feature = selected.feature;
   if (!shouldShowPopup(entry.layer)) return;
-  popupContent.innerHTML = buildPopupContent([featureData], chosenLayer);
+  popupContent.innerHTML =
+  buildPopupContent(feature, chosenLayer);
   popupOverlay.setPosition(coord);
   featureData.origin_layer = chosenLayer; 
   
@@ -397,32 +400,57 @@ export function getClickResults() {
 }
 
 export function getVectorFeaturesAtClick(map, evt) {
+
   const results = {};
 
-  map.forEachFeatureAtPixel(evt.pixel, function (feature, layer) {
-     //hitTolerance = 15;
-    const name = (layer?.get('name') || '').toLowerCase();
-    const title = (layer?.get('title') || '').toLowerCase();
+  map.forEachFeatureAtPixel(
+    evt.pixel,
+    function (feature, layer) {
 
-    if (EXCLUDED_LAYERS.includes(name) || EXCLUDED_LAYERS.includes(title)) {
-      return;
+      const name =
+        (layer?.get('name') || '').toLowerCase();
+
+      const title =
+        (layer?.get('title') || '').toLowerCase();
+
+      if (
+        EXCLUDED_LAYERS.includes(name) ||
+        EXCLUDED_LAYERS.includes(title)
+      ) {
+        return;
+      }
+
+      const key = name || title || 'vector';
+
+      if (!results[key]) {
+        results[key] = {
+          data: [],
+          layer: layer
+        };
+      }
+
+      // 👉 Properties holen
+      const props = feature.getProperties();
+
+      // 👉 geometry NICHT mitkopieren
+      const cleanProps = { ...props };
+
+      delete cleanProps.geometry;
+
+      // 👉 echtes Feature zusätzlich speichern
+      results[key].data.push({
+
+        properties: cleanProps,
+
+        feature: feature
+
+      });
+
+    },
+    {
+      hitTolerance: 10
     }
-
-    const key = name || title || 'vector';
-
-    if (!results[key]) {
-      results[key] = {
-        data: [],
-        layer: layer
-      };
-    }
-
-    const props = feature.getProperties();
-    const cleanProps = { ...props };
-    delete cleanProps.geometry;
-
-    results[key].data.push(cleanProps);
-  });
+  );
 
   return results;
 }
@@ -745,10 +773,14 @@ export function initPopup(map) {
     return false;
   };
 }
-function buildPopupContent(data, layerName) {
-  if (!data || data.length === 0) return "<p>Keine Daten</p>";
+function buildPopupContent(feature, layerName){
+  if (!feature) {
+  return "<p>Keine Daten</p>";
+}
   
-  const daten = data[0];
+  //const daten = data[0];
+  const daten = feature.getProperties();
+
   let html = "";
   
   // 1. Überschrift & Inhalt bestimmen 🏷️
@@ -784,10 +816,9 @@ const kachelUrl = daten.dgm1 || daten.dom1;
 if (kachelUrl) {
 
   // BBOX aus Feature-Geometrie berechnen
-  let bbox = null;
-  if (daten.geometry && typeof daten.geometry.getExtent === "function") {
-    bbox = daten.geometry.getExtent();
-  }
+ 
+ const bbox =
+  feature.getGeometry()?.getExtent() || null;
 
   html += `<div style="margin-top: 5px;">`;
   html += `

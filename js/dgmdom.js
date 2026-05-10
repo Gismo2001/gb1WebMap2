@@ -1,7 +1,11 @@
 import {bbox as bboxStrategy, tile} from 'ol/loadingstrategy.js';
 
 import { WebGLTile as WebGLTileLayer } from 'ol/layer.js';
+import { dgmKachelLayer } from  '../main';
+
 import { fromArrayBuffer } from 'geotiff';
+import {  createEmpty,  extend,  containsCoordinate} from 'ol/extent.js';
+
 
 let activeDgmRasterLayers = [];  
 let activeDgmRasterData = [];  
@@ -9,8 +13,6 @@ let activeDgmRasterData = [];
 let dgmClickListener = null;
 let dgmPointerMoveListener = null;
 let loadedDgms = [];   // speichert {tile_id, bbox}
-
-
 
 let activeDomRasterLayers = [];  
 let activeDomRasterData = [];  
@@ -24,8 +26,6 @@ let ismobile = false;
 let profilePoints = [];
 let profileDraw = null;
 
-let heightStatus = document.getElementById('height-status');
-let heightValue = document.getElementById('height-value');
 
 //const dgmData = await addDgmLayer(map, tifUrl, bbox, props.tile_id);
 export let isDgmActive = false;
@@ -40,6 +40,7 @@ import GeoTIFFSource from 'ol/source/GeoTIFF.js';
 let dgmLayerCounter = 0;
 
 export async function addDgmLayer(map, url, bbox, id1) {
+  console.log("bbox beim addDgmLayer:", bbox);
 
   dgmLayerCounter++;
 
@@ -189,7 +190,6 @@ export function getOverallDgmMinMax() {
 
   return {min: overallMin, max: overallMax};
 }
-
 export function getOverallDomMinMax() {
   if(activeDomRasterData.length === 0) return null;
 
@@ -203,27 +203,18 @@ export function getOverallDomMinMax() {
 
   return {min: overallMin, max: overallMax};
 }
-
 export function getLoadedDgmExtent() {
   if (loadedDgms.length === 0) return null;
-  let extent = createEmptyExtent();
-  loadedDgms.forEach(dgm => {
-    extendExtent(extent, dgm.bbox);
-  });
+  let extent = createEmpty();
+  loadedDgms.forEach(dgm => { extend(extent, dgm.bbox);  });
   return extent;
 }
-
 export function getLoadedDomExtent() {
   if (loadedDoms.length === 0) return null;
-  let extent = createEmptyExtent();
-  loadedDoms.forEach(dom => {
-    extendExtent(extent, dom.bbox);
-  });
+  let extent = createEmpty();
+  loadedDoms.forEach(dom => {   extend(extent, dgm.bbox);  });
   return extent;
 }
-
-
-
 export function createGeoTiffStyle(minHeight, maxHeight) {
   const NO_DATA = -9999;
   const range = (maxHeight - minHeight) || 1;
@@ -248,14 +239,29 @@ export function createGeoTiffStyle(minHeight, maxHeight) {
     ]
   };
 }
+
+
+// =========================================================
+// 🟢 CLICK
+// =========================================================
 export async function handleDgmClick(map, evt) {
-  const kachelnVisible = dgmKachelLayer && dgmKachelLayer.getVisible();
-  
-  
+
+  const kachelnVisible =
+    dgmKachelLayer &&
+    dgmKachelLayer.getVisible();
+
+  // ---------------------------------------------------------
+  // Popup holen / erzeugen
+  // ---------------------------------------------------------
+
   let popup1 = document.getElementById('popup1');
+
   if (!popup1) {
+
     popup1 = document.createElement('div');
+
     popup1.id = 'popup1';
+
     popup1.style.cssText = `
       position: absolute;
       background: white;
@@ -264,163 +270,258 @@ export async function handleDgmClick(map, evt) {
       border: 1px solid #ccc;
       font-size: 13px;
       z-index: 10000;
+      min-width: 120px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.25);
     `;
-   const mapTarget = map.getTargetElement();
-    mapTarget.appendChild(popup1);
+
+    map.getTargetElement().appendChild(popup1);
   }
 
+
   // =========================================================
-  // 🟢 FALL 1: DGM-Kacheln auswählen
+  // 🟢 FALL 1
+  // Kachel auswählen
   // =========================================================
+
   if (kachelnVisible) {
+
     let featureFound = false;
 
-    map.forEachFeatureAtPixel(evt.pixel, (feature) => {
-      hitTolerance = 10;
-      featureFound = true;
+    map.forEachFeatureAtPixel(
 
-      const props = feature.getProperties();
+      evt.pixel,
 
-      const originalTifUrl = props.dgm1;
-      const tifUrl = originalTifUrl.replace(
-        'https://dgm1.s3.eu-de.cloud-object-storage.appdomain.cloud',
-        '/dgm'
-      );
+      (feature) => {
 
-      const bbox = feature.getGeometry().getExtent();
+        featureFound = true;
 
-      const alreadyLoaded = loadedDgms.some(
-        (d) => d.tile_id === props.tile_id
-      );
+        const props = feature.getProperties();
 
-      // 👉 Popup positionieren
-      popup1.style.left = evt.pixel[0] + 'px';
-      popup1.style.top = evt.pixel[1] + 'px';
+        const bbox =
+          feature.getGeometry().getExtent();
 
-      const safeBbox = bbox ? JSON.stringify(bbox) : 'null';
-      // 👉 Inhalt
-      popup1.innerHTML = `
-  <b>Kachel:</b> ${props.tile_id}<br>
-  <b>Datum:</b> ${props.Aktualitaet}<br>
-  ${alreadyLoaded ? '<i>bereits geladen</i><br>' : ''}
-  <button class="load-dgm-btn">
-    DGM laden
-  </button>
-`;
-      document.getElementById('loadDgmBtn')
+        const tifUrl =
+          props.dgm1.replace(
+            'https://dgm1.s3.eu-de.cloud-object-storage.appdomain.cloud',
+            '/dgm'
+          );
 
-      popup1.style.display = 'block';
+        const alreadyLoaded =
+          loadedDgms.some(
+            d => d.tile_id === props.tile_id
+          );
 
-      // 👉 Button-Handler
-      document.getElementById('loadDgmBtn').onclick = async function () {
-        if (!alreadyLoaded) {
-          const dgmData = await addDgmLayer(map, tifUrl, bbox, props.tile_id);
-          
-          
+        // -----------------------------------------------------
+        // Popup positionieren
+        // -----------------------------------------------------
 
-          loadedDgms.push({ tile_id: props.tile_id, bbox });
-          //activeDgmRasterData.push(dgmData);
+        popup1.style.left =
+          `${evt.pixel[0] + 10}px`;
 
-          const overall = getOverallDgmMinMax();
+        popup1.style.top =
+          `${evt.pixel[1] + 10}px`;
 
-          activeDgmRasterData.forEach((dgm) => {
-            dgm.layer.setStyle(
-              createGeoTiffStyle(overall.min, overall.max)
-            );
-          });
+        // -----------------------------------------------------
+        // Popup Inhalt
+        // -----------------------------------------------------
 
-          const totalBBox = getLoadedDgmExtent();
-          if (totalBBox) {
-            // optional:
-            // map.getView().fit(totalBBox, { padding: [50,50,50,50], duration: 700 });
+        popup1.innerHTML = `
+          <b>Kachel:</b> ${props.tile_id}<br>
+          <b>Datum:</b> ${props.Aktualitaet}<br><br>
+
+          ${
+            alreadyLoaded
+              ? '<i>Bereits geladen</i><br><br>'
+              : ''
           }
+
+          <button class="load-dgm-btn">
+            DGM laden
+          </button>
+        `;
+
+        popup1.style.display = 'block';
+
+        // -----------------------------------------------------
+        // Button
+        // -----------------------------------------------------
+
+        const loadBtn =
+          popup1.querySelector('.load-dgm-btn');
+
+        if (loadBtn) {
+
+          loadBtn.onclick = async () => {
+
+            if (!alreadyLoaded) {
+
+              await addDgmLayer(
+                map,
+                tifUrl,
+                bbox,
+                props.tile_id
+              );
+
+              loadedDgms.push({
+                tile_id: props.tile_id,
+                bbox
+              });
+            }
+
+            popup1.style.display = 'none';
+          };
         }
 
-        popup1.style.display = 'none';
-      };
-    });
+      },
+
+      {
+        hitTolerance: 10
+      }
+    );
 
     // 👉 Kein Feature getroffen
+
     if (!featureFound) {
       popup1.style.display = 'none';
     }
 
-    return; // 🔴 Wichtig: danach NICHT weiter machen!
-  }
-
-  // =========================================================
-  // 🔵 FALL 2: Höhenabfrage (DGM aktiv)
-  // =========================================================
-
-  const coord = map.getCoordinateFromPixel(evt.pixel);
-
-  const dgmLayers = map.getLayers().getArray().filter((layer) => {
-    const name = layer.get('name');
-    return name && name.endsWith('DGM_GeoTiff') && layer.getVisible();
-  });
-
-  if (dgmLayers.length === 0) {
-    popup1.style.display = 'none';
     return;
   }
 
+
+    // =========================================================
+    // 🔵 FALL 2
+    // Höhe per Klick
+    // =========================================================
+    
+    const coord =  map.getCoordinateFromPixel(evt.pixel);
+    
+    const dgmLayers =  activeDgmRasterLayers.filter( layer => layer.getVisible() );
+
+    if (dgmLayers.length === 0) {
+      popup1.style.display = 'none';
+      return;
+    }
+    console.log (coord);
+    console.log (dgmLayers[0].bbox);
+    
   let height = null;
   let foundLayer = null;
-
+  
   for (const layer of dgmLayers) {
-    if (!layer.bbox || !containsCoordinate(layer.bbox, coord)) continue;
+    if (
+      !layer.bbox ||
+      !containsCoordinate(layer.bbox, coord)
+    ) {
+      continue;
+    }
 
-    const val = await readHeightFromGeoTIFFLayer(layer, evt.pixel);
-
-    if (val !== null && val !== undefined && !Number.isNaN(val)) {
-      height = val;
+    const data =
+      layer.getData(evt.pixel);
+    if (
+      data &&
+      data[0] !== -9999 &&
+      !Number.isNaN(data[0])
+    ) {
+      height = data[0];
       foundLayer = layer;
       break;
     }
   }
 
-  popup1.style.left = evt.pixel[0] + 10 + 'px';
-  popup1.style.top = evt.pixel[1] - 15 + 'px';
+  // ---------------------------------------------------------
+  // Popup positionieren
+  // ---------------------------------------------------------
+
+  popup1.style.left =
+    `${evt.pixel[0] + 10}px`;
+
+  popup1.style.top =
+    `${evt.pixel[1] - 15}px`;
+
+  // ---------------------------------------------------------
+  // Inhalt
+  // ---------------------------------------------------------
 
   if (height !== null) {
-    const layerNr = foundLayer.get('name').split('_')[0];
 
-    popup1.innerHTML = `H_Nr_${layerNr}: <b>${height.toFixed(2)}</b>`;
+    const layerNr =
+      foundLayer
+        .get('name')
+        .split('_')[0];
+
+    popup1.innerHTML = `
+      H_Nr_${layerNr}:<br>
+      <b>${height.toFixed(2)} m</b>
+    `;
+
   } else {
-    popup1.innerHTML = `<i>Keine DGM-Daten an dieser Position verfügbar</i>`;
+
+    popup1.innerHTML =
+      `<i>Keine DGM-Daten</i>`;
   }
 
   popup1.style.display = 'block';
 }
-function handleDgmPointerMove(evt) {
 
+// =========================================================
+// 🟢 POINTER MOVE
+// =========================================================
+const heightStatus = document.getElementById('height-status-container');
+const heightValue = document.getElementById('height-value-main');
+function handleDgmPointerMove(evt) {
+    
   if (evt.dragging) return;
 
   if (!heightStatus || !heightValue) return;
 
   const pixel = evt.pixel;
   const coord = evt.coordinate;
+  
 
   const visibleDgmLayers =
-    activeDgmRasterLayers.filter(l => l.getVisible());
+    activeDgmRasterLayers.filter(
+      l => l.getVisible()
+    );
+
+  // ---------------------------------------------------------
+  // keine Layer
+  // ---------------------------------------------------------
 
   if (visibleDgmLayers.length === 0) {
+
     heightStatus.style.display = 'none';
+
     return;
   }
 
+  // ---------------------------------------------------------
   // passenden Layer finden
-  const activeLayer = visibleDgmLayers.find(layer =>
-    layer.bbox &&
-    containsCoordinate(layer.bbox, coord)
-  );
+  // ---------------------------------------------------------
+
+  const activeLayer =
+    visibleDgmLayers.find(layer =>
+
+      layer.bbox &&
+      containsCoordinate(
+        layer.bbox,
+        coord
+      )
+    );
 
   if (!activeLayer) {
+
     heightStatus.style.display = 'none';
+
     return;
   }
 
-  const data = activeLayer.getData(pixel);
+  // ---------------------------------------------------------
+  // Höhenwert lesen
+  // ---------------------------------------------------------
+
+  const data =
+    activeLayer.getData(pixel);
 
   if (
     data &&
@@ -429,7 +530,9 @@ function handleDgmPointerMove(evt) {
   ) {
 
     const layerNr =
-      activeLayer.get('name').split('_')[0];
+      activeLayer
+        .get('name')
+        .split('_')[0];
 
     const height = data[0];
 
@@ -443,35 +546,78 @@ function handleDgmPointerMove(evt) {
     heightStatus.style.display = 'none';
   }
 }
+
+
+// =========================================================
+// 🟢 ENABLE
+// =========================================================
+
 export function enableDgmInteraction(map) {
 
-   // 👉 Klick-Listener  setzen
+  // CLICK
+
   if (!dgmClickListener) {
-    dgmClickListener = map.on('singleclick', (evt) => handleDgmClick(map, evt));
+
+    dgmClickListener = map.on(
+
+      'singleclick',
+
+      (evt) =>
+        handleDgmClick(map, evt)
+    );
   }
 
-  // 👉 PointerMove nur Desktop
-  if (!ismobile && !dgmPointerMoveListener) {
+  // POINTERMOVE
+
+  if (
+    !ismobile &&
+    !dgmPointerMoveListener
+  ) {
+
     dgmPointerMoveListener = map.on(
+
       'pointermove',
-      (evt) => handleDgmPointerMove(evt)
+
+      (evt) =>
+        handleDgmPointerMove(evt)
     );
-  }  
+  }
 }
+
+
+
+// =========================================================
+// 🔴 DISABLE
+// =========================================================
+
 export function disableDgmInteraction() {
-  //const heightStatus = document.getElementById('height-status');
-  //const heightValue = document.getElementById('height-value');
+
   if (dgmClickListener) {
+
     unByKey(dgmClickListener);
+
     dgmClickListener = null;
   }
+
   if (dgmPointerMoveListener) {
+
     unByKey(dgmPointerMoveListener);
+
     dgmPointerMoveListener = null;
   }
-  const popup1 = document.getElementById('popup1');
-  if (popup1) popup1.style.display = 'none';
-  if (heightStatus) heightStatus.style.display = 'none';
-  if (heightValue) heightValue.style.display = 'none';
- 
+
+  // Popup
+
+  const popup1 =
+    document.getElementById('popup1');
+
+  if (popup1) {
+    popup1.style.display = 'none';
+  }
+
+  // Hover Anzeige
+
+  if (heightStatus) {
+    heightStatus.style.display = 'none';
+  }
 }

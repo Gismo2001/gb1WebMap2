@@ -40,7 +40,7 @@ import GeoTIFFSource from 'ol/source/GeoTIFF.js';
 let dgmLayerCounter = 0;
 
 export async function addDgmLayer(map, url, bbox, id1) {
-  console.log("bbox beim addDgmLayer:", bbox);
+  
 
   dgmLayerCounter++;
 
@@ -245,8 +245,7 @@ export function createGeoTiffStyle(minHeight, maxHeight) {
 // 🟢 CLICK
 // =========================================================
 export async function handleDgmClick(map, evt) {
-
-  const kachelnVisible =
+ const kachelnVisible =
     dgmKachelLayer &&
     dgmKachelLayer.getVisible();
 
@@ -375,7 +374,7 @@ export async function handleDgmClick(map, evt) {
       },
 
       {
-        hitTolerance: 10
+        //hitTolerance: 10
       }
     );
 
@@ -402,8 +401,6 @@ export async function handleDgmClick(map, evt) {
       popup1.style.display = 'none';
       return;
     }
-    console.log (coord);
-    console.log (dgmLayers[0].bbox);
     
   let height = null;
   let foundLayer = null;

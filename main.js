@@ -89,7 +89,7 @@ map.updateSize();
       const tifUrl = event.target.dataset.tif;
       const tileId = event.target.dataset.tile_id;
       const bbox = JSON.parse(event.target.dataset.bbox);
-      console.log("bbox bei Click-Event:", bbox);
+      
       enableDgmInteraction(map);
     
     const dgmData = await addDgmLayer(map, tifUrl, bbox, tileId);

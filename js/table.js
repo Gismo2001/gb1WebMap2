@@ -21,6 +21,8 @@ import Stroke from 'ol/style/Stroke';
 import Fill from 'ol/style/Fill';
 import CircleStyle from 'ol/style/Circle';
 
+import { isTableEnabled } from './controls';
+
 let highlightedFeature = null;
 let clickTimeout = null;
 
@@ -469,15 +471,19 @@ function initResizeObserver() {
 }
 
 export function clearHighlightedFeature() {
+ 
   if (highlightedFeature) {
+ 
     highlightedFeature.setStyle(undefined);
     highlightedFeature = null;
   }
 }
 
 export function highlightFeatureForRow(rowData) {
+  
   const layerName = rowData.origin_layer || 
                     (document.getElementById('layer-selector') ? document.getElementById('layer-selector').value : null);
+
   
   if (!layerName) {
     console.warn("Highlight abgebrochen: Kein LayerName in rowData oder Selector gefunden.", rowData);
@@ -507,6 +513,7 @@ export function highlightFeatureForRow(rowData) {
       });
     }
   });
+  //nsole.log ("Targetlayer: ",targetLayer)
   if (!targetLayer) return;
   
   const source = targetLayer.getSource();

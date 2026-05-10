@@ -8,9 +8,6 @@ import { getAllLayers } from './mapEvents.js'
 
 
 
-
-
-
 // BW-Style Punkte
 const BruAndereStyle = new Style({
     image: new Icon({

@@ -321,7 +321,7 @@ export function initPrintControl(map) {
 
 import WMSCapabilities from 'ol-ext/control/WMSCapabilities';
 
-// Wichtig: ol-ext CSS muss irgendwo geladen werden (z.B. in main.js oder index.html)
+
  
 /**
  * Initialisiert das WMS-Capabilities Control
@@ -371,9 +371,9 @@ export function initializeWMS(map) {
         // Layer der Karte hinzufügen
         map.addLayer(layer);
 
-        // 4. Wir verzichten auf den sofortigen Aufruf von getLayerByLink,
+        // 4. Verzichten auf den sofortigen Aufruf von getLayerByLink,
         // um den internen ol-ext Fehler komplett zu umgehen.
-        // Stattdessen triggern wir nur das generelle Update.
+        // Stattdessen triggern nur das generelle Update.
         setTimeout(() => {
         if (typeof permaFunktionality !== 'undefined' && permaFunktionality) {
             // changed() reicht völlig aus, damit das Control 

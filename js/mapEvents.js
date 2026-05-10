@@ -27,34 +27,7 @@ let popupContent;
 let lastTap = 0;
 
 
-export function getAllLayers(layerGroup, parentVisible = true, groupTitle = null) {
-  let layers = [];
-  const currentTitle = layerGroup.get('title') || groupTitle;
 
-  layerGroup.getLayers().forEach((layer) => {
-    const isVisible = parentVisible && layer.getVisible();
-
-    const name = (layer.get('name') || '').toLowerCase();
-    const title = (layer.get('title') || '').toLowerCase();
-
-    // 👉 Ausschluss prüfen
-    if (EXCLUDED_LAYERS.includes(name) || EXCLUDED_LAYERS.includes(title)) {
-      return;
-    }
-
-    if (layer.getLayers) {
-      layers = layers.concat(getAllLayers(layer, isVisible, currentTitle));
-    } else {
-      layers.push({
-        layer,
-        visible: isVisible,
-        groupTitle: currentTitle,
-      });
-    }
-  });
-
-  return layers;
-}
 // Funktion zum Initialisieren des Karten-Klick-Events
 
 export function initMapClick(map) {
@@ -206,79 +179,176 @@ export function initMapClick(map) {
 }
 
 async function handleClickResult(currentClickResults, coord) {
-  
+
+  // =====================================================
+  // Duplikate entfernen
+  // =====================================================
+
   for (const layerName of Object.keys(currentClickResults)) {
 
-  const entry = currentClickResults[layerName];
+    const entry = currentClickResults[layerName];
 
-  const seen = new Set();
+    console.log("entry: ", entry);
 
-  entry.data = entry.data.filter((item) => {
+    const seen = new Set();
 
-    const props = item.properties || {};
+    entry.data = entry.data.filter((item) => {
 
-    const id =
-      props.OBJECTID ||
-      props.ID_con ||
-      props.ID ||
-      props.objectid ||
-      props.tile_id ||
-      JSON.stringify(props);
+      // VectorFeature ODER WMS
+      const props = item.properties || item;
 
-    if (seen.has(id)) {
-      return false;
-    }
+      const id =
+        props.OBJECTID ||
+        props.ID_con ||
+        props.ID ||
+        props.objectid ||
+        props.tile_id ||
+        props.id ||
+        JSON.stringify(props);
 
-    seen.add(id);
+      if (seen.has(id)) {
+        return false;
+      }
 
-    return true;
-  });
-}
+      seen.add(id);
+
+      return true;
+    });
+  }
+
+  // =====================================================
+  // Layer / Feature Auswahl
+  // =====================================================
+
   const layerNames = Object.keys(currentClickResults);
+
   let chosenLayer = layerNames[0];
   let chosenIndex = 0;
+
   const needsSelection =
-   !isDgmActive && (layerNames.length > 1   ||   currentClickResults[layerNames[0]].data.length > 1
-  );
+    !isDgmActive &&
+    (
+      layerNames.length > 1 ||
+      currentClickResults[layerNames[0]].data.length > 1
+    );
+
   if (needsSelection) {
-    const choice = await askUserToChoose(currentClickResults);
+
+    const choice =
+      await askUserToChoose(currentClickResults);
+
+    if (!choice) return;
+
     chosenLayer = choice.layer;
     chosenIndex = choice.index;
   }
-  const entry = currentClickResults[chosenLayer];
-  const selected = entry.data[chosenIndex];
-  const featureData = selected.properties;
-  const feature = selected.feature;
+
+  const entry =
+    currentClickResults[chosenLayer];
+
+  const selected =
+    entry.data[chosenIndex];
+
+  // =====================================================
+  // VectorFeature ODER WMS-Objekt
+  // =====================================================
+
+  const isWrappedFeature =
+    selected &&
+    selected.properties &&
+    selected.feature;
+
+  const featureData =
+    isWrappedFeature
+      ? selected.properties
+      : selected;
+
+  const feature =
+    isWrappedFeature
+      ? selected.feature
+      : null;
+
+  // =====================================================
+  // Popup anzeigen
+  // =====================================================
+
   if (!shouldShowPopup(entry.layer)) return;
+
   popupContent.innerHTML =
-  buildPopupContent(feature, chosenLayer);
+    buildPopupContent(
+      feature || featureData,
+      chosenLayer
+    );
+
   popupOverlay.setPosition(coord);
-  featureData.origin_layer = chosenLayer; 
-  
-  
-  
+
+  featureData.origin_layer = chosenLayer;
+
+  // =====================================================
+  // Highlight
+  // =====================================================
+
   if (typeof highlightFeatureForRow === 'function') {
-        
-      highlightFeatureForRow(featureData);
+
+    highlightFeatureForRow(featureData);
   }
-  
+
+  // =====================================================
+  // Tabellenbutton
+  // =====================================================
+
   setTimeout(() => {
-    const btn = document.getElementById('open-table-btn');
+
+    const btn =
+      document.getElementById('open-table-btn');
+
     if (btn) {
+
       btn.onclick = () => {
+
         updateSelector([chosenLayer]);
-       showTableDebounced(
-  currentClickResults[chosenLayer].data.map(
-    item => item.properties
-  )
-);
+
+        showTableDebounced(
+
+          currentClickResults[chosenLayer].data.map(
+            item => item.properties || item
+          )
+        );
+
         popupOverlay.setPosition(undefined);
       };
     }
+
   }, 0);
 }
+export function getAllLayers(layerGroup, parentVisible = true, groupTitle = null) {
+  let layers = [];
+  const currentTitle = layerGroup.get('title') || groupTitle;
 
+  layerGroup.getLayers().forEach((layer) => {
+    const isVisible = parentVisible && layer.getVisible();
 
+    const name = (layer.get('name') || '').toLowerCase();
+    const title = (layer.get('title') || '').toLowerCase();
+
+    // 👉 Ausschluss prüfen
+    if (EXCLUDED_LAYERS.includes(name) || EXCLUDED_LAYERS.includes(title)) {
+      return;
+    }
+
+    if (layer.getLayers) {
+      layers = layers.concat(getAllLayers(layer, isVisible, currentTitle));
+    } else {
+      layers.push({
+        layer,
+        visible: isVisible,
+        groupTitle: currentTitle,
+      });
+    }
+  });
+
+  return layers;
+}
 function askUserToChoose(currentClickResults) {
 
   return new Promise(resolve => {
@@ -307,7 +377,7 @@ function askUserToChoose(currentClickResults) {
 
       entry.data.forEach((item, idx) => {
 
-        const props = item.properties || {};
+        const props = item.properties || item;
 
         // stabile ID bestimmen
         const key =
@@ -335,10 +405,14 @@ function askUserToChoose(currentClickResults) {
 
       uniqueData.forEach(({ item, idx }) => {
 
-        const props = item.properties || {};
+        const props = item.properties || item;
 
         const label =
           props.name ||
+          props.title ||
+          props.Title ||
+          props.Titel ||
+          props.titel ||
           props.Name ||
           props.bezeich ||
           props.Bezeichnung ||
@@ -828,13 +902,12 @@ const uploadStyle = new Style({
 });
 
 function shouldShowPopup(layer) {
+
   if (isTableEnabled()) return false;
-  const name = (layer?.get('name') || '').toLowerCase();
-  
-  const allowedWmsLayers = ['uesg', 'fließgew', 'ALKIS', 'LSG', 'NSG', 'gewaesser', 'nibis bohrdaten'];
-  const isVector = !layer?.getSource()?.getFeatureInfoUrl;
-  return isVector || allowedWmsLayers.includes(name);
+
+  return true;
 }
+
 
 function createFotoLink(url, label) {
   if (url && url.trim() !== '') {
@@ -863,99 +936,175 @@ export function initPopup(map) {
   };
 }
 
-function buildPopupContent(feature, layerName){
-  if (!feature) {
-  return "<p>Keine Daten</p>";
-}
-  
-  //const daten = data[0];
-  const daten = feature.getProperties();
+function buildPopupContent(featureOrProps, layerName) {
+  console.log("aufgerufen Build")
+  if (!featureOrProps) {
+    return "<p>Keine Daten</p>";
+  }
+
+  // =====================================================
+  // OL-Feature ODER normales Objekt
+  // =====================================================
+
+  const isOlFeature =
+    typeof featureOrProps.getProperties === 'function';
+  console.log("aufgerufen Build is ol: ", isOlFeature)
+  const daten = isOlFeature
+    ? featureOrProps.getProperties()
+    : featureOrProps;
 
   let html = "";
-  
-  // 1. Überschrift & Inhalt bestimmen 🏷️
-  const normalizedLayerName = layerName.toLowerCase();
-  if (normalizedLayerName === 'fsk') {
-    // Spezialfall für FSK: Eig1 als Überschrift, Suche als Zusatzinhalt
-   const ueberschrift =
-      daten.Eig1
-      ? `Eigentümer: ${daten.Eig1}`
-      : 'Keine Bezeichnung';
 
-    const info = (
+  // =====================================================
+  // Überschrift
+  // =====================================================
+
+  const normalizedLayerName =
+    layerName.toLowerCase();
+
+  if (normalizedLayerName === 'fsk') {
+
+    const ueberschrift =
+      daten.Eig1
+        ? `Eigentümer: ${daten.Eig1}`
+        : 'Keine Bezeichnung';
+
+    const info =
       `Gemark: ${daten.Gemark}<br>` +
       `ID: ${daten.fsk}<br>` +
       `Flur: ${daten.Flur}<br>` +
-      `Flurstk.: ${daten.Zaehler}/${daten.Flur}`
-    ) || "";
-    
+      `Flurstk.: ${daten.Zaehler}/${daten.Flur}`;
+
     html += `<strong>${ueberschrift}</strong><br>`;
-    if (info) {
-      html += `<span>${info}</span><br>`;
-    }
-    
-  } else if (normalizedLayerName === 'dgmkacheln' || normalizedLayerName === 'domkacheln') {
+    html += `<span>${info}</span><br>`;
+
+  } else if (
+    normalizedLayerName === 'dgmkacheln' ||
+    normalizedLayerName === 'domkacheln'
+  ) {
+
     if (daten.tile_id) {
       html += `<strong>Kachel: ${daten.tile_id}</strong><br>`;
     }
+
   } else {
-    // Standard für alle anderen Layer
-   const title =
+const preferredKeys = [
+  'name',
+  'bezeich',
+  'titel',
+  'label',
+  'objectid'
+];
+
+// passendes Feld dynamisch suchen
+const dynamicKey = Object.keys(daten).find(key => {
+
+  const lower = key.toLowerCase();
+
+  return preferredKeys.some(word =>
+    lower.includes(word)
+  );
+});
+
+const title =
+  daten[dynamicKey] ||
   daten.name ||
   daten.Name ||
   daten.bezeich ||
+  daten.bezeichnung ||
   daten.Bezeichnung ||
   daten.titel ||
   daten.Titel ||
+  daten.label ||
+  daten.Label ||
+  daten.typ ||
+  daten.nummer ||
+  daten.id ||
   'Keine Bezeichnung';
 
-html += `<strong>${title}</strong><br>`;
-  
+    html += `<strong>${title}</strong><br>`;
   }
 
- // 2. Kachel-Links (DGM oder DOM) hinzufügen 🔗
-const kachelUrl = daten.dgm1 || daten.dom1;
+  // =====================================================
+  // DGM / DOM Link
+  // =====================================================
 
-if (kachelUrl) {
+  const kachelUrl =
+    daten.dgm1 || daten.dom1;
 
-  // BBOX aus Feature-Geometrie berechnen
- 
- const bbox =
-  feature.getGeometry()?.getExtent() || null;
+  if (kachelUrl) {
 
-  html += `<div style="margin-top: 5px;">`;
-  html += `
-    <a href="#"
-       class="popup-link"
-       data-tif="${daten.dgm1 || daten.dom1}"
-       data-tile_id="${daten.tile_id}"
-       data-bbox='${JSON.stringify(bbox)}'>
-       Kachel laden
-    </a>
-  `;
-  html += `</div>`;
-}
+    let bbox = null;
 
-  
-  // 3. Fotolinks sammeln 📸
+    // Nur OL-Feature besitzt Geometry
+    if (isOlFeature) {
+      bbox =
+        featureOrProps
+          .getGeometry()
+          ?.getExtent() || null;
+    }
+
+    html += `
+      <div style="margin-top:5px;">
+        <a href="#"
+           class="popup-link"
+           data-tif="${kachelUrl}"
+           data-tile_id="${daten.tile_id}"
+           data-bbox='${JSON.stringify(bbox)}'>
+           Kachel laden
+        </a>
+      </div>
+    `;
+  }
+
+  // =====================================================
+  // Fotos
+  // =====================================================
+
   const fotoLinks = [];
-  if (daten.foto1) fotoLinks.push(`<a href="${daten.foto1}" target="_blank" class="popup-link">Foto 1</a>`);
-  if (daten.foto2) fotoLinks.push(`<a href="${daten.foto2}" target="_blank" class="popup-link">Foto 2</a>`);
-  if (daten.foto3) fotoLinks.push(`<a href="${daten.foto3}" target="_blank" class="popup-link">Foto 3</a>`);
-  if (daten.foto4) fotoLinks.push(`<a href="${daten.foto4}" target="_blank" class="popup-link">Foto 4</a>`);
+
+  if (daten.foto1)
+    fotoLinks.push(
+      `<a href="${daten.foto1}" target="_blank" class="popup-link">Foto 1</a>`
+    );
+
+  if (daten.foto2)
+    fotoLinks.push(
+      `<a href="${daten.foto2}" target="_blank" class="popup-link">Foto 2</a>`
+    );
+
+  if (daten.foto3)
+    fotoLinks.push(
+      `<a href="${daten.foto3}" target="_blank" class="popup-link">Foto 3</a>`
+    );
+
+  if (daten.foto4)
+    fotoLinks.push(
+      `<a href="${daten.foto4}" target="_blank" class="popup-link">Foto 4</a>`
+    );
 
   if (fotoLinks.length > 0) {
-    html += `<div style="margin-top: 8px;">`;
-    html += fotoLinks.join(", ");
-    html += `</div>`;
+
+    html += `
+      <div style="margin-top:8px;">
+        ${fotoLinks.join(", ")}
+      </div>
+    `;
   }
 
-  // 4. Link zur Tabelle 📊
-  html += `<br><button id="open-table-btn" style="font-size:12px;">Details anzeigen</button>`;
-  
+  // =====================================================
+  // Tabelle
+  // =====================================================
+
+  html += `
+    <br>
+    <button id="open-table-btn" style="font-size:12px;">
+      Details anzeigen
+    </button>
+  `;
+
   return html;
 }
-
 document.addEventListener('click', (e) => {
   const box = document.getElementById('feature-select-dropdown');
 

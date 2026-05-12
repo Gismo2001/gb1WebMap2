@@ -162,12 +162,10 @@ export function initMapClick(map) {
     }
 
     // --- 3. WMS & VEKTOR ABFRAGEN (FÜR TABELLE / POPUP) ---
-
     const requestId = ++latestClickRequestId;
     const promises = [];
     const viewResolution = map.getView().getResolution();
     const coord = evt.coordinate;
-    
     currentClickResults = {};
     const allLayers = getAllLayers(map);
 
@@ -225,10 +223,9 @@ export function initMapClick(map) {
     });
 
     // --- 4. ERGEBNISSE VERARBEITEN ---
-
     Promise.all(promises).then(() => {
+      console.log ('MapEvents Ergebniss, promise aufgerufen')
       if (requestId !== latestClickRequestId) return;
-
       const vectorResults = getVectorFeaturesAtClick(map, evt);
       Object.keys(vectorResults).forEach((layerName) => {
         const entry = vectorResults[layerName];
@@ -244,13 +241,34 @@ export function initMapClick(map) {
 
       if (isTableEnabled()) {
         const firstLayerData = currentClickResults[layerNames[0]];
-        const clickedFeatureData = firstLayerData.data[0].properties;
+        const firstItem =  firstLayerData.data[0];
+        const clickedFeatureData =  firstItem.properties || firstItem;
         const selector = document.getElementById('layer-selector');
         const currentSelectedLayer = selector ? selector.value : "unknown";
         
         if (typeof table !== 'undefined' && table && currentSelectedLayer === layerNames[0]) {
-          const idKey = (currentSelectedLayer === 'fsk') ? 'OBJECTID' : 'ID_con';
-          const featureId = clickedFeatureData[idKey];
+          
+          const idKey =
+  clickedFeatureData.OBJECTID
+    ? 'OBJECTID'
+    : clickedFeatureData.ID_con
+    ? 'ID_con'
+    : clickedFeatureData.ID
+    ? 'ID'
+    : clickedFeatureData.objectid
+    ? 'objectid'
+    : clickedFeatureData.id
+    ? 'id'
+    : null;
+
+    if (!idKey) {
+  console.warn('Kein ID-Key gefunden');
+  return;
+}
+
+const featureId =
+  clickedFeatureData[idKey];
+          
           const rows = table.searchRows(idKey, "=", featureId);
 
           if (rows.length > 0) {
@@ -264,7 +282,10 @@ export function initMapClick(map) {
         }
 
         updateSelector(layerNames);
-        showTableDebounced(firstLayerData.data.map(item => item.properties));
+       
+        showTableDebounced(  firstLayerData.data.map(    item => item.properties || item  )
+);
+      
       } else {
         handleClickResult(currentClickResults, coord);
       }
@@ -752,30 +773,58 @@ export function getVisibleVectorFeatures(map) {
   return results;
 }
 export function updateTableFromVisibleLayers(map) {
+
   if (!isTableEnabled()) return;
 
-  const results = getVisibleVectorFeatures(map);
-  const layerNames = Object.keys(results);
+  const results =
+    getVisibleVectorFeatures(map);
+
+  const layerNames =
+    Object.keys(results);
 
   if (layerNames.length > 0) {
-    const selector = document.getElementById('layer-selector');
-    const currentSelection = selector ? selector.value : null;
+
+    const selector =
+      document.getElementById('layer-selector');
+
+    const currentSelection =
+      selector ? selector.value : null;
 
     updateSelector(layerNames);
 
-    let layerToShow = layerNames[0];
-    if (currentSelection && results[currentSelection]) {
-      layerToShow = currentSelection;
+    let layerToShow =
+      layerNames[0];
+
+    if (
+      currentSelection &&
+      results[currentSelection]
+    ) {
+      layerToShow =
+        currentSelection;
     }
 
-    showTableDebounced(results[layerToShow]);
+    const entry =
+      results[layerToShow];
+
+    const data =
+      Array.isArray(entry)
+        ? entry
+        : entry?.data || [];
+
+    const normalizedData =
+      data.map(item =>
+        item.properties || item
+      );
+
+    showTableDebounced(normalizedData);
+
   } else {
+
     showTableDebounced([]);
-    // Optional: Den Selector leeren oder auf einen Standardwert setzen
+
     updateSelector([]);
   }
 }
-
 //Eventhandler für Layerswitcher Click (nur bestimmte Element, z.B. Gruppe öffnen)
 export function switcherDrawList(layerSwitcher) {
   layerSwitcher.on('drawlist', (evt) => {

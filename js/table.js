@@ -76,6 +76,28 @@ export function updateSelector(names) {
   }
 }
 export function showTable(data) {
+  if (!Array.isArray(data)) {
+  data = data ? [data] : [];
+  }
+  data = data.map(item => {
+
+  const clean = {};
+
+  Object.entries(item).forEach(([key, value]) => {
+
+    // komplexe Objekte überspringen
+    if (
+      typeof value === 'object' &&
+      value !== null
+    ) {
+      return;
+    }
+
+    clean[key] = value;
+  });
+
+  return clean;
+});
   isTableActive = true;
   const container = document.getElementById("wms-table-container");
   const tableElement = document.getElementById("wms_data_table");
@@ -105,10 +127,39 @@ export function showTable(data) {
   const selector = document.getElementById('layer-selector');
   const layerName = selector ? selector.value : "unknown";
   const normalizedName = layerName.toLowerCase();
+let idKey;
 
-  let idKey = (normalizedName === 'fsk') ? 'OBJECTID' : 
-             (normalizedName.startsWith('shapefile')) ? 'objectid' : 'ID_con';
+// 1. Deine expliziten Zuweisungen
+if (normalizedName === 'fsk') {
+    idKey = 'OBJECTID';
+} else if (normalizedName.startsWith('shapefile')) {
+    idKey = 'objectid';
+// ... (normalizedName Logik davor)
 
+} else {
+    // 2. Dynamische Erkennung für WMS und unbekannte Layer
+    if (data && data.length > 0) {
+        // Wir nehmen das erste Element, das tatsächlich ein Objekt ist
+        const firstItem = data.find(item => item !== null && typeof item === 'object');
+        
+        if (firstItem) {
+            const commonKeys = ['ID_con', 'id', 'gml_id', 'OBJECTID', 'objectid', 'FID'];
+            
+            // Sicherer Check mit dem optionalen Chaining oder Prüfung von firstItem
+            idKey = commonKeys.find(key => key in firstItem);
+
+            if (!idKey) {
+                idKey = Object.keys(firstItem)[0]; 
+                console.warn(`Kein bekannter ID-Key gefunden. Nutze Fallback: ${idKey}`);
+            }
+        } else {
+            // Fallback, wenn data nur aus null/undefined besteht
+            idKey = 'ID_con';
+        }
+    } else {
+        idKey = 'ID_con';
+    }
+}
   // 👉 3. Reset-Button Logik (Jetzt kennt er normalizedName korrekt)
   if (resetBtn) {
     resetBtn.onclick = () => {
@@ -134,13 +185,20 @@ export function showTable(data) {
     if (!tableElement.classList.contains("hide-filters")) filterBtn.classList.add("active");
   }
 
-  // 👉 5. Daten vorbereiten
+  
+  // 👉 5. Daten vorbereiten (mit Safety-Check)
   const uniqueData = (data || []).filter((item, index, self) => {
+    // 1. Check: Existiert das Item überhaupt?
+    if (!item) return false;
     const val = item[idKey];
-    if (val === null || val === undefined) return true;
-    return index === self.findIndex((t) => t[idKey] === val);
+    // 2. Check: Wenn das Item den Key gar nicht hat, trotzdem behalten (oder filtern)
+    // Wir erlauben das Item, wenn val null/undefined ist, aber wir müssen 
+    // beim findIndex extrem vorsichtig sein:
+    return index === self.findIndex((t) => {
+      return t && t[idKey] === val; // t && stellt sicher, dass t nicht undefined ist
+    });
   });
-
+  
   // 👉 6. Tabellen-Logik: Update oder Neubau
   const previousLayer = tableElement.getAttribute("data-current-layer");
 
@@ -434,15 +492,39 @@ export function closeTable() {
 }
 
 export function switchLayerData(results) {
-  const selector = document.getElementById('layer-selector');
+
+  const selector =
+    document.getElementById('layer-selector');
+
   if (!selector) return;
-  const selectedLayer = selector.value;
-  const data = results[selectedLayer];
-  if (data) {
-    // Da sich beim Layer-Wechsel die Spalten ändern, 
-    // nutzen wir showTable, um die Tabelle sauber neu zu initialisieren.
-    showTableDebounced(data);
-  }
+
+  const selectedLayer =
+    selector.value;
+
+  const entry =
+    results[selectedLayer];
+
+  if (!entry) return;
+
+  // =====================================================
+  // Nur echte Datensätze holen
+  // =====================================================
+
+  const data =
+    Array.isArray(entry)
+      ? entry
+      : entry.data || [];
+
+  // =====================================================
+  // Vector + WMS vereinheitlichen
+  // =====================================================
+
+  const normalizedData =
+    data.map(item =>
+      item.properties || item
+    );
+
+  showTableDebounced(normalizedData);
 }
 
 export function getTableActive() {

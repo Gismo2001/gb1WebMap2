@@ -8,20 +8,23 @@ import {  createEmpty,  extend,  containsCoordinate} from 'ol/extent.js';
 
 
 export let activeDgmRasterLayers = [];  
+export let activeDomRasterLayers = [];  
 export let activeDgmRasterData = [];  
+export let activeDomRasterData = [];  
+
 
 let dgmClickListener = null;
-let dgmPointerMoveListener = null;
-export let loadedDgms = [];   // speichert {tile_id, bbox}
-
-let activeDomRasterLayers = [];  
-let activeDomRasterData = [];  
 let domClickListener = null;
-let loadedDoms = [];   // speichert {tile_id, bbox}
+
+let dgmPointerMoveListener = null;
+let domPointerMoveListener = null;
+
+export let loadedDgms = [];   // speichert {tile_id, bbox}
+export let loadedDoms = [];   // speichert {tile_id, bbox}
+
 
 let profileMode = false;
 let ismobile = false;
-
 
 let profilePoints = [];
 let profileDraw = null;
@@ -29,30 +32,29 @@ let profileDraw = null;
 
 //const dgmData = await addDgmLayer(map, tifUrl, bbox, props.tile_id);
 export let isDgmActive = false;
+export let isDomActive = false;
+
 export function setDgmActive(value) {
   isDgmActive = value;
 }
 
-export let isDomActive = false;
+export function setDomActive(value) {
+  isDomActive = value;
+}
 
 import GeoTIFFSource from 'ol/source/GeoTIFF.js';
 
 let dgmLayerCounter = 0;
+let domLayerCounter = 0;
 
 export async function addDgmLayer(map, url, bbox, id1) {
-  
-
   dgmLayerCounter++;
-
-  // 👉 Proxy verwenden
+// 👉 Proxy verwenden
   const proxyUrl = url.replace(
     'https://dgm1.s3.eu-de.cloud-object-storage.appdomain.cloud',
     '/dgm'
   );
-
-  const { min, max } =
-    await getMinMaxFromMetadata(proxyUrl);
-
+  const { min, max } = await getMinMaxFromMetadata(proxyUrl);
   const TiffSource1 = new GeoTIFFSource({
     sources: [{ url: proxyUrl }],
     projection: 'EPSG:25832',
@@ -89,9 +91,7 @@ export async function addDgmLayer(map, url, bbox, id1) {
   };
 
   activeDgmRasterData.push(dgmData);
-
   const overall = getOverallDgmMinMax();
-
   activeDgmRasterData.forEach(dgm => {
     dgm.layer.setStyle(
       createGeoTiffStyle(overall.min, overall.max)
@@ -100,6 +100,8 @@ export async function addDgmLayer(map, url, bbox, id1) {
 
   return dgmData;
 }
+
+
 export async function getMinMaxFromMetadata(url) {
 
   try {
@@ -242,202 +244,62 @@ export function createGeoTiffStyle(minHeight, maxHeight) {
 
 
 // =========================================================
-// 🟢 CLICK
-// =========================================================
-export async function handleDgmClick(map, evt) {
-  const kachelnVisible = dgmKachelLayer && dgmKachelLayer.getVisible();
-  
-  // Popup holen / erzeugen
-  let popup1 = document.getElementById('popup1');
-  if (!popup1) {
-    popup1 = document.createElement('div');
-    popup1.id = 'popup1';
-    popup1.style.cssText = `
-      position: absolute;
-      background: white;
-      padding: 6px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-      font-size: 13px;
-      z-index: 10000;
-      min-width: 120px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.25);
-    `;
-    map.getTargetElement().appendChild(popup1);
-  }
-
-  // =========================================================
-  // 🟢 FALL 1: Kachel auswählen
-  // =========================================================
-  if (kachelnVisible) {
-    let featureFound = false;
-
-    map.forEachFeatureAtPixel(evt.pixel, (feature) => {
-      featureFound = true;
-      const props = feature.getProperties();
-      const bbox = feature.getGeometry().getExtent();
-
-      const tifUrl = props.dgm1.replace(
-        'https://dgm1.s3.eu-de.cloud-object-storage.appdomain.cloud',
-        '/dgm'
-      );
-
-      const alreadyLoaded = loadedDgms.some(
-        d => d.tile_id === props.tile_id
-      );
-
-      popup1.style.left = `${evt.pixel[0] + 10}px`;
-      popup1.style.top = `${evt.pixel[1] + 10}px`;
-
-      popup1.innerHTML = `
-        <b>Kachel:</b> ${props.tile_id}<br>
-        <b>Datum:</b> ${props.Aktualitaet}<br><br>
-        ${alreadyLoaded ? '<i>Bereits geladen</i><br><br>' : ''}
-        <button class="load-dgm-btn">DGM laden</button>
-      `;
-
-      popup1.style.display = 'block';
-
-      const loadBtn = popup1.querySelector('.load-dgm-btn');
-      if (loadBtn) {
-        loadBtn.onclick = async () => {
-          if (!alreadyLoaded) {
-            await addDgmLayer(map, tifUrl, bbox, props.tile_id);
-            loadedDgms.push({ tile_id: props.tile_id, bbox });
-          }
-          popup1.style.display = 'none';
-        };
-      }
-    });
-
-    if (!featureFound) {
-      popup1.style.display = 'none';
-    }
-
-    // ✨ WICHTIG: Wenn der Kachel-Layer aktiv ist, beenden wir HIER die Funktion immer.
-    // So wird "Fall 2" niemals erreicht, solange man im Kachel-Modus ist.
-    return;
-  }
-
-  // =========================================================
-  // 🔵 FALL 2: Höhe per Klick (wird nur erreicht, wenn kachelnVisible = false)
-  // =========================================================
-  const coord = map.getCoordinateFromPixel(evt.pixel);
-  const dgmLayers = activeDgmRasterLayers.filter(layer => layer.getVisible());
-  
-  if (dgmLayers.length === 0) {
-    popup1.style.display = 'none';
-    return;
-  }
-
-  let height = null;
-  let foundLayer = null;
-
-  for (const layer of dgmLayers) {
-    if (!layer.bbox || !containsCoordinate(layer.bbox, coord)) {
-      continue;
-    }
-
-    const data = layer.getData(evt.pixel);
-    if (data && data[0] !== -9999 && !Number.isNaN(data[0])) {
-      height = data[0];
-      foundLayer = layer;
-      break;
-    }
-  }
-
-  popup1.style.left = `${evt.pixel[0] + 10}px`;
-  popup1.style.top = `${evt.pixel[1] - 15}px`;
-
-  if (height !== null) {
-    const layerNr = foundLayer.get('name').split('_')[0];
-    popup1.innerHTML = `H_Nr_${layerNr}:<br><b>${height.toFixed(2)} m</b>`;
-  } else {
-    popup1.innerHTML = `<i>Keine DGM-Daten</i>`;
-  }
-
-  popup1.style.display = 'block';
-}
-
-// =========================================================
 // 🟢 POINTER MOVE
 // =========================================================
-const heightStatus = document.getElementById('height-status-container');
-const heightValue = document.getElementById('height-value-main');
-function handleDgmPointerMove(evt) {
-    
+export async function handleDgmPointerMove(evt) {
+  const heightStatus = document.getElementById('height-status-container');
+  const heightValue = document.getElementById('height-value-main');
   if (evt.dragging) return;
-
   if (!heightStatus || !heightValue) return;
-
   const pixel = evt.pixel;
   const coord = evt.coordinate;
-  
-
   const visibleDgmLayers =
     activeDgmRasterLayers.filter(
       l => l.getVisible()
     );
-
   // ---------------------------------------------------------
   // keine Layer
   // ---------------------------------------------------------
-
   if (visibleDgmLayers.length === 0) {
-
     heightStatus.style.display = 'none';
-
     return;
   }
-
   // ---------------------------------------------------------
   // passenden Layer finden
   // ---------------------------------------------------------
 
   const activeLayer =
     visibleDgmLayers.find(layer =>
-
-      layer.bbox &&
+    layer.bbox &&
       containsCoordinate(
         layer.bbox,
         coord
       )
     );
-
   if (!activeLayer) {
-
     heightStatus.style.display = 'none';
-
     return;
   }
-
   // ---------------------------------------------------------
   // Höhenwert lesen
   // ---------------------------------------------------------
-
   const data =
     activeLayer.getData(pixel);
-
   if (
     data &&
     data[0] !== -9999 &&
     !Number.isNaN(data[0])
   ) {
-
     const layerNr =
       activeLayer
         .get('name')
         .split('_')[0];
 
     const height = data[0];
-
     heightValue.innerHTML =
       `Nr_${layerNr}: ${height.toFixed(2)} m`;
-
     heightStatus.style.display = 'block';
-
   } else {
-
     heightStatus.style.display = 'none';
   }
 }

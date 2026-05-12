@@ -114,16 +114,18 @@ export function handleHeightQuery(map, evt, visibleDgmLayers) {
     popup1.style.left = `${evt.pixel[0] + 10}px`;
     popup1.style.top = `${evt.pixel[1] - 15}px`;
     const layerNr = foundLayer.get('name').split('_')[0];
-    popup1.innerHTML = `H_Nr_${layerNr}:<br><b>${height.toFixed(2)} m</b>`;
+    popup1.innerHTML = `<b>H:${height.toFixed(2)} m</b>`;
     popup1.style.display = 'block';
   } else {
     popup1.style.display = 'none';
   }
 }
 
+
 import { loadedDgms } from './dgmdom.js';  
 import { activeDgmRasterLayers } from './dgmdom.js'
 import { addDgmLayer } from './dgmdom.js';
+import  {handleDgmPointerMove } from './dgmdom.js'
 import {  createEmpty,  extend,  containsCoordinate} from 'ol/extent.js';
 export function initMapClick(map) {
   map.on('singleclick', function (evt) {
@@ -268,6 +270,7 @@ export function initMapClick(map) {
       }
     });
   });
+  map.on('pointermove', handleDgmPointerMove);
 }
 async function handleClickResult(currentClickResults, coord) {
 

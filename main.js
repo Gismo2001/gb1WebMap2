@@ -37,7 +37,8 @@ import { isDgmActive, addDgmLayer, getLoadedDgmExtent,getLoadedDomExtent,getOver
 import { createDgmKachelLayer } from './js/layers.js';
 import { fromArrayBuffer } from 'geotiff';
 
-let loadedDgms = [];   // speichert {tile_id, bbox}
+//let loadedDgms = [];   // speichert {tile_id, bbox}
+import { loadedDgms } from './js/dgmdom.js';  
 let activeDgmRasterData = [];  
 
 
@@ -105,13 +106,10 @@ map.updateSize();
 document.getElementById('layer-selector').addEventListener('change', () => {
   // 1. Hole WMS Klick-Daten
   const clickResults = getClickResults();
-  
   // 2. Hole aktuelle Vektor-Daten (Bauw. L/P etc.)
   const vectorResults = getVisibleVectorFeatures(map); // map muss hier verfügbar sein
-
   // 3. Kombiniere beide
   const combinedResults = { ...clickResults, ...vectorResults };
-  
   // 4. Update Tabelle
   switchLayerData(combinedResults);
 });

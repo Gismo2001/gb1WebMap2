@@ -26,36 +26,149 @@ let popupContent;
 //für Handy
 let lastTap = 0;
 
-
-
-// Funktion zum Initialisieren des Karten-Klick-Events
-
-export function initMapClick(map) {
+// Prüft, ob der Kachel-Layer im Layer-Switcher sichtbar ist
+function isDgmKachelActive(map) {
+  if (typeof getAllLayers !== 'function') return false;
   
+  const allLayers = getAllLayers(map.getLayerGroup());
+  const kachelLayerObj = allLayers.find(obj => 
+    (obj.layer.get('name') || '').toLowerCase() === 'dgm-kacheln' || 
+    (obj.layer.get('title') || '').toLowerCase() === 'dgm-kacheln'
+  );
+  
+  return kachelLayerObj ? kachelLayerObj.visible : false;
+}
+
+// Erstellt das Popup, falls es noch nicht existiert
+function getOrCreatePopup1(map) {
+  let popup1 = document.getElementById('popup1');
+  if (!popup1) {
+    popup1 = document.createElement('div');
+    popup1.id = 'popup1';
+    popup1.style.cssText = `
+      position: absolute; background: white; padding: 6px; 
+      border-radius: 6px; border: 1px solid #ccc; font-size: 13px; 
+      z-index: 10000; min-width: 120px; box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+    `;
+    map.getTargetElement().appendChild(popup1);
+  }
+  return popup1;
+}
+
+// 🟢 SPEZIALISIERTER FALL 1: Kachelauswahl
+export function handleKachelSelection(map, evt) {
+  const popup1 = getOrCreatePopup1(map);
+  let featureFound = false;
+
+  map.forEachFeatureAtPixel(evt.pixel, (feature) => {
+    featureFound = true;
+    const props = feature.getProperties();
+    const bbox = feature.getGeometry().getExtent();
+    const tifUrl = props.dgm1.replace('https://dgm1.s3.eu-de.cloud-object-storage.appdomain.cloud', '/dgm');
+    const alreadyLoaded = loadedDgms.some(d => d.tile_id === props.tile_id);
+
+    popup1.style.left = `${evt.pixel[0] + 10}px`;
+    popup1.style.top = `${evt.pixel[1] + 10}px`;
+    popup1.innerHTML = `
+      <b>Kachel:</b> ${props.tile_id}<br>
+      <b>Datum:</b> ${props.Aktualitaet}<br><br>
+      ${alreadyLoaded ? '<i>Bereits geladen</i><br><br>' : ''}
+      <button class="load-dgm-btn">DGM laden</button>
+    `;
+    popup1.style.display = 'block';
+
+    const loadBtn = popup1.querySelector('.load-dgm-btn');
+    if (loadBtn) {
+      loadBtn.onclick = async () => {
+        if (!alreadyLoaded) {
+          await addDgmLayer(map, tifUrl, bbox, props.tile_id);
+          loadedDgms.push({ tile_id: props.tile_id, bbox });
+        }
+        popup1.style.display = 'none';
+      };
+    }
+  });
+
+  if (!featureFound) popup1.style.display = 'none';
+}
+
+// 🔵 SPEZIALISIERTER FALL 2: Höhenabfrage
+export function handleHeightQuery(map, evt, visibleDgmLayers) {
+  const popup1 = getOrCreatePopup1(map);
+  const coord = map.getCoordinateFromPixel(evt.pixel);
+  let height = null;
+  let foundLayer = null;
+
+  for (const layer of visibleDgmLayers) {
+    if (layer.bbox && containsCoordinate(layer.bbox, coord)) {
+      const data = layer.getData(evt.pixel);
+      if (data && data[0] !== -9999 && !Number.isNaN(data[0])) {
+        height = data[0];
+        foundLayer = layer;
+        break;
+      }
+    }
+  }
+
+  if (height !== null) {
+    popup1.style.left = `${evt.pixel[0] + 10}px`;
+    popup1.style.top = `${evt.pixel[1] - 15}px`;
+    const layerNr = foundLayer.get('name').split('_')[0];
+    popup1.innerHTML = `H_Nr_${layerNr}:<br><b>${height.toFixed(2)} m</b>`;
+    popup1.style.display = 'block';
+  } else {
+    popup1.style.display = 'none';
+  }
+}
+
+import { loadedDgms } from './dgmdom.js';  
+import { activeDgmRasterLayers } from './dgmdom.js'
+import { addDgmLayer } from './dgmdom.js';
+import {  createEmpty,  extend,  containsCoordinate} from 'ol/extent.js';
+export function initMapClick(map) {
   map.on('singleclick', function (evt) {
-    // für Handy
+    
+    // --- 1. DGM-LOGIK (PRIORISIERT) ---
+    
+    // Check: Ist der Kachel-Modus im Layer-Switcher aktiv?
+    if (isDgmKachelActive(map)) {
+      handleKachelSelection(map, evt); // Deine neue spezialisierte Funktion
+      return; // Hier abbrechen: Keine Tabellen-Updates oder WMS-Abfragen!
+    }
+
+    // Prüfen, ob Raster-DGM Layer da sind für Höhenabfrage
+    const visibleDgmLayers = activeDgmRasterLayers.filter(l => l.getVisible());
+    if (visibleDgmLayers.length > 0) {
+      handleHeightQuery(map, evt, visibleDgmLayers); // Deine neue spezialisierte Funktion
+      // Kein return, damit parallel auch die Tabelle/WMS laden kann
+    } else {
+      const p = document.getElementById('popup1');
+      if (p) p.style.display = 'none';
+    }
+
+    // --- 2. ALLGEMEINE KLICK-VORBEREITUNG ---
+
     clearHighlightedFeature();
     
     const now = Date.now();
-    if (now - lastTap < 250) {
-    // zweiter Tap → ignorieren
-    return;
-    }
+    if (now - lastTap < 250) return; // Double-Tap Schutz
     lastTap = now;
     
-    // 1. Sofortiges Feedback: Popup schließen, wenn Tabelle nicht aktiv ist
+    // Popup schließen, wenn Tabelle nicht aktiv ist
     if (!isTableEnabled()) {
-      
       popupOverlay.setPosition(undefined);
     }
+
+    // --- 3. WMS & VEKTOR ABFRAGEN (FÜR TABELLE / POPUP) ---
+
     const requestId = ++latestClickRequestId;
     const promises = [];
     const viewResolution = map.getView().getResolution();
     const coord = evt.coordinate;
     
-    // Aktuelle Ergebnisse zurücksetzen
     currentClickResults = {};
     const allLayers = getAllLayers(map);
+
     allLayers.forEach((obj) => {
       const layer = obj.layer;
       if (obj.visible && layer.getSource()?.getFeatureInfoUrl) {
@@ -67,9 +180,7 @@ export function initMapClick(map) {
         
         function requestFeatureInfo(infoFormat) {
           const url = layer.getSource().getFeatureInfoUrl(
-            coord,
-            viewResolution,
-            'EPSG:3857',
+            coord, viewResolution, 'EPSG:3857',
             { ...baseParams, INFO_FORMAT: infoFormat }
           );
 
@@ -79,18 +190,12 @@ export function initMapClick(map) {
             .then((text) => {
               if (requestId !== latestClickRequestId) return null;
               if (text.includes('ServiceException')) return null;
-              
               return text;
-          });
-
+            });
         }
-        //normaler-Layer ??
-        const promise = requestFeatureInfo('text/xml')
-          .then((responseText) => {
-            if (responseText) return responseText;
-            return requestFeatureInfo('text/html');
-          })
 
+        const promise = requestFeatureInfo('text/xml')
+          .then((responseText) => responseText || requestFeatureInfo('text/html'))
           .then((responseText) => {
             if (!responseText) return;
             let data = [];
@@ -104,31 +209,24 @@ export function initMapClick(map) {
             }
 
             if (data.length > 0) {
-              // 👉 WMS-Daten mit Koordinaten und Layername "impfen"
               data.forEach(item => {
                 item._clickCoord = coord;
                 item.origin_layer = name;
               });
-
-              currentClickResults[name] = {
-                data: data,
-                layer: layer
-              };
+              currentClickResults[name] = { data: data, layer: layer };
             }
           })
-          .catch((error) => {
-            console.warn(`GetFeatureInfo Fehler bei '${name}':`, error);
-          });
+          .catch((err) => console.warn(`Fehler bei '${name}':`, err));
 
         promises.push(promise);
       }
     });
 
-    // WMS-Anfragen
+    // --- 4. ERGEBNISSE VERARBEITEN ---
+
     Promise.all(promises).then(() => {
       if (requestId !== latestClickRequestId) return;
 
-      // 2. Vektor-Features abrufen und ebenfalls impfen
       const vectorResults = getVectorFeaturesAtClick(map, evt);
       Object.keys(vectorResults).forEach((layerName) => {
         const entry = vectorResults[layerName];
@@ -142,13 +240,12 @@ export function initMapClick(map) {
       const layerNames = Object.keys(currentClickResults);
       if (layerNames.length === 0) return;
 
-      // 👉 FALL 1: Tabelle aktiv (Split-Screen)
       if (isTableEnabled()) {
-        const clickedFeatureData = currentClickResults[layerNames[0]].data[0].properties;
+        const firstLayerData = currentClickResults[layerNames[0]];
+        const clickedFeatureData = firstLayerData.data[0].properties;
         const selector = document.getElementById('layer-selector');
         const currentSelectedLayer = selector ? selector.value : "unknown";
         
-        // Prüfen, ob wir bereits im richtigen Layer sind -> dann nur Scrollen
         if (typeof table !== 'undefined' && table && currentSelectedLayer === layerNames[0]) {
           const idKey = (currentSelectedLayer === 'fsk') ? 'OBJECTID' : 'ID_con';
           const featureId = clickedFeatureData[idKey];
@@ -164,20 +261,14 @@ export function initMapClick(map) {
           }
         }
 
-        // Andernfalls: Tabelle neu laden (Daten enthalten nun _clickCoord)
         updateSelector(layerNames);
-   showTableDebounced(
-  entry.data.map(item => item.properties)
-);
+        showTableDebounced(firstLayerData.data.map(item => item.properties));
+      } else {
+        handleClickResult(currentClickResults, coord);
       }
-
-     // 👉 FALL 2: Tabelle NICHT aktiv → Popup anzeigen
-    handleClickResult(currentClickResults, coord);
-
     });
   });
 }
-
 async function handleClickResult(currentClickResults, coord) {
 
   // =====================================================
@@ -349,6 +440,7 @@ export function getAllLayers(layerGroup, parentVisible = true, groupTitle = null
 
   return layers;
 }
+
 function askUserToChoose(currentClickResults) {
 
   return new Promise(resolve => {
@@ -688,7 +780,7 @@ export function switcherDrawList(layerSwitcher) {
   var layer = evt.layer;
   // Klick-Listener auf den Label-Text hinzufügen
   evt.li.querySelector('label').addEventListener('click', () => {
-    //console.log(layer.get('title') +' Sichtbarkeit: '+ layer.getVisible());
+    console.log(layer.get('title') +' Sichtbarkeit: '+ layer.getVisible());
   });
 });
 }
@@ -698,7 +790,7 @@ layerSwitcher.on('drawlist', (evt) => {
   var layer = evt.layer;
   // Klick-Listener auf den Label-Text hinzufügen
   evt.li.querySelector('label').addEventListener('click', () => {
-    //console.log(layer.get('title') +' Toggle: '+ layer.getVisible());
+    console.log(layer.get('title') +' Toggle: '+ layer.getVisible());
   });
 });
 }
@@ -978,11 +1070,9 @@ function buildPopupContent(featureOrProps, layerName) {
     html += `<strong>${ueberschrift}</strong><br>`;
     html += `<span>${info}</span><br>`;
 
-  } else if (
-    normalizedLayerName === 'dgmkacheln' ||
-    normalizedLayerName === 'domkacheln'
-  ) {
-
+  } else if (normalizedLayerName === 'dgmkacheln' || normalizedLayerName === 'domkacheln')
+    {
+    console.log("hier muss doch was passieren, oder?")
     if (daten.tile_id) {
       html += `<strong>Kachel: ${daten.tile_id}</strong><br>`;
     }
@@ -998,8 +1088,7 @@ const preferredKeys = [
 
 // passendes Feld dynamisch suchen
 const dynamicKey = Object.keys(daten).find(key => {
-
-  const lower = key.toLowerCase();
+const lower = key.toLowerCase();
 
   return preferredKeys.some(word =>
     lower.includes(word)

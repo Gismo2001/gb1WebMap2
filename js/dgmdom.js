@@ -7,12 +7,12 @@ import { fromArrayBuffer } from 'geotiff';
 import {  createEmpty,  extend,  containsCoordinate} from 'ol/extent.js';
 
 
-let activeDgmRasterLayers = [];  
-let activeDgmRasterData = [];  
+export let activeDgmRasterLayers = [];  
+export let activeDgmRasterData = [];  
 
 let dgmClickListener = null;
 let dgmPointerMoveListener = null;
-let loadedDgms = [];   // speichert {tile_id, bbox}
+export let loadedDgms = [];   // speichert {tile_id, bbox}
 
 let activeDomRasterLayers = [];  
 let activeDomRasterData = [];  
@@ -245,22 +245,13 @@ export function createGeoTiffStyle(minHeight, maxHeight) {
 // 🟢 CLICK
 // =========================================================
 export async function handleDgmClick(map, evt) {
- const kachelnVisible =
-    dgmKachelLayer &&
-    dgmKachelLayer.getVisible();
-
-  // ---------------------------------------------------------
+  const kachelnVisible = dgmKachelLayer && dgmKachelLayer.getVisible();
+  
   // Popup holen / erzeugen
-  // ---------------------------------------------------------
-
   let popup1 = document.getElementById('popup1');
-
   if (!popup1) {
-
     popup1 = document.createElement('div');
-
     popup1.id = 'popup1';
-
     popup1.style.cssText = `
       position: absolute;
       background: white;
@@ -272,190 +263,97 @@ export async function handleDgmClick(map, evt) {
       min-width: 120px;
       box-shadow: 0 2px 10px rgba(0,0,0,0.25);
     `;
-
     map.getTargetElement().appendChild(popup1);
   }
 
-
   // =========================================================
-  // 🟢 FALL 1
-  // Kachel auswählen
+  // 🟢 FALL 1: Kachel auswählen
   // =========================================================
-
   if (kachelnVisible) {
-
     let featureFound = false;
 
-    map.forEachFeatureAtPixel(
+    map.forEachFeatureAtPixel(evt.pixel, (feature) => {
+      featureFound = true;
+      const props = feature.getProperties();
+      const bbox = feature.getGeometry().getExtent();
 
-      evt.pixel,
+      const tifUrl = props.dgm1.replace(
+        'https://dgm1.s3.eu-de.cloud-object-storage.appdomain.cloud',
+        '/dgm'
+      );
 
-      (feature) => {
+      const alreadyLoaded = loadedDgms.some(
+        d => d.tile_id === props.tile_id
+      );
 
-        featureFound = true;
+      popup1.style.left = `${evt.pixel[0] + 10}px`;
+      popup1.style.top = `${evt.pixel[1] + 10}px`;
 
-        const props = feature.getProperties();
+      popup1.innerHTML = `
+        <b>Kachel:</b> ${props.tile_id}<br>
+        <b>Datum:</b> ${props.Aktualitaet}<br><br>
+        ${alreadyLoaded ? '<i>Bereits geladen</i><br><br>' : ''}
+        <button class="load-dgm-btn">DGM laden</button>
+      `;
 
-        const bbox =
-          feature.getGeometry().getExtent();
+      popup1.style.display = 'block';
 
-        const tifUrl =
-          props.dgm1.replace(
-            'https://dgm1.s3.eu-de.cloud-object-storage.appdomain.cloud',
-            '/dgm'
-          );
-
-        const alreadyLoaded =
-          loadedDgms.some(
-            d => d.tile_id === props.tile_id
-          );
-
-        // -----------------------------------------------------
-        // Popup positionieren
-        // -----------------------------------------------------
-
-        popup1.style.left =
-          `${evt.pixel[0] + 10}px`;
-
-        popup1.style.top =
-          `${evt.pixel[1] + 10}px`;
-
-        // -----------------------------------------------------
-        // Popup Inhalt
-        // -----------------------------------------------------
-
-        popup1.innerHTML = `
-          <b>Kachel:</b> ${props.tile_id}<br>
-          <b>Datum:</b> ${props.Aktualitaet}<br><br>
-
-          ${
-            alreadyLoaded
-              ? '<i>Bereits geladen</i><br><br>'
-              : ''
+      const loadBtn = popup1.querySelector('.load-dgm-btn');
+      if (loadBtn) {
+        loadBtn.onclick = async () => {
+          if (!alreadyLoaded) {
+            await addDgmLayer(map, tifUrl, bbox, props.tile_id);
+            loadedDgms.push({ tile_id: props.tile_id, bbox });
           }
-
-          <button class="load-dgm-btn">
-            DGM laden
-          </button>
-        `;
-
-        popup1.style.display = 'block';
-
-        // -----------------------------------------------------
-        // Button
-        // -----------------------------------------------------
-
-        const loadBtn =
-          popup1.querySelector('.load-dgm-btn');
-
-        if (loadBtn) {
-
-          loadBtn.onclick = async () => {
-
-            if (!alreadyLoaded) {
-
-              await addDgmLayer(
-                map,
-                tifUrl,
-                bbox,
-                props.tile_id
-              );
-
-              loadedDgms.push({
-                tile_id: props.tile_id,
-                bbox
-              });
-            }
-
-            popup1.style.display = 'none';
-          };
-        }
-
-      },
-
-      {
-        //hitTolerance: 10
+          popup1.style.display = 'none';
+        };
       }
-    );
-
-    // 👉 Kein Feature getroffen
+    });
 
     if (!featureFound) {
       popup1.style.display = 'none';
     }
 
+    // ✨ WICHTIG: Wenn der Kachel-Layer aktiv ist, beenden wir HIER die Funktion immer.
+    // So wird "Fall 2" niemals erreicht, solange man im Kachel-Modus ist.
     return;
   }
 
+  // =========================================================
+  // 🔵 FALL 2: Höhe per Klick (wird nur erreicht, wenn kachelnVisible = false)
+  // =========================================================
+  const coord = map.getCoordinateFromPixel(evt.pixel);
+  const dgmLayers = activeDgmRasterLayers.filter(layer => layer.getVisible());
+  
+  if (dgmLayers.length === 0) {
+    popup1.style.display = 'none';
+    return;
+  }
 
-    // =========================================================
-    // 🔵 FALL 2
-    // Höhe per Klick
-    // =========================================================
-    
-    const coord =  map.getCoordinateFromPixel(evt.pixel);
-    
-    const dgmLayers =  activeDgmRasterLayers.filter( layer => layer.getVisible() );
-
-    if (dgmLayers.length === 0) {
-      popup1.style.display = 'none';
-      return;
-    }
-    
   let height = null;
   let foundLayer = null;
-  
+
   for (const layer of dgmLayers) {
-    if (
-      !layer.bbox ||
-      !containsCoordinate(layer.bbox, coord)
-    ) {
+    if (!layer.bbox || !containsCoordinate(layer.bbox, coord)) {
       continue;
     }
 
-    const data =
-      layer.getData(evt.pixel);
-    if (
-      data &&
-      data[0] !== -9999 &&
-      !Number.isNaN(data[0])
-    ) {
+    const data = layer.getData(evt.pixel);
+    if (data && data[0] !== -9999 && !Number.isNaN(data[0])) {
       height = data[0];
       foundLayer = layer;
       break;
     }
   }
 
-  // ---------------------------------------------------------
-  // Popup positionieren
-  // ---------------------------------------------------------
-
-  popup1.style.left =
-    `${evt.pixel[0] + 10}px`;
-
-  popup1.style.top =
-    `${evt.pixel[1] - 15}px`;
-
-  // ---------------------------------------------------------
-  // Inhalt
-  // ---------------------------------------------------------
+  popup1.style.left = `${evt.pixel[0] + 10}px`;
+  popup1.style.top = `${evt.pixel[1] - 15}px`;
 
   if (height !== null) {
-
-    const layerNr =
-      foundLayer
-        .get('name')
-        .split('_')[0];
-
-    popup1.innerHTML = `
-      H_Nr_${layerNr}:<br>
-      <b>${height.toFixed(2)} m</b>
-    `;
-
+    const layerNr = foundLayer.get('name').split('_')[0];
+    popup1.innerHTML = `H_Nr_${layerNr}:<br><b>${height.toFixed(2)} m</b>`;
   } else {
-
-    popup1.innerHTML =
-      `<i>Keine DGM-Daten</i>`;
+    popup1.innerHTML = `<i>Keine DGM-Daten</i>`;
   }
 
   popup1.style.display = 'block';
@@ -544,11 +442,9 @@ function handleDgmPointerMove(evt) {
   }
 }
 
-
 // =========================================================
 // 🟢 ENABLE
 // =========================================================
-
 export function enableDgmInteraction(map) {
 
   // CLICK
@@ -580,9 +476,6 @@ export function enableDgmInteraction(map) {
     );
   }
 }
-
-
-
 // =========================================================
 // 🔴 DISABLE
 // =========================================================

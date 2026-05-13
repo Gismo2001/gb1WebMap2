@@ -33,14 +33,17 @@ import { initPtn } from './js/ptn.js'; // 👈 Sicherstellen, dass initPtn impor
 import { initPrintControl } from './js/controls.js';
 import { initializeWMS } from './js/controls.js'; // Pfad anpassen
 
-import { isDgmActive, addDgmLayer, getLoadedDgmExtent,getLoadedDomExtent,getOverallDgmMinMax,getOverallDomMinMax, getMinMaxFromMetadata, enableDgmInteraction, createGeoTiffStyle} from './js/dgmdom.js';
-import { createDgmKachelLayer } from './js/layers.js';
+import { isDgmActive, addDgmLayer, getLoadedDgmExtent,getOverallDgmMinMax } from './js/dgmdom.js';
+import { isDomActive, addDomLayer, getLoadedDomExtent,getOverallDomMinMax } from './js/dgmdom.js';
+import { getMinMaxFromMetadata , createGeoTiffStyle } from './js/dgmdom.js';
+
+import { createDgmKachelLayer, createDomKachelLayer } from './js/layers.js';
+
 import { fromArrayBuffer } from 'geotiff';
 
-//let loadedDgms = [];   // speichert {tile_id, bbox}
-import { loadedDgms } from './js/dgmdom.js';  
+import { loadedDgms, loadedDoms } from './js/dgmdom.js';  
 let activeDgmRasterData = [];  
-
+let activeDomRasterData = [];  
 
 
 //Variable für die Split-Instanz, damit sie global zugänglich ist
@@ -79,22 +82,17 @@ switcherToggle(layerSwitcher);
 initializeWMS(map);
 
 map.updateSize();
-
-  export const dgmKachelLayer = createDgmKachelLayer();
-
-  const container = document.getElementById('popup-content');
-  container.addEventListener('click', async function (event) {
-
-    if (event.target.classList.contains('popup-link')) {
-
-      const tifUrl = event.target.dataset.tif;
-      const tileId = event.target.dataset.tile_id;
-      const bbox = JSON.parse(event.target.dataset.bbox);
-      
-      enableDgmInteraction(map);
-    
+export const dgmKachelLayer = createDgmKachelLayer();
+export const domKachelLayer = createDomKachelLayer();
+const container = document.getElementById('popup-content');
+//Hier vielleicht if für dgm oder dom
+container.addEventListener('click', async function (event) {
+  if (event.target.classList.contains('popup-link')) {
+    const tifUrl = event.target.dataset.tif;
+    const tileId = event.target.dataset.tile_id;
+    const bbox = JSON.parse(event.target.dataset.bbox);
+    enableDgmInteraction(map);
     const dgmData = await addDgmLayer(map, tifUrl, bbox, tileId);
-    
     const totalBBox = getLoadedDgmExtent();
     if (totalBBox) {
       // map.getView().fit(totalBBox, { padding: [50,50,50,50], duration: 700 });
@@ -102,7 +100,7 @@ map.updateSize();
     container.style.display = 'none';
   }
 });
-
+  
 document.getElementById('layer-selector').addEventListener('change', () => {
   // 1. Hole WMS Klick-Daten
   const clickResults = getClickResults();
@@ -114,15 +112,11 @@ document.getElementById('layer-selector').addEventListener('change', () => {
   switchLayerData(combinedResults);
 });
 
-// nach map-Erstellung
 initTable(map);
-initPtn(map);   // 👈 Diesen Aufruf unbedingt hinzufügen!
+initPtn(map); 
 
 //Eventlistener für den "Schließen"-Button der Tabelle, damit die Karte wieder 100% bekommt
-document.getElementById('close-table-btn') 
-  .addEventListener('click', closeTable);
-
-
+document.getElementById('close-table-btn').addEventListener('click', closeTable);
 map.on('moveend', () => {
   // Nur wenn der User die Tabelle offen hat, führen wir das Update aus
   if (getTableActive()) {

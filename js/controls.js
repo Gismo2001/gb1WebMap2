@@ -12,7 +12,7 @@ import { closeTable } from './table.js';
 import { isGpsTrackingActive, startGpsTracking, stopGpsTracking } from './gps.js';
 import { handleCRSChange, ptnDelFindCoord, initPtn } from './ptn.js';
 
-import { createDgmKachelLayer, createDomKachLayer } from './layers.js';
+import { createDgmKachelLayer, createDomKachelLayer } from './layers.js';
 
 import { saveAs } from 'file-saver';
 import { jsPDF } from 'jspdf';
@@ -25,6 +25,7 @@ import { fileToggleInput } from './mapEvents.js';
 import { Style, Text } from 'ol/style';
 
 import { isDgmActive, setDgmActive, disableDgmInteraction  } from './dgmdom.js';
+import { isDomActive, setDomActive, disableDomInteraction  } from './dgmdom.js';
 
 
 let isTableActive = false;
@@ -60,6 +61,7 @@ export function createMainToolbar(map) {
     className: 'main-toolbar',
   });
 
+  // --- Toggle-Button Info ---
   const toggleBtn1 = new Toggle({
     html: 'I',
     title: 'Info Haupt',
@@ -67,36 +69,17 @@ export function createMainToolbar(map) {
     active: false,
     bar: createSubBarI(map),
   });
-  const DgmKachelLayer = createDgmKachelLayer();
-  //dgm/dom toggle button
+
+  // --- NEU: DGM/DOM Hauptbutton mit Sub-Bar ---
   const toggleBtn2 = new Toggle({
     html: 'W',
-    title: 'DGM_DOM_Kacheln',
-    onToggle: function (active) {
-      if (active) {
-         setDgmActive(true);
-        
-        // Prüfen, ob der Layer schon auf der Karte ist, falls nicht: hinzufügen
-        if (!map.getLayers().getArray().includes(DgmKachelLayer)) {
-          map.addLayer(DgmKachelLayer);
-        }
-        DgmKachelLayer.set('displayInLayerSwitcher', true);
-        DgmKachelLayer.setVisible(true);
-        //DgmLayer.set('displayInLayerSwitcher', true);
-        
-      
-      } else if (!active) {
-          setDgmActive(false);
-          console.log(isDgmActive);
-          disableDgmInteraction();
-        //DgmLayer.set('displayInLayerSwitcher', false);
-        //DgmLayer.setVisible(false); 
-        //map.removeLayer(DgmKachelLayer);
-        
-      }
-    },
+    title: 'DGM / DOM Auswahl',
+    className: 'DgmDomHaupt',
+    active: false,
+    bar: createSubBarW(map), // Hier wird die neue Sub-Bar zugewiesen
   });
 
+  // --- Toggle-Button Tabelle ---
   const toggleBtn3 = new Toggle({
     html: 'T',
     title: 'Tabelle Haupt',
@@ -104,20 +87,17 @@ export function createMainToolbar(map) {
     active: false,
     bar: createSubBarT(map),
   });
-  mainTableBtnInstance = toggleBtn3; // Instanz speichern
+
+  mainTableBtnInstance = toggleBtn3;
   const allBtns = [toggleBtn1, toggleBtn2, toggleBtn3];
 
+  // (Deine bestehende Change-Active Logik bleibt gleich...)
   allBtns.forEach((btn) => {
     btn.on('change:active', (e) => {
       if (!e.active) return;
-
-      // --- GEÄNDERTE LOGIK ---
       allBtns.filter((b) => b !== btn).forEach((b) => {
-        // Ausnahme: Wenn "I" geklickt wird, soll "T" nicht deaktiviert werden.
-        // Und wenn "T" geklickt wird, soll "I" nicht deaktiviert werden.
         const isInfoTableCombo = (btn === toggleBtn1 && b === toggleBtn3) || 
                                  (btn === toggleBtn3 && b === toggleBtn1);
-
         if (!isInfoTableCombo) {
           b.setActive(false);
         }
@@ -132,7 +112,6 @@ export function createMainToolbar(map) {
 
   return bar;
 }
-
 export function createSubBarT(map) {
   const tableToggleBtn = new Toggle({
     html: '<i class="fa fa-table" aria-hidden="true"></i>',
@@ -218,7 +197,54 @@ export function createSubBarI(map) { // GPS - Punkt setzen
 return new Bar({ toggleOne: true, controls: [gpsToggleBtn, ptnToogleBtn, fileToogleBtn ] });
 }
 
+export function createSubBarW(map) {
+  const DgmKachelLayer = createDgmKachelLayer();
+  const DomKachelLayer = createDomKachelLayer();
 
+  // Button für DGM
+  const dgmSubBtn = new Toggle({
+    html: '<i class="fa fa-map"></i>',
+    title: "DGM laden",
+    onToggle: function (active) {
+      setDgmActive(active); // Angenommen, diese Funktion steuert die Interaktion
+      if (active) {
+        if (!map.getLayers().getArray().includes(DgmKachelLayer)) {
+          map.addLayer(DgmKachelLayer);
+        }
+        DgmKachelLayer.setVisible(true);
+        DgmKachelLayer.set('displayInLayerSwitcher', true);
+      } else {
+        DgmKachelLayer.setVisible(false);
+        disableDgmInteraction();
+      }
+    },
+  });
+
+  // Button für DOM
+  const domSubBtn = new Toggle({
+    html: '<i class="fa-solid fa-file"></i>',
+    title: "DOM laden",
+    onToggle: function (active) {
+      // Hier analoge Funktionen für DOM (müsstest du ggf. in deiner dgmdom.js anlegen)
+      setDomActive(active); 
+      if (active) {
+        if (!map.getLayers().getArray().includes(DomKachelLayer)) {
+          map.addLayer(DomKachelLayer);
+        }
+        DomKachelLayer.setVisible(true);
+        DomKachelLayer.set('displayInLayerSwitcher', true);
+      } else {
+        DomKachelLayer.setVisible(false);
+        disableDomInteraction();
+      }
+    },
+  });
+
+  return new Bar({ 
+    toggleOne: true, // Stellt sicher, dass man nicht DGM und DOM gleichzeitig in dieser Bar aktiviert
+    controls: [dgmSubBtn, domSubBtn] 
+  });
+}
 
 export function createDataTable(map) {
   const table = new Tabulator('#wms_data_table', {

@@ -817,7 +817,7 @@ export function createDgmKachelLayer() {
   });
 }
 
-export function createDomKachLayer() {
+export function createDomKachelLayer() {
   return new VectorLayer({
     source: new VectorSource({
       format: new GeoJSON(),
@@ -906,8 +906,8 @@ export function createLayerStructure() {
   const sonPun = createExpBwSonPunLayer();
 
   //DGM/DOM-Kacheln
-  //const DgmKacheln = createDgmKachLayer();
-  //const DomKacheln = createDomKachLayer();
+  //const DgmKacheln = createDgmKachelLayer();
+  //const DomKacheln = createDomKachelLayer();
    
 
   return [

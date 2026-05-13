@@ -16,6 +16,7 @@ import Overlay from 'ol/Overlay.js';
 import { toStringHDMS } from 'ol/coordinate'; // z.B. für Koordinatenanzeige
 
 import { isDgmActive, setDgmActive } from './dgmdom.js';
+import { isDomActive, setDomActive } from './dgmdom.js';
 
 let currentClickResults = {};
 let latestClickRequestId = 0;
@@ -26,7 +27,7 @@ let popupContent;
 //für Handy
 let lastTap = 0;
 
-// Prüft, ob der Kachel-Layer im Layer-Switcher sichtbar ist
+// Prüft, ob der DGM-Kachel-Layer im Layer-Switcher sichtbar ist
 function isDgmKachelActive(map) {
   if (typeof getAllLayers !== 'function') return false;
   
@@ -38,6 +39,19 @@ function isDgmKachelActive(map) {
   
   return kachelLayerObj ? kachelLayerObj.visible : false;
 }
+// Prüft, ob der DOM-Kachel-Layer im Layer-Switcher sichtbar ist
+function isDomKachelActive(map) {
+  if (typeof getAllLayers !== 'function') return false;
+  
+  const allLayers = getAllLayers(map.getLayerGroup());
+  const kachelLayerObj = allLayers.find(obj => 
+    (obj.layer.get('name') || '').toLowerCase() === 'dom-kacheln' || 
+    (obj.layer.get('title') || '').toLowerCase() === 'dom-kacheln'
+  );
+  
+  return kachelLayerObj ? kachelLayerObj.visible : false;
+}
+
 
 // Erstellt das Popup, falls es noch nicht existiert
 function getOrCreatePopup1(map) {
@@ -55,29 +69,27 @@ function getOrCreatePopup1(map) {
   return popup1;
 }
 
-// 🟢 SPEZIALISIERTER FALL 1: Kachelauswahl
-export function handleKachelSelection(map, evt) {
+// 🟢 SPEZIALISIERTER FALL 1a: Kachelauswahl dgm
+export function handleDgmKachelSelection(map, evt) {
   const popup1 = getOrCreatePopup1(map);
   let featureFound = false;
-
   map.forEachFeatureAtPixel(evt.pixel, (feature) => {
     featureFound = true;
     const props = feature.getProperties();
     const bbox = feature.getGeometry().getExtent();
     const tifUrl = props.dgm1.replace('https://dgm1.s3.eu-de.cloud-object-storage.appdomain.cloud', '/dgm');
     const alreadyLoaded = loadedDgms.some(d => d.tile_id === props.tile_id);
-
     popup1.style.left = `${evt.pixel[0] + 10}px`;
     popup1.style.top = `${evt.pixel[1] + 10}px`;
+    popup1.style.width = `30px`;
     popup1.innerHTML = `
       <b>Kachel:</b> ${props.tile_id}<br>
       <b>Datum:</b> ${props.Aktualitaet}<br><br>
       ${alreadyLoaded ? '<i>Bereits geladen</i><br><br>' : ''}
-      <button class="load-dgm-btn">DGM laden</button>
+      <button class="load-kachel-btn">DGM laden</button>
     `;
     popup1.style.display = 'block';
-
-    const loadBtn = popup1.querySelector('.load-dgm-btn');
+    const loadBtn = popup1.querySelector('.load-kachel-btn');
     if (loadBtn) {
       loadBtn.onclick = async () => {
         if (!alreadyLoaded) {
@@ -88,12 +100,44 @@ export function handleKachelSelection(map, evt) {
       };
     }
   });
-
+  if (!featureFound) popup1.style.display = 'none';
+}
+// 🟢 SPEZIALISIERTER FALL 1b: Kachelauswahl dom
+export function handleDomKachelSelection(map, evt) {
+  const popup1 = getOrCreatePopup1(map);
+  let featureFound = false;
+  map.forEachFeatureAtPixel(evt.pixel, (feature) => {
+    featureFound = true;
+    const props = feature.getProperties();
+    const bbox = feature.getGeometry().getExtent();
+    const tifUrl = props.dom1.replace('https://dom1.s3.eu-de.cloud-object-storage.appdomain.cloud', '/dom');
+    const alreadyLoaded = loadedDoms.some(d => d.tile_id === props.tile_id);
+    popup1.style.left = `${evt.pixel[0] + 10}px`;
+    popup1.style.top = `${evt.pixel[1] + 10}px`;
+    popup1.innerHTML = `
+      <b>Kachel:</b> ${props.tile_id}<br>
+      <b>Datum:</b> ${props.Aktualitaet}<br><br>
+      ${alreadyLoaded ? '<i>Bereits geladen</i><br><br>' : ''}
+      <button class="load-kachel-btn">DOM laden</button>
+    `;
+    popup1.style.display = 'block';
+    const loadBtn = popup1.querySelector('.load-kachel-btn');
+    if (loadBtn) {
+      loadBtn.onclick = async () => {
+        if (!alreadyLoaded) {
+          await addDomLayer(map, tifUrl, bbox, props.tile_id);
+          loadedDoms.push({ tile_id: props.tile_id, bbox });
+        }
+        popup1.style.display = 'none';
+      };
+    }
+  });
   if (!featureFound) popup1.style.display = 'none';
 }
 
-// 🔵 SPEZIALISIERTER FALL 2: Höhenabfrage
-export function handleHeightQuery(map, evt, visibleDgmLayers) {
+
+// 🔵 SPEZIALISIERTER FALL 2a: Höhenabfrage DGM
+export function handleDgmHeightQuery(map, evt, visibleDgmLayers) {
   const popup1 = getOrCreatePopup1(map);
   const coord = map.getCoordinateFromPixel(evt.pixel);
   let height = null;
@@ -113,8 +157,38 @@ export function handleHeightQuery(map, evt, visibleDgmLayers) {
   if (height !== null) {
     popup1.style.left = `${evt.pixel[0] + 10}px`;
     popup1.style.top = `${evt.pixel[1] - 15}px`;
+    popup1.style.width = `30px`;
     const layerNr = foundLayer.get('name').split('_')[0];
-    popup1.innerHTML = `<b>H:${height.toFixed(2)} m</b>`;
+    popup1.innerHTML = `<b>DGM-H:${height.toFixed(2)} m</b>`;
+    popup1.style.display = 'block';
+  } else {
+    popup1.style.display = 'none';
+  }
+}
+
+// 🔵 SPEZIALISIERTER FALL 2b: Höhenabfrage DOM
+export function handleDomHeightQuery(map, evt, visibleDomLayers) {
+  const popup1 = getOrCreatePopup1(map);
+  const coord = map.getCoordinateFromPixel(evt.pixel);
+  let height = null;
+  let foundLayer = null;
+
+  for (const layer of visibleDomLayers) {
+    if (layer.bbox && containsCoordinate(layer.bbox, coord)) {
+      const data = layer.getData(evt.pixel);
+      if (data && data[0] !== -9999 && !Number.isNaN(data[0])) {
+        height = data[0];
+        foundLayer = layer;
+        break;
+      }
+    }
+  }
+
+  if (height !== null) {
+    popup1.style.left = `${evt.pixel[0] + 10}px`;
+    popup1.style.top = `${evt.pixel[1] - 15}px`;
+    const layerNr = foundLayer.get('name').split('_')[0];
+    popup1.innerHTML = `<b>DOM-H:${height.toFixed(2)} m</b>`;
     popup1.style.display = 'block';
   } else {
     popup1.style.display = 'none';
@@ -122,34 +196,43 @@ export function handleHeightQuery(map, evt, visibleDgmLayers) {
 }
 
 
-import { loadedDgms } from './dgmdom.js';  
-import { activeDgmRasterLayers } from './dgmdom.js'
-import { addDgmLayer } from './dgmdom.js';
-import  {handleDgmPointerMove } from './dgmdom.js'
+import { loadedDgms, loadedDoms } from './dgmdom.js';  
+import { activeDgmRasterLayers, activeDgmRasterData } from './dgmdom.js'
+import { activeDomRasterLayers, activeDomRasterData } from './dgmdom.js'
+import { addDgmLayer, addDomLayer } from './dgmdom.js';
+import  {handleDgmPointerMove, handleDomPointerMove } from './dgmdom.js'
 import {  createEmpty,  extend,  containsCoordinate} from 'ol/extent.js';
 export function initMapClick(map) {
   map.on('singleclick', function (evt) {
-    
-    // --- 1. DGM-LOGIK (PRIORISIERT) ---
+    // --- 1. DGM- und DOM- LOGIK (PRIORISIERT) ---
     
     // Check: Ist der Kachel-Modus im Layer-Switcher aktiv?
     if (isDgmKachelActive(map)) {
-      handleKachelSelection(map, evt); // Deine neue spezialisierte Funktion
+      handleDgmKachelSelection(map, evt); // Deine neue spezialisierte Funktion
+      return; // Hier abbrechen: Keine Tabellen-Updates oder WMS-Abfragen!
+    }
+    // Check: Ist der Kachel-Modus im Layer-Switcher aktiv?
+    if (isDomKachelActive(map)) {
+      handleDomKachelSelection(map, evt); // Deine neue spezialisierte Funktion
       return; // Hier abbrechen: Keine Tabellen-Updates oder WMS-Abfragen!
     }
 
-    // Prüfen, ob Raster-DGM Layer da sind für Höhenabfrage
+    // Prüfen, ob Raster-DGM oder -DOM Layer da sind für Höhenabfrage
     const visibleDgmLayers = activeDgmRasterLayers.filter(l => l.getVisible());
+    const visibleDomLayers = activeDomRasterLayers.filter(l => l.getVisible());
     if (visibleDgmLayers.length > 0) {
-      handleHeightQuery(map, evt, visibleDgmLayers); // Deine neue spezialisierte Funktion
+      handleDgmHeightQuery(map, evt, visibleDgmLayers); // Deine neue spezialisierte Funktion
+      // Kein return, damit parallel auch die Tabelle/WMS laden kann
+    } else if(visibleDomLayers.length > 0) {
+      handleDomHeightQuery(map, evt, visibleDomLayers); // Deine neue spezialisierte Funktion
       // Kein return, damit parallel auch die Tabelle/WMS laden kann
     } else {
       const p = document.getElementById('popup1');
       if (p) p.style.display = 'none';
     }
 
-    // --- 2. ALLGEMEINE KLICK-VORBEREITUNG ---
 
+    // --- 2. ALLGEMEINE KLICK-VORBEREITUNG ---
     clearHighlightedFeature();
     
     const now = Date.now();
@@ -224,7 +307,6 @@ export function initMapClick(map) {
 
     // --- 4. ERGEBNISSE VERARBEITEN ---
     Promise.all(promises).then(() => {
-      console.log ('MapEvents Ergebniss, promise aufgerufen')
       if (requestId !== latestClickRequestId) return;
       const vectorResults = getVectorFeaturesAtClick(map, evt);
       Object.keys(vectorResults).forEach((layerName) => {
@@ -267,11 +349,9 @@ export function initMapClick(map) {
 }
 
 const featureId =
-  clickedFeatureData[idKey];
-          
-          const rows = table.searchRows(idKey, "=", featureId);
-
-          if (rows.length > 0) {
+clickedFeatureData[idKey];
+const rows = table.searchRows(idKey, "=", featureId);
+if (rows.length > 0) {
             const targetRow = rows[0];
             table.deselectRow();
             targetRow.select();
@@ -291,27 +371,43 @@ const featureId =
       }
     });
   });
-  map.on('pointermove', handleDgmPointerMove);
+  map.on('pointermove', handleCombinedPointerMove);
+  
 }
+
+function handleCombinedPointerMove(evt) {
+  if (evt.dragging) return;
+
+  // 1. Prüfen, ob DGM-Raster aktiv sind
+  const visibleDgmLayers = activeDgmRasterLayers.filter(l => l.getVisible());
+  if (visibleDgmLayers.length > 0) {
+    handleDgmPointerMove(evt); 
+    return; // DGM hat Vorrang
+  }
+
+  // 2. Wenn kein DGM, prüfe DOM-Raster
+  const visibleDomLayers = activeDomRasterLayers.filter(l => l.getVisible());
+  if (visibleDomLayers.length > 0) {
+    handleDomPointerMove(evt);
+    return;
+  }
+
+  // 3. Wenn nichts davon aktiv ist, Status ausblenden
+  const heightStatus = document.getElementById('height-status-container');
+  if (heightStatus) heightStatus.style.display = 'none';
+}
+
+
 async function handleClickResult(currentClickResults, coord) {
-
-  // =====================================================
-  // Duplikate entfernen
-  // =====================================================
-
+// =====================================================
+// Duplikate entfernen
+// =====================================================
   for (const layerName of Object.keys(currentClickResults)) {
-
     const entry = currentClickResults[layerName];
-
-    console.log("entry: ", entry);
-
     const seen = new Set();
-
     entry.data = entry.data.filter((item) => {
-
       // VectorFeature ODER WMS
       const props = item.properties || item;
-
       const id =
         props.OBJECTID ||
         props.ID_con ||
@@ -324,9 +420,7 @@ async function handleClickResult(currentClickResults, coord) {
       if (seen.has(id)) {
         return false;
       }
-
       seen.add(id);
-
       return true;
     });
   }
@@ -336,20 +430,11 @@ async function handleClickResult(currentClickResults, coord) {
   // =====================================================
 
   const layerNames = Object.keys(currentClickResults);
-
   let chosenLayer = layerNames[0];
   let chosenIndex = 0;
-
-  const needsSelection =
-    !isDgmActive &&
-    (
-      layerNames.length > 1 ||
-      currentClickResults[layerNames[0]].data.length > 1
-    );
-
-  if (needsSelection) {
-
-    const choice =
+  const needsSelection = !isDgmActive && !isDomActive && (layerNames.length > 1 || currentClickResults[layerNames[0]].data.length > 1 );
+if (needsSelection) {
+  const choice =
       await askUserToChoose(currentClickResults);
 
     if (!choice) return;
@@ -828,11 +913,9 @@ export function updateTableFromVisibleLayers(map) {
 //Eventhandler für Layerswitcher Click (nur bestimmte Element, z.B. Gruppe öffnen)
 export function switcherDrawList(layerSwitcher) {
   layerSwitcher.on('drawlist', (evt) => {
-  
   var layer = evt.layer;
-  // Klick-Listener auf den Label-Text hinzufügen
   evt.li.querySelector('label').addEventListener('click', () => {
-    console.log(layer.get('title') +' Sichtbarkeit: '+ layer.getVisible());
+    //console.log(layer.get('title') +' Sichtbarkeit: '+ layer.getVisible());
   });
 });
 }
@@ -840,9 +923,8 @@ export function switcherDrawList(layerSwitcher) {
 export function switcherToggle(layerSwitcher) {
 layerSwitcher.on('drawlist', (evt) => {
   var layer = evt.layer;
-  // Klick-Listener auf den Label-Text hinzufügen
   evt.li.querySelector('label').addEventListener('click', () => {
-    console.log(layer.get('title') +' Toggle: '+ layer.getVisible());
+    //console.log(layer.get('title') +' Toggle: '+ layer.getVisible());
   });
 });
 }
@@ -1102,17 +1184,9 @@ function buildPopupContent(featureOrProps, layerName) {
   // =====================================================
   // Überschrift
   // =====================================================
-
-  const normalizedLayerName =
-    layerName.toLowerCase();
-
+  const normalizedLayerName = layerName.toLowerCase();
   if (normalizedLayerName === 'fsk') {
-
-    const ueberschrift =
-      daten.Eig1
-        ? `Eigentümer: ${daten.Eig1}`
-        : 'Keine Bezeichnung';
-
+    const ueberschrift = daten.Eig1 ? `Eigentümer: ${daten.Eig1}` : 'Keine Bezeichnung';
     const info =
       `Gemark: ${daten.Gemark}<br>` +
       `ID: ${daten.fsk}<br>` +
@@ -1122,15 +1196,15 @@ function buildPopupContent(featureOrProps, layerName) {
     html += `<strong>${ueberschrift}</strong><br>`;
     html += `<span>${info}</span><br>`;
 
-  } else if (normalizedLayerName === 'dgmkacheln' || normalizedLayerName === 'domkacheln')
-    {
-    console.log("hier muss doch was passieren, oder?")
+  } else if (normalizedLayerName === 'dgmkacheln' || normalizedLayerName === 'domkacheln') 
+   
+  {
     if (daten.tile_id) {
       html += `<strong>Kachel: ${daten.tile_id}</strong><br>`;
     }
 
   } else {
-const preferredKeys = [
+  const preferredKeys = [
   'name',
   'bezeich',
   'titel',

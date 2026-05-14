@@ -1,5 +1,3 @@
-// js/mapEvents.js
-
 import { updateSelector, showTableDebounced, closeTable } from './table.js';
 
 import { isTableEnabled } from './controls.js';
@@ -17,6 +15,7 @@ import { toStringHDMS } from 'ol/coordinate'; // z.B. für Koordinatenanzeige
 
 import { isDgmActive, setDgmActive } from './dgmdom.js';
 import { isDomActive, setDomActive } from './dgmdom.js';
+import { profileMode } from './chart.js';
 
 let currentClickResults = {};
 let latestClickRequestId = 0;
@@ -138,6 +137,11 @@ export function handleDomKachelSelection(map, evt) {
 
 // 🔵 SPEZIALISIERTER FALL 2a: Höhenabfrage DGM
 export function handleDgmHeightQuery(map, evt, visibleDgmLayers) {
+  // Wenn der Profilmodus aktiv ist, darf hier nichts passieren
+  if (profileMode) {
+    console.log("Klick-Interaktion ignoriert, da Profilmodus aktiv.");
+    return; 
+  }
   const popup1 = getOrCreatePopup1(map);
   const coord = map.getCoordinateFromPixel(evt.pixel);
   let height = null;
@@ -168,6 +172,11 @@ export function handleDgmHeightQuery(map, evt, visibleDgmLayers) {
 
 // 🔵 SPEZIALISIERTER FALL 2b: Höhenabfrage DOM
 export function handleDomHeightQuery(map, evt, visibleDomLayers) {
+  // Wenn der Profilmodus aktiv ist, darf hier nichts passieren
+  if (profileMode) {
+    console.log("Klick-Interaktion ignoriert, da Profilmodus aktiv.");
+    return; 
+  }
   const popup1 = getOrCreatePopup1(map);
   const coord = map.getCoordinateFromPixel(evt.pixel);
   let height = null;
@@ -399,6 +408,11 @@ function handleCombinedPointerMove(evt) {
 
 
 async function handleClickResult(currentClickResults, coord) {
+  // Wenn der Profilmodus aktiv ist, darf hier nichts passieren
+  if (profileMode) {
+    console.log("Klick-Interaktion ignoriert, da Profilmodus aktiv.");
+    return; 
+  }
 // =====================================================
 // Duplikate entfernen
 // =====================================================

@@ -3,18 +3,21 @@ import { Draw } from 'ol/interaction.js';
 import LineString from 'ol/geom/LineString';
 import { containsCoordinate } from 'ol/extent.js';
 // Importiere die aktiven Layer aus deiner dgmdom.js
-import { activeDgmRasterLayers } from './dgmdom.js'; 
+import { activeDgmRasterLayers, activeDomRasterLayers } from './dgmdom.js'; 
+
 
 let profileDraw = null;
+export let profileMode = false;
 let currentMap = null;
 
 // Diese Funktionen müssen exportiert werden, damit control.js sie nutzen kann
 export function enableProfileDrawing(map, source) {
-    currentMap = map;
-    profileDraw = new Draw({
-        source: source,
-        type: 'LineString',
-    });
+  profileMode = true; // Setzen beim Start
+  currentMap = map;
+  profileDraw = new Draw({
+    source: source,
+    type: 'LineString',
+  });
     map.addInteraction(profileDraw);
     
     profileDraw.on('drawend', function(evt) {
@@ -22,20 +25,34 @@ export function enableProfileDrawing(map, source) {
         generateElevationProfile(coords);
         // Interaction nach dem Zeichnen entfernen (optional, je nach Wunsch)
         map.removeInteraction(profileDraw);
+        profileMode = false
+        
     });
 }
 
 export function disableProfileDrawing(map) {
-    if (profileDraw) {
-        map.removeInteraction(profileDraw);
-        profileDraw = null;
-    }
-}
+  profileMode = false; 
+  // 1. Zeichnen-Interaktion entfernen
+  if (profileDraw) {
+    map.removeInteraction(profileDraw);
+    profileDraw = null;
+  }
 
+    // 2. Marker-Layer entfernen
+    if (markerLayer) {
+        map.removeLayer(markerLayer);
+        markerLayer = null;
+    }
+
+    // 3. Optional: Profil-Fenster schließen (falls gewünscht)
+    // Wenn du eine Referenz auf 'win' globaler speicherst, könntest du hier win.close() rufen.
+}
 function generateElevationProfile(coords) {
     const profile = [];
     let cumulativeDist = 0;
-    
+    const activeLayer = [...activeDgmRasterLayers, ...activeDomRasterLayers].find(l => l.getVisible());
+    const layerLabel = activeLayer ? activeLayer.get('title') : "Höhe (m)";
+
     for (let i = 0; i < coords.length - 1; i++) {
         const c1 = coords[i];
         const c2 = coords[i + 1];
@@ -57,7 +74,7 @@ function generateElevationProfile(coords) {
     }
     
     if (profile.length > 0) {
-        showProfileChart(profile);
+        showProfileChart(profile, layerLabel)
     } else {
         alert("Keine Höhendaten gefunden.");
     }
@@ -67,8 +84,9 @@ function generateElevationProfile(coords) {
 function getHeightAtCoordinate(coord) {
     if (!currentMap) return null;
     const pixel = currentMap.getPixelFromCoordinate(coord);
-    
-    for (const layer of activeDgmRasterLayers) {
+    const allRasterLayers = [...activeDgmRasterLayers, ...activeDomRasterLayers];
+
+    for (const layer of allRasterLayers) {
         if (!layer.getVisible()) continue;
         if (layer.bbox && containsCoordinate(layer.bbox, coord)) {
             const data = layer.getData(pixel);
@@ -128,14 +146,28 @@ function getProfilePoints(coord1, coord2, step = 5) {
   }
   return points;
 }
-function showProfileChart(profile) {
-  const distances = profile.map(p => p.distance.toFixed(2));
-  const heights = profile.map(p => p.height.toFixed(2));
-  const coords = profile.map(p => p.coord);
+
+function showProfileChart(profile, layerlabel) {
   
-  const win = window.open("", "Höhenprofil", "width=700,height=500");
-  win.addMarker = addMarker;
-  win.Chart = window.Chart;
+    // 1. Daten vorbereiten
+    const distances = profile.map(p => p.distance.toFixed(2));
+    const heights = profile.map(p => p.height.toFixed(2));
+    const coords = profile.map(p => p.coord);
+
+    // 2. Welcher Modus ist aktiv? (Priorität auf DOM, falls beide an sind)
+    const isDom = activeDomRasterLayers.some(l => l.getVisible());
+    const title = isDom ? "Höhenprofil (Digitales Oberflächenmodell)" : "Höhenprofil (Digitales Geländemodell)";
+    const color = isDom ? 'rgba(255, 159, 64, 1)' : 'rgba(75, 192, 192, 1)'; // Orange für DOM, Türkis für DGM
+
+    // 3. Fenster öffnen
+    const win = window.open("", "Höhenprofil", "width=800,height=500");
+    if (!win) return;
+    win.Chart = window.Chart; 
+// Falls du jQuery nutzt, auch das rübergeben:
+win.jQuery = window.jQuery;
+win.$ = window.$;
+// Auch deine addMarker Funktion muss für das Fenster erreichbar sein
+win.addMarker = addMarker;
   win.document.body.innerHTML = `
     <style>
       html, body {height:100%; margin:0;font-family:sans-serif;display:flex;flex-direction:column;}
@@ -149,9 +181,11 @@ function showProfileChart(profile) {
       <button id="addHorizontalBtn">Horizontale</button>
     </div>
     `;
-  const ctx = win.document.getElementById("chart").getContext("2d");
   
+  const ctx = win.document.getElementById("chart").getContext("2d");
   const container = win.document.getElementById("chartContainer");
+
+  
   function resizeChartContainer(){
     const headerHeight = 60;
     const controlsHeight = 60;
@@ -162,7 +196,19 @@ function showProfileChart(profile) {
   const chart = new win.Chart(ctx, {
   
     type: "line",
-    data: { labels: distances, datasets: [{label: "Höhe (m)", data: heights, borderWidth: 2, tension: 0.2, pointRadius: 0, fill: false}]},
+        data: {
+            labels: distances,
+            datasets: [{
+                label: isDom ? "DOM Höhe (m)" : "DGM Höhe (m)",
+                data: heights,
+                borderColor: color,
+                backgroundColor: color.replace('1)', '0.2)'),
+                borderWidth: 2,
+                fill: true,
+                tension: 0.1,
+                pointRadius: 0
+            }]
+        },
     options: {
       responsive: true,
       maintainAspectRatio: false,
@@ -230,6 +276,24 @@ function showProfileChart(profile) {
     });
     chart.update();
   };
+ win.onbeforeunload = () => {
+  // 1. Marker aufräumen
+  if (markerLayer && currentMap) {
+    markerLayer.getSource().clear();
+    currentMap.removeLayer(markerLayer);
+    markerLayer = null; // Sicher, da addMarker ihn neu erstellt
+  }
+
+  // 2. Profil-Linie auf der Karte aufräumen
+  if (profileLayer) {
+    profileSource.clear(); 
+    profileLayer.setVisible(false);
+    currentMap.removeLayer(profileLayer);
+  }
+  
+  // 3. Status zurücksetzen
+  profileMode = false;
+};
 }
 
 // In chart.js (außerhalb oder innerhalb von showProfileChart)

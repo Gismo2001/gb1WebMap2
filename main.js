@@ -42,6 +42,7 @@ import $ from 'jquery';
 import Chart from 'chart.js/auto';
 
 import { createProfilLayer } from './js/layers.js';
+import { profileMode } from './js/chart.js';
 
 import { fromArrayBuffer } from 'geotiff';
 
@@ -49,6 +50,7 @@ import { loadedDgms, loadedDoms } from './js/dgmdom.js';
 
 window.$ = window.jQuery = $;
 window.Chart = Chart;
+
 
 let activeDgmRasterData = [];  
 let activeDomRasterData = [];  
@@ -60,8 +62,7 @@ let splitInstance = null;
 // Projektionen registrieren (Projection.js)
 registerProjections();
 
-// Variable für Profilmode aktivieren
-let profileMode = false;
+
 
 // Layer erstellen
 const layers = createLayerStructure();

@@ -3,6 +3,8 @@ import GeoTIFFSource from 'ol/source/GeoTIFF.js';
 import { unByKey } from 'ol/Observable.js'; // WICHTIG: Hinzugefügt
 import { fromArrayBuffer } from 'geotiff';
 import { createEmpty, extend, containsCoordinate } from 'ol/extent.js';
+import { dgmGroup, domGroup } from './layers.js';
+
 
 // Exportierte Status-Listen
 export let activeDgmRasterLayers = [];  
@@ -34,6 +36,7 @@ let domLayerCounter = 0;
 // DGM - FUNKTIONEN
 // ==========================================
 
+
 export async function addDgmLayer(map, url, bbox, id1) {
     dgmLayerCounter++;
     const proxyUrl = url.replace('https://dgm1.s3.eu-de.cloud-object-storage.appdomain.cloud', '/dgm');
@@ -56,7 +59,8 @@ export async function addDgmLayer(map, url, bbox, id1) {
     });
 
     layer.bbox = bbox;
-    map.addLayer(layer);
+    //map.addLayer(layer);
+    dgmGroup.getLayers().push(layer);
     activeDgmRasterLayers.push(layer);
 
     const dgmData = { bbox, min, max, layer };
@@ -95,13 +99,19 @@ export async function handleDgmPointerMove(evt) {
         return;
     }
 
+    
+    
+    const layerName = activeLayer.get('name');
     const data = activeLayer.getData(evt.pixel);
-    if (data && data[0] !== -9999 && !Number.isNaN(data[0])) {
-        const layerNr = activeLayer.get('name').split('_')[0];
-        heightValue.innerHTML = `DGM-Nr_${layerNr}: ${data[0].toFixed(2)} m`;
+    
+    if (data && data.length > 0) {
+        const rawValue = data[0];
+        if (rawValue !== -9999 && !isNaN(rawValue) && rawValue !== 0) {
+        const layerName = activeLayer.get('name') || "";
+        const layerNr = layerName.split('_')[0];
+        heightValue.innerHTML = `DGM: ${rawValue.toFixed(2)} m`;
         heightStatus.style.display = 'block';
-    } else {
-        heightStatus.style.display = 'none';
+    }
     }
 }
 
@@ -142,7 +152,8 @@ export async function addDomLayer(map, url, bbox, id1) {
     });
 
     layer.bbox = bbox;
-    map.addLayer(layer);
+    //map.addLayer(layer);
+    domGroup.getLayers().push(layer);
     activeDomRasterLayers.push(layer);
 
     const domData = { bbox, min, max, layer };

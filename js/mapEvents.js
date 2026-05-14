@@ -984,6 +984,9 @@ import shp from 'shpjs';
 import VectorSource from 'ol/source/Vector';
 import VectorLayer from 'ol/layer/Vector';
 
+import {  getOverallDgmMinMax, createGeoTiffStyle } from './dgmdom.js';
+import { dgmGroup } from './layers.js';
+
 let zaehlerGeojson = 1;
 let zaehlerKML = 1;
 let fileInput;
@@ -1005,17 +1008,52 @@ export function fileToggleInput(map) {
       const fileName = file.name.replace(/\.[^/.]+$/, "");
       const fileEnd = file.name.split('.').pop().toLowerCase();
 
-      if (fileEnd === 'tif' || fileEnd === 'tiff') {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const arrayBuffer = e.target.result;
-          // Hier müsste die GeoTIFF-Logik hin, z.B. mit ol/source/GeoTIFF 
-          console.log('tiff-Datei - Hier müsste GeoTIFF-Logik hin');
-          console.log(arrayBuffer);
-        };
-        reader.readAsArrayBuffer(file);
-      } 
-      //Shapefile-Logik (ZIP)
+if (fileEnd === 'tif' || fileEnd === 'tiff') {
+    const blobUrl = URL.createObjectURL(file);
+    const sourceName = `Lokal_DGM_${fileName}`;
+
+    const tiffSource = new GeoTIFFSource({
+    sources: [{ 
+        url: blobUrl,
+        nodata: -9999 
+    }],
+    projection: 'EPSG:25832',
+    // Zwingt OL, die Rohwerte als Float32 zu behalten:
+    normalize: false, 
+    // Verhindert, dass OL die Daten für die Anzeige in RGBA umwandelt:
+    convertToRGB: false, 
+    sourceOptions: { 
+        allowFullFile: true 
+    }
+});
+
+    tiffSource.getView().then((viewConfig) => {
+        const extent3857 = transformExtent(viewConfig.extent, 'EPSG:25832', 'EPSG:3857');
+        
+        const tiffLayer = new WebGLTileLayer({
+            source: tiffSource,
+            title: sourceName,
+            name: sourceName, // Damit layer.get('name') für dgmdom.js existiert!
+            style: createGeoTiffStyle(0, 255), // Nutze die Werte aus deinem QGIS-Check
+            opacity: 1
+        });
+
+        tiffLayer.bbox = extent3857;
+
+        // In die Gruppen/Arrays (wie bisher)
+        if (dgmGroup) dgmGroup.getLayers().push(tiffLayer);
+        activeDgmRasterLayers.push(tiffLayer);
+
+        // Zoom
+        map.getView().fit(extent3857, { duration: 1000 });
+
+        // Force Refresh: Manchmal braucht WebGL nach dem Laden einen Trigger
+        tiffLayer.getSource().refresh();
+        
+        if (typeof layerSwitcher !== 'undefined') layerSwitcher.render();
+    });
+}  
+//Shapefile-Logik (ZIP)
       else if (fileEnd === 'zip') {
         const reader = new FileReader();
         reader.onload = async (e) => {

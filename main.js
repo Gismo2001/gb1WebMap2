@@ -52,6 +52,7 @@ window.$ = window.jQuery = $;
 window.Chart = Chart;
 
 
+
 let activeDgmRasterData = [];  
 let activeDomRasterData = [];  
 
@@ -73,7 +74,7 @@ export const map = createMap('map', layers);
 // LayerSwitcher hinzufügen
 const layerSwitcher = createLayerSwitcher(map);
 map.addControl(layerSwitcher);
-
+export { layerSwitcher };
 
 // Toolbar erstellen und hinzufügen
 const toolbar = createMainToolbar(map);

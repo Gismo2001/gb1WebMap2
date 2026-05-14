@@ -838,7 +838,9 @@ export function createDomKachelLayer() {
     visible: false,
   });
 }
-// Funktion statt konstanter Instanz
+
+
+
 export function createProfilSource() {
     return new VectorSource();
 }
@@ -856,6 +858,18 @@ export function createProfilLayer(source) {
         })
     });
 }
+
+
+
+export const dgmGroup = new LayerGroup({
+  title: 'DGM Layer',
+  layers: []
+});
+
+export const domGroup = new LayerGroup({
+  title: 'DOM Layer',
+  layers: []
+});
 
 export function createLayerStructure() {
 
@@ -1022,10 +1036,10 @@ export function createLayerStructure() {
         sle,
       ]
     }),
+   
+
+   
     
-    // 🏗️ DGM/DOM-Kacheln
-    //const dgmKacheln = createDgmKachelLayer();
-    //const domKacheln = createDomKachelLayer();
   ];
 }
 

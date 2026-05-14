@@ -314,6 +314,7 @@ export function addMarker(coord) {
     if (!markerLayer) {
         markerLayer = new VectorLayer({
             source: new VectorSource(),
+            title: 'MarkerLayer',
             // Optional: Style für den Marker (z.B. ein blauer Punkt oder Icon)
             style: new Style({
                 image: new Icon({

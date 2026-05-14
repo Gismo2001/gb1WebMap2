@@ -14,7 +14,9 @@ import { handleCRSChange, ptnDelFindCoord, initPtn } from './ptn.js';
 
 import { createDgmKachelLayer, createDomKachelLayer } from './layers.js';
 import { createProfilSource, createProfilLayer } from './layers';
+import { dgmGroup, domGroup } from './layers.js';
 import { enableProfileDrawing, disableProfileDrawing } from './chart';
+
 
 
 import { saveAs } from 'file-saver';
@@ -29,6 +31,8 @@ import { Style, Text } from 'ol/style';
 
 import { isDgmActive, setDgmActive, disableDgmInteraction  } from './dgmdom.js';
 import { isDomActive, setDomActive, disableDomInteraction  } from './dgmdom.js';
+
+import { layerSwitcher } from '../main.js';
 
 
 let isTableActive = false;
@@ -189,17 +193,13 @@ export function createSubBarI(map) { // GPS - Punkt setzen
     title: 'Datei laden',
     onToggle: function (active) { 
         if (active) {
-           
             fileToggleInput(map); 
-            
-            // WICHTIG: Da es ein "Aktions-Button" ist, 
-            // setzen wir ihn sofort wieder auf inaktiv
             setTimeout(() => {
                 this.setActive(false);
             }, 100);
         }
-    },
-});
+    },  
+  });
 
 return new Bar({ toggleOne: true, controls: [gpsToggleBtn, ptnToogleBtn, fileToogleBtn ] });
 }
@@ -210,41 +210,80 @@ export function createSubBarW(map) {
   const profilChart = createProfilLayer();
 
   // Button für DGM
-  const dgmSubBtn = new Toggle({
+ const dgmSubBtn = new Toggle({
     html: '<i class="fa fa-map"></i>',
     title: "DGM laden",
     onToggle: function (active) {
-      setDgmActive(active); // Funktion steuert die Interaktion
-      if (active) {
-        if (!map.getLayers().getArray().includes(DgmKachelLayer)) {
-          map.addLayer(DgmKachelLayer);
+        // 1. Sicherstellen, dass die Gruppe in der Map existiert
+        const layers = map.getLayers().getArray();
+        if (!layers.includes(dgmGroup)) {
+            map.addLayer(dgmGroup);
+            // Falls der Switcher in main.js exportiert wurde:
+            if (layerSwitcher) layerSwitcher.render();
         }
-        DgmKachelLayer.setVisible(true);
-        DgmKachelLayer.set('displayInLayerSwitcher', true);
-      } else {
-        DgmKachelLayer.setVisible(false);
-        disableDgmInteraction();
-      }
+
+        // 2. Kachel-Layer (Übersicht) innerhalb der Gruppe verwalten
+        // Wir prüfen, ob der Layer schon in der Gruppe (nicht in der Map!) ist
+        const groupLayers = dgmGroup.getLayers().getArray();
+        if (!groupLayers.includes(DgmKachelLayer)) {
+            dgmGroup.getLayers().push(DgmKachelLayer);
+        }
+
+        // 3. Sichtbarkeit und Interaktion steuern
+        if (active) {
+            DgmKachelLayer.setVisible(true);
+            // Falls du willst, dass die Kacheln im Switcher unter der Gruppe auftauchen:
+            DgmKachelLayer.set('displayInLayerSwitcher', true);
+            setDgmActive(true); 
+        } else {
+            DgmKachelLayer.setVisible(false);
+            setDgmActive(false); 
+            disableDgmInteraction();
+        }
+
+        // 4. LayerSwitcher explizit aktualisieren
+        if (typeof layerSwitcher !== 'undefined') {
+            layerSwitcher.render();
+        }
     },
-  });
+});
 
   // Button für DOM
   const domSubBtn = new Toggle({
     html: '<i class="fa-solid fa-file"></i>',
     title: "DOM laden",
     onToggle: function (active) {
-      // Hier analoge Funktionen für DOM (müsstest du ggf. in deiner dgmdom.js anlegen)
-      setDomActive(active); 
-      if (active) {
-        if (!map.getLayers().getArray().includes(DomKachelLayer)) {
-          map.addLayer(DomKachelLayer);
+        // 1. Sicherstellen, dass die Gruppe in der Map existiert
+        const layers = map.getLayers().getArray();
+        if (!layers.includes(domGroup)) {
+            map.addLayer(domGroup);
+            // Falls der Switcher in main.js exportiert wurde:
+            if (layerSwitcher) layerSwitcher.render();
         }
-        DomKachelLayer.setVisible(true);
-        DomKachelLayer.set('displayInLayerSwitcher', true);
-      } else {
-        DomKachelLayer.setVisible(false);
-        disableDomInteraction();
-      }
+
+        // 2. Kachel-Layer (Übersicht) innerhalb der Gruppe verwalten
+        // Wir prüfen, ob der Layer schon in der Gruppe (nicht in der Map!) ist
+        const groupLayers = domGroup.getLayers().getArray();
+        if (!groupLayers.includes(DomKachelLayer)) {
+            domGroup.getLayers().push(DomKachelLayer);
+        }
+
+        // 3. Sichtbarkeit und Interaktion steuern
+        if (active) {
+            DomKachelLayer.setVisible(true);
+            // Falls du willst, dass die Kacheln im Switcher unter der Gruppe auftauchen:
+            DomKachelLayer.set('displayInLayerSwitcher', true);
+            setDomActive(true); 
+        } else {
+            DomKachelLayer.setVisible(false);
+            setDomActive(false); 
+            disableDomInteraction();
+        }
+
+        // 4. LayerSwitcher explizit aktualisieren
+        if (typeof layerSwitcher !== 'undefined') {
+            layerSwitcher.render();
+        }
     },
   });
 

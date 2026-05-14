@@ -38,10 +38,18 @@ import { isDomActive, addDomLayer, getLoadedDomExtent,getOverallDomMinMax } from
 import { getMinMaxFromMetadata , createGeoTiffStyle } from './js/dgmdom.js';
 
 import { createDgmKachelLayer, createDomKachelLayer } from './js/layers.js';
+import $ from 'jquery';
+import Chart from 'chart.js/auto';
+
+import { createProfilLayer } from './js/layers.js';
 
 import { fromArrayBuffer } from 'geotiff';
 
 import { loadedDgms, loadedDoms } from './js/dgmdom.js';  
+
+window.$ = window.jQuery = $;
+window.Chart = Chart;
+
 let activeDgmRasterData = [];  
 let activeDomRasterData = [];  
 
@@ -52,29 +60,30 @@ let splitInstance = null;
 // Projektionen registrieren (Projection.js)
 registerProjections();
 
-// 👉 Hier werden zuerst die Layer erstellt (layers.js)
+// Variable für Profilmode aktivieren
+let profileMode = false;
+
+// Layer erstellen
 const layers = createLayerStructure();
 
-// 👉 Mier wird map mit Layern erstellt (map.js)
+// Layer zur Map
 export const map = createMap('map', layers);
 
-
-
-// 👉 LayerSwitcher wird hinzugefügt (control.js)
+// LayerSwitcher hinzufügen
 const layerSwitcher = createLayerSwitcher(map);
 map.addControl(layerSwitcher);
 
 
-// Toolbar wird erstellt und hinzugefügt (control.js)
+// Toolbar erstellen und hinzufügen
 const toolbar = createMainToolbar(map);
 map.addControl(toolbar);
 
 // ... Karte erstellen ...
 const searchPlaceControl = searchPlaceControlFunc(); // Die Ortssuche und der zugehörige Button wird erstellt (control.js)
-map.addControl(searchPlaceControl); // und hinzugefügt (control.js)
-initSearchEvents(searchPlaceControl, map); // eventhandler fü+r searchPlaceControl wird erstellt (mapEvents.js)
+map.addControl(searchPlaceControl); // Ortssuche hinzugefügen
+initSearchEvents(searchPlaceControl, map); // eventhandler Ortssuche erstellen
 initMapClick(map); // eventhandler für Click auf die Karte (mapEvents.js)
-initPopup(map); // Popup-Overlay wird erstellt (mapEvents.js)
+initPopup(map); // Popup-Overlay erstellen (mapEvents.js)
 initPrintControl(map);//Contols laden für den Print-Button (control.js)
 switcherDrawList(layerSwitcher);
 switcherToggle(layerSwitcher);

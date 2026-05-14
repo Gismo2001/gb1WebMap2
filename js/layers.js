@@ -816,7 +816,6 @@ export function createDgmKachelLayer() {
     visible: false,
   });
 }
-
 export function createDomKachelLayer() {
   return new VectorLayer({
     source: new VectorSource({
@@ -838,6 +837,24 @@ export function createDomKachelLayer() {
     }),
     visible: false,
   });
+}
+// Funktion statt konstanter Instanz
+export function createProfilSource() {
+    return new VectorSource();
+}
+
+export function createProfilLayer(source) {
+    return new VectorLayer({
+        source: source, // Nutze die übergebene Source
+        title: 'Profil',
+        name: 'Profil',
+        style: new Style({
+            stroke: new Stroke({
+                color: 'red',
+                width: 3
+            })
+        })
+    });
 }
 
 export function createLayerStructure() {

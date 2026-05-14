@@ -13,6 +13,9 @@ import { isGpsTrackingActive, startGpsTracking, stopGpsTracking } from './gps.js
 import { handleCRSChange, ptnDelFindCoord, initPtn } from './ptn.js';
 
 import { createDgmKachelLayer, createDomKachelLayer } from './layers.js';
+import { createProfilSource, createProfilLayer } from './layers';
+import { enableProfileDrawing, disableProfileDrawing } from './chart';
+
 
 import { saveAs } from 'file-saver';
 import { jsPDF } from 'jspdf';
@@ -38,6 +41,10 @@ let mainTableBtnInstance = null;
 let printControlInstance = null;
 let printToogleBtnInstance = null;
 
+// Initialisierung (außerhalb der create-Funktion)
+const profileSource = createProfilSource();
+const profileLayer = createProfilLayer(profileSource);
+let profileMode = false;
 
 export function createLayerSwitcher(map) {
   return new LayerSwitcher({
@@ -200,13 +207,14 @@ return new Bar({ toggleOne: true, controls: [gpsToggleBtn, ptnToogleBtn, fileToo
 export function createSubBarW(map) {
   const DgmKachelLayer = createDgmKachelLayer();
   const DomKachelLayer = createDomKachelLayer();
+  const profilChart = createProfilLayer();
 
   // Button für DGM
   const dgmSubBtn = new Toggle({
     html: '<i class="fa fa-map"></i>',
     title: "DGM laden",
     onToggle: function (active) {
-      setDgmActive(active); // Angenommen, diese Funktion steuert die Interaktion
+      setDgmActive(active); // Funktion steuert die Interaktion
       if (active) {
         if (!map.getLayers().getArray().includes(DgmKachelLayer)) {
           map.addLayer(DgmKachelLayer);
@@ -240,9 +248,29 @@ export function createSubBarW(map) {
     },
   });
 
+  // Button für Profil
+ // Innerhalb deines Sub-Buttons:
+  const profilSubBtn = new Toggle({
+    html: '<i class="fa fa-area-chart"></i>',
+    title: "Höhenprofil",
+    onToggle: function (active) {
+        if (active) {
+            if (!map.getLayers().getArray().includes(profileLayer)) {
+                map.addLayer(profileLayer);
+            }
+            profileLayer.setVisible(true);
+            profileSource.clear();
+            enableProfileDrawing(map, profileSource);
+        } else {
+            profileLayer.setVisible(false);
+            disableProfileDrawing(map);
+        }
+    },
+  });
+
   return new Bar({ 
     toggleOne: true, // Stellt sicher, dass man nicht DGM und DOM gleichzeitig in dieser Bar aktiviert
-    controls: [dgmSubBtn, domSubBtn] 
+    controls: [dgmSubBtn, domSubBtn, profilSubBtn] 
   });
 }
 
@@ -346,6 +374,7 @@ export function initPrintControl(map) {
 
 
 import WMSCapabilities from 'ol-ext/control/WMSCapabilities';
+//import { profileLayer } from './chart.js';
 
 
  

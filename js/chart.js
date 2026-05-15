@@ -255,27 +255,51 @@ win.addMarker = addMarker;
     link.click();
     win.document.body.removeChild(link);
   };
-
-  win.document.getElementById("addHorizontalBtn").onclick = function() {
+win.document.getElementById("addHorizontalBtn").onclick = function() {
     const value = win.prompt("Höhe für horizontale Linie (m):");
     if (value === null) return;
     const h = parseFloat(value);
     if (isNaN(h)) {
-      win.alert("Bitte eine gültige Zahl eingeben.");
-      return;
+        win.alert("Bitte eine gültige Zahl eingeben.");
+        return;
     }
+
+    // 1. Der Datensatz für die Wasserfläche (Füllung)
+    // Wir nehmen den Wasserstand h, aber nur dort, wo h > Gelände ist.
+    // Ansonsten nehmen wir die Gelände-Höhe selbst (dadurch wird die Füllung 0).
+    const waterFillData = heights.map(heightVal => heightVal < h ? h : heightVal);
+
+    chart.data.datasets.push({
+        label: "Wasserstand (" + h + " m)",
+        data: waterFillData,
+        borderColor: 'transparent',
+        backgroundColor: 'rgba(0, 120, 255, 0.4)', // Das Blau für das Wasser
+        borderWidth: 0,
+        pointRadius: 0,
+        tension: 0.1,
+        fill: {
+            target: 0, // Füllt den Bereich zum ersten Dataset (dein DGM/DOM)
+            above: 'rgba(0, 120, 255, 0.4)' // Farbe nur dort, wo Wasser ÜBER dem Gelände liegt
+        }
+    });
+
+    // 2. Der Datensatz für die gestrichelte Linie (wie bisher)
     const horizontalData = new Array(distances.length).fill(h);
     chart.data.datasets.push({
-      label: "Horizontale " + h + " m",
-      data: horizontalData,
-      borderColor: `hsl(${Math.random() * 360}, 70%, 50%)`,
-      borderWidth: 3,
-      borderDash: [6,6],
-      pointRadius: 0,
-      fill: false
+        label: "Horizontale " + h + " m",
+        data: horizontalData,
+        borderColor: `hsl(${Math.random() * 360}, 70%, 50%)`,
+        borderWidth: 3,
+        borderDash: [6, 6],
+        pointRadius: 0,
+        fill: false
     });
+
     chart.update();
-  };
+};
+
+
+
  win.onbeforeunload = () => {
   // 1. Marker aufräumen
   if (markerLayer && currentMap) {
@@ -295,6 +319,31 @@ win.addMarker = addMarker;
   profileMode = false;
 };
 }
+
+
+/*  //Ursprüngliche Variante 
+
+    win.document.getElementById("addHorizontalBtn").onclick = function() {
+    const value = win.prompt("Höhe für horizontale Linie (m):");
+    if (value === null) return;
+    const h = parseFloat(value);
+    if (isNaN(h)) {
+      win.alert("Bitte eine gültige Zahl eingeben.");
+      return;
+    }
+    const horizontalData = new Array(distances.length).fill(h);
+    chart.data.datasets.push({
+      label: "Horizontale " + h + " m",
+      data: horizontalData,
+      borderColor: `hsl(${Math.random() * 360}, 70%, 50%)`,
+      borderWidth: 3,
+      borderDash: [6,6],
+      pointRadius: 0,
+      fill: false
+    });
+    chart.update();
+  };
+ */
 
 // In chart.js (außerhalb oder innerhalb von showProfileChart)
 

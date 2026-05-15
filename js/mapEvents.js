@@ -1034,15 +1034,26 @@ if (fileEnd === 'tif' || fileEnd === 'tiff') {
             source: tiffSource,
             title: sourceName,
             name: sourceName, // Damit layer.get('name') für dgmdom.js existiert!
-            style: createGeoTiffStyle(0, 255), // Nutze die Werte aus deinem QGIS-Check
+            style: createGeoTiffStyle(13, 32), 
             opacity: 1
         });
 
         tiffLayer.bbox = extent3857;
-
+        // Das Objekt für die globale Verwaltung erstellen
+        const localDgmData = { 
+          bbox: extent3857, 
+          min: 13,   // Hier deine ermittelten Werte nutzen
+          max: 32, 
+          layer: tiffLayer 
+        };
         // In die Gruppen/Arrays (wie bisher)
         if (dgmGroup) dgmGroup.getLayers().push(tiffLayer);
+        activeDgmRasterData.push(localDgmData);
         activeDgmRasterLayers.push(tiffLayer);
+        const overall = getOverallDgmMinMax();
+        activeDgmRasterData.forEach(d => {
+          d.layer.setStyle(createGeoTiffStyle(overall.min, overall.max));
+        });
 
         // Zoom
         map.getView().fit(extent3857, { duration: 1000 });

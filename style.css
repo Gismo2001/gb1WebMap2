@@ -390,49 +390,12 @@ top: 4em;
   pointer-events: none;
 }
 
-
-
 .fsd-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-}
-.close-select-btn {
-  background: transparent;
-  border: none;
-  font-size: 14px;
-  cursor: pointer;
-  padding: 0 4px;
-  line-height: 1;
-}
-
-#feature-select-dropdown {
-  position: absolute;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: white;
-  padding: 8px 10px;
-  border-radius: 6px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
-  z-index: 2000;
-  width: 200px;
-  font-size: 12px;
-}
-
-#feature-select-dropdown select {
-  width: 100%;
-  font-size: 12px;
-  padding-right: 20px; /* Platz für den Pfeil */
-  box-sizing: border-box;
-}
-
-#feature-select-dropdown.hidden {
-  display: none;
-}
-
-.close-select-btn:hover {
-  color: #c00;
+  padding: 2px 5px;
+  border-bottom: 1px solid #eee;
 }
 
 .table-link {
@@ -441,3 +404,68 @@ top: 4em;
   cursor: pointer;
 }
 
+
+#feature-select {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  padding: 1px;
+  border-radius: 0px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  z-index: 2000;
+  width: 200px; /* Etwas breiter für Text */
+  font-size: 12px;
+  max-height: 30vh; /* Verhindert, dass die Liste über den Bildschirmrand geht */
+  display: flex;
+  flex-direction: column;
+}
+
+#feature-select-li {
+  list-style: none; /* Entfernt die Aufzählungspunkte */
+  padding: 0;       /* Verhindert Einrücken */
+  margin: 0;
+  overflow-y: auto;
+}
+
+/* Die einzelnen Listeneinträge */
+#feature-select-li li {
+  padding: 2px 2px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  color: #333;
+}
+
+#feature-select-li li:hover {
+  background-color: #f5f5f5;
+  color: #007bff;
+}
+
+#feature-select-li li:last-child {
+  border-bottom: none;
+}
+
+/* Überschrift im Panel */
+#feature-select h3 {
+  margin: 0 0 2px 0;
+  font-size: 13px;
+  color: #555;
+}
+
+/* Positionierung des Schließen-Buttons */
+#close-select-btn {
+  float: right;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+#feature-select.hidden {
+  display: none !important; /* Das !important stellt sicher, dass 'hidden' immer gewinnt */
+}
+#feature-select-li li.selected {
+    background-color: #e7f3ff;
+    border-left: 4px solid #007bff;
+    font-weight: bold;
+}

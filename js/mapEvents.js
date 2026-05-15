@@ -251,7 +251,9 @@ export function initMapClick(map) {
     // Popup schließen, wenn Tabelle nicht aktiv ist
     if (!isTableEnabled()) {
       popupOverlay.setPosition(undefined);
+      
     }
+    
 
     // --- 3. WMS & VEKTOR ABFRAGEN (FÜR TABELLE / POPUP) ---
     const requestId = ++latestClickRequestId;
@@ -376,7 +378,7 @@ if (rows.length > 0) {
 );
       
       } else {
-        handleClickResult(currentClickResults, coord);
+        handleClickResult(currentClickResults, coord, map);
       }
     });
   });
@@ -407,7 +409,7 @@ function handleCombinedPointerMove(evt) {
 }
 
 
-async function handleClickResult(currentClickResults, coord) {
+async function handleClickResult(currentClickResults, coord, map) {
   // Wenn der Profilmodus aktiv ist, darf hier nichts passieren
   if (profileMode) {
     console.log("Klick-Interaktion ignoriert, da Profilmodus aktiv.");
@@ -449,7 +451,7 @@ async function handleClickResult(currentClickResults, coord) {
   const needsSelection = !isDgmActive && !isDomActive && (layerNames.length > 1 || currentClickResults[layerNames[0]].data.length > 1 );
 if (needsSelection) {
   const choice =
-      await askUserToChoose(currentClickResults);
+      await askUserToChoose(currentClickResults, coord, map);
 
     if (!choice) return;
 
@@ -535,6 +537,7 @@ if (needsSelection) {
 
   }, 0);
 }
+
 export function getAllLayers(layerGroup, parentVisible = true, groupTitle = null) {
   let layers = [];
   const currentTitle = layerGroup.get('title') || groupTitle;
@@ -564,118 +567,98 @@ export function getAllLayers(layerGroup, parentVisible = true, groupTitle = null
   return layers;
 }
 
-function askUserToChoose(currentClickResults) {
+function showFeatureFromSelection(selected, layerName, coord) {
+    const isWrappedFeature = selected && selected.properties && selected.feature;
+    const featureData = isWrappedFeature ? selected.properties : selected;
+    const feature = isWrappedFeature ? selected.feature : null;
 
-  return new Promise(resolve => {
+    // 1. Popup anzeigen
+    popupContent.innerHTML = buildPopupContent(feature || featureData, layerName);
+    popupOverlay.setPosition(coord);
 
-    const box =
-      document.getElementById('feature-select-dropdown');
-
-    const select =
-      document.getElementById('feature-select');
-
-    const closeBtn =
-      document.getElementById('close-select-btn');
-
-    select.innerHTML = '';
-
-    // =====================================================
-    // Optionen erzeugen
-    // =====================================================
-
-    for (const layerName in currentClickResults) {
-
-      const entry = currentClickResults[layerName];
-
-      const uniqueData = [];
-      const seen = new Set();
-
-      entry.data.forEach((item, idx) => {
-
-        const props = item.properties || item;
-
-        // stabile ID bestimmen
-        const key =
-          props.OBJECTID ||
-          props.ID_con ||
-          props.ID ||
-          props.objectid ||
-          props.tile_id ||
-          idx;
-
-        if (!seen.has(key)) {
-
-          seen.add(key);
-
-          uniqueData.push({
-            item,
-            idx
-          });
-        }
-      });
-
-      // =================================================
-      // Dropdown-Einträge
-      // =================================================
-
-      uniqueData.forEach(({ item, idx }) => {
-
-        const props = item.properties || item;
-
-        const label =
-          props.name ||
-          props.title ||
-          props.Title ||
-          props.Titel ||
-          props.titel ||
-          props.Name ||
-          props.bezeich ||
-          props.Bezeichnung ||
-          props.Eig1 ||
-          props.tile_id ||
-          props.ID_con ||
-          props.OBJECTID ||
-          `Feature ${idx + 1}`;
-
-        const opt = document.createElement('option');
-
-        opt.value = `${layerName}::${idx}`;
-
-        opt.textContent =
-          `${layerName}: ${label}`;
-
-        select.appendChild(opt);
-      });
+    // 2. Highlight auf der Karte
+    if (typeof highlightFeatureForRow === 'function') {
+        featureData.origin_layer = layerName;
+        highlightFeatureForRow(featureData);
     }
 
-    // =====================================================
-    // Anzeigen
-    // =====================================================
+    // 3. Tabellen-Button Logik (falls vorhanden)
+    setTimeout(() => {
+        const btn = document.getElementById('open-table-btn');
+        if (btn) {
+            btn.onclick = () => {
+                updateSelector([layerName]);
+                showTableDebounced([featureData]);
+                popupOverlay.setPosition(undefined);
+            };
+        }
+    }, 0);
+}
 
-    box.classList.remove('hidden');
+async function askUserToChoose(currentClickResults, coord, map) {
+    // Wir geben kein Promise zurück, das die Funktion beendet, 
+    // sondern steuern die Anzeige direkt aus dem Klick-Event.
+    
+    const container = document.getElementById('feature-select');
+    const list = document.getElementById('feature-select-li');
+    
+    list.innerHTML = '';
+    container.classList.remove('hidden');
 
-    // Auswahl
-    select.onchange = () => {
-
-      const [layer, index] =
-        select.value.split('::');
-
-      box.classList.add('hidden');
-
-      resolve({
-        layer,
-        index: Number(index)
-      });
+    Object.keys(currentClickResults).forEach((layerName) => {
+        const entry = currentClickResults[layerName];
+        
+entry.data.forEach((item, index) => {
+    const li = document.createElement('li');
+    const props = item.properties || item;
+    const name = props.Name || props.name || props.Bezeichnung || `Objekt ${index + 1}`;
+    
+    li.innerHTML = `<strong>${layerName}</strong>: ${name}`;
+    
+    // EINFACHER KLICK
+    li.onclick = () => {
+        showFeatureFromSelection(item, layerName, coord);
+        Array.from(list.children).forEach(el => el.classList.remove('selected'));
+        li.classList.add('selected');
     };
 
-    // Abbrechen
-    closeBtn.onclick = () => {
+    // DOPPELKLICK
+    li.ondblclick = () => {
+        // map kommt jetzt sicher als Parameter der Funktion askUserToChoose an
+        if (!map || typeof map.getView !== 'function') {
+            console.error("Map-Parameter fehlt oder ist ungültig!");
+            return;
+        }
 
-      box.classList.add('hidden');
+        let extent = null;
+        if (item.feature && typeof item.feature.getGeometry === 'function') {
+            extent = item.feature.getGeometry().getExtent();
+        } else if (item.geometry) {
+            // Falls es GeoJSON-Daten sind
+            const format = new GeoJSON(); // GeoJSON ist oben in deiner Datei importiert
+            const tempFeature = format.readFeature(item);
+            if (tempFeature) {
+                extent = tempFeature.getGeometry().getExtent();
+            }
+        }
 
-      resolve(null);
+        if (extent) {
+            map.getView().fit(extent, { 
+                duration: 800, 
+                padding: [50, 50, 50, 50],
+                maxZoom: 18 
+            });
+        } else if (coord) {
+            map.getView().animate({
+                center: coord,
+                zoom: 18,
+                duration: 800
+            });
+        }
     };
-  });
+    list.appendChild(li);
+});
+    });
 }
 function parseDeegreeGml(xmlString, layerName) {
     const parser = new DOMParser();
@@ -776,6 +759,21 @@ export function parseArcGISXml(xmlString, layerName) {
 export function getClickResults() {
   return currentClickResults;
 }
+
+// Funktion definieren
+export function closeSearchResults() {
+  const box = document.getElementById('feature-select');
+  if (box) {
+    box.classList.add('hidden');
+  }
+}
+
+// Den Listener an den Button binden
+const closeBtn = document.getElementById('close-select-btn');
+if (closeBtn) {
+  closeBtn.addEventListener('click', closeSearchResults);
+}
+
 
 export function getVectorFeaturesAtClick(map, evt) {
 
@@ -1384,14 +1382,20 @@ const title =
   return html;
 }
 document.addEventListener('click', (e) => {
-  const box = document.getElementById('feature-select-dropdown');
+  const box = document.getElementById('feature-select');
+  
+  if (!box || box.classList.contains('hidden')) return;
 
-  // Wenn Dropdown unsichtbar → nichts tun
-  if (box.classList.contains('hidden')) return;
+  // Prüfen, ob der Klick auf die Karte ging, um die Box zu öffnen
+  // Falls du eine ID für deinen Karten-Container hast (z.B. 'map')
+  const isMapClick = e.target.closest('#map'); 
 
-  // Wenn Klick IN der Box → nichts tun
-  if (box.contains(e.target)) return;
+  // Wenn der Klick außerhalb der Box war UND nicht der Klick war, der die Box öffnet
+  if (!box.contains(e.target)) {
+    // Falls du sicherstellen willst, dass ein neuer Klick auf ein Feature 
+    // die Box nicht schließt, bevor die neuen Daten geladen sind:
+    if (isMapClick) return; 
 
-  // Sonst → schließen
-  box.classList.add('hidden');
+    box.classList.add('hidden');
+  }
 });

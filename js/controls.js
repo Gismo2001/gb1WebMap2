@@ -33,10 +33,12 @@ import { isDgmActive, setDgmActive, disableDgmInteraction  } from './dgmdom.js';
 import { isDomActive, setDomActive, disableDomInteraction  } from './dgmdom.js';
 
 import { layerSwitcher } from '../main.js';
+import SearchPhoton from 'ol-ext/control/SearchPhoton';
 
+import Permalink from 'ol-ext/control/Permalink';
 
+let searchPlaceControl = null; //Erstmal die Ortssuche auf null
 let isTableActive = false;
-
 let tableToggleBtnInstance = null;
 let gpsToggleBtnInstance = null;
 let ptnToogleBtnInstance = null;
@@ -49,6 +51,41 @@ let printToogleBtnInstance = null;
 const profileSource = createProfilSource();
 const profileLayer = createProfilLayer(profileSource);
 let profileMode = false;
+
+
+
+/**
+ * Initialisiert den Permalink für die Karte
+ * @param {ol/Map} map - Die OpenLayers Karteninstanz
+ */
+
+
+
+export function initPermalink(map) {
+    const permalink = new Permalink({
+        className: 'ol-permalink-button', // Eigene Klasse hinzufügen
+        refreshDelay:100,
+        urlReplace: true, 
+        localStorage: 'map-pos',
+        // --- Diese Optionen aktivieren den Button ---
+        visible: true,      // Zeigt den Button in der Toolbar/Karte an
+        anchor: true,       // Erzeugt einen Link-Button (Anker)
+        onclick: function(url) {
+        navigator.clipboard.writeText(url).then(() => {
+        // Button kurzzeitig verändern als Feedback
+        const btn = document.querySelector('.ol-permalink-button button');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = "✅"; 
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+        }, 2000);
+    });
+}
+    });
+
+    map.addControl(permalink);
+    return permalink;
+}
 
 export function createLayerSwitcher(map) {
   return new LayerSwitcher({
@@ -66,7 +103,6 @@ export function createLayerSwitcher(map) {
     },
   });
 }
-
 export function createMainToolbar(map) {
   const bar = new Bar({
     className: 'main-toolbar',
@@ -203,7 +239,6 @@ export function createSubBarI(map) { // GPS - Punkt setzen
 
 return new Bar({ toggleOne: true, controls: [gpsToggleBtn, ptnToogleBtn, fileToogleBtn ] });
 }
-
 export function createSubBarW(map) {
   const DgmKachelLayer = createDgmKachelLayer();
   const DomKachelLayer = createDomKachelLayer();
@@ -312,7 +347,6 @@ export function createSubBarW(map) {
     controls: [dgmSubBtn, domSubBtn, profilSubBtn] 
   });
 }
-
 export function createDataTable(map) {
   const table = new Tabulator('#wms_data_table', {
     height: '100%',
@@ -320,12 +354,9 @@ export function createDataTable(map) {
   });
   return table;
 }
-
-
 export function isTableEnabled() {
   return isTableActive;
 }
-
 export function deactivateTableToggle() { // Funktion zum Deaktivieren des Table-Toggles und Entfernen der Hauptbutton-Markierung
   if (tableToggleBtnInstance) { // Falls Tabelleninstanz existiert
     tableToggleBtnInstance.setActive(false); // Tabelle deaktivieren
@@ -334,10 +365,6 @@ export function deactivateTableToggle() { // Funktion zum Deaktivieren des Table
     mainTableBtnInstance.element.classList.remove('is-running'); //Blau-Markierung vom Hauptbutton entfernen
   }
 }
-
-import SearchPhoton from 'ol-ext/control/SearchPhoton';
-let searchPlaceControl = null; //Erstmal die Ortssuche auf null
-
 export function searchPlaceControlFunc() {
   let searchPlaceControl = new SearchPhoton({
   reverse: true,
@@ -348,9 +375,7 @@ export function searchPlaceControlFunc() {
 }
 
 //Print
-
 export function initPrintControl(map) {
-  
   // 1. Zusätzliche Canvas-Controls für das Druckbild hinzufügen
   //map.addControl(new CanvasAttribution());
   map.addControl(new CanvasTitle({ 

@@ -9,19 +9,7 @@
   <title>gb1WebMap2</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <link rel="stylesheet" href="./style.css">
-   
-  <style>
-      body {
-        margin: 0;
-      }
-      
-      .ol-legend > canvas {
-        float: left;
-      }
-      .ol-legend > div.ol-legend {
-        position: relative;
-      }
-    </style>
+ 
 </head>
 <body>
   <div id="main-layout" style="height: 100dvh; display: flex; flex-direction: column; overflow: hidden;">
@@ -34,21 +22,16 @@
     </div>
     <!-- MAP-BEREICH -->
     <div id="map" class="split" style="width: 100%; position: relative;">
-
-      
-
-      
       <div id="feature-select"  class="hidden">
         <button id="close-select-btn" class="close-select-btn">✖</button>
-        <h3>Suchergebnisse</h3>
+        <h3 style="border-bottom: 1px solid #000; padding-bottom: 1px;">Suchergebnisse</h3>
         <ul id="feature-select-li"></ul>
       </div>
-
       <!-- KOORDINATEN-EINGABE -->
       <div id="coordinate_selection"
            style="position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
                   background: white; padding: 10px; border-radius: 8px; border: 1px solid #ccc;
-                  z-index: 1100; display: none;">
+                  z-index: 20; display: none;">
         <select name="coord_choice" id="coord_select">
           <option value="EPSG:32632" selected>EPSG:32632 (UTM, WGS84)</option>
           <option value="EPSG:25832">EPSG:25832 (UTM, ETRS89)</option>
@@ -59,9 +42,7 @@
         </select>
         <button id="start-coord-input" style="margin-left: 5px;">📍 Koordinate eingeben</button>
       </div>
-
     </div> <!-- ENDE MAP -->
-
     <!-- TABELLENBEREICH -->
     <div id="wms-table-container" class="split">
       <div id="table-header">
@@ -81,20 +62,14 @@
 
       <div id="wms_data_table" class="hide-filters"></div>
     </div>
-
     <!-- POPUP -->
     <div id="popup" class="ol-popup">
       <a href="#" id="popup-closer" class="ol-popup-closer">✕</a>
       <div id="popup-content"></div>
     </div>
-
     <!-- FILE INPUT -->
     <input type="file" id="geojsonInput" accept=".geojson,.json" style="display: none;" multiple>
-
-  
-  
   </div> <!-- ENDE main-layout -->
-
   <script type="module" src="/main.js"></script>
 </body>
 

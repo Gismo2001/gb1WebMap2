@@ -147,7 +147,7 @@ code {
   }
 
   .vite {
-    z-index: 0;
+    z-index: 3;
     top: 107px;
     height: 26px;
     width: auto;

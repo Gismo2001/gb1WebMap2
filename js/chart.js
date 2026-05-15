@@ -272,11 +272,13 @@ win.document.getElementById("addHorizontalBtn").onclick = function() {
     chart.data.datasets.push({
         label: "Wasserstand (" + h + " m)",
         data: waterFillData,
-        borderColor: 'transparent',
+        borderColor: 'rgba(0, 120, 255, 0.5)',
         backgroundColor: 'rgba(0, 120, 255, 0.4)', // Das Blau für das Wasser
-        borderWidth: 0,
+        borderWidth: 1,
         pointRadius: 0,
         tension: 0.1,
+        tooltip: { display: false }, // Versteckt diesen Datensatz im Tooltip
+        //events: [] // Verhindert, dass der Datensatz überhaupt auf Interaktionen reagiert
         fill: {
             target: 0, // Füllt den Bereich zum ersten Dataset (dein DGM/DOM)
             above: 'rgba(0, 120, 255, 0.4)' // Farbe nur dort, wo Wasser ÜBER dem Gelände liegt
@@ -292,12 +294,12 @@ win.document.getElementById("addHorizontalBtn").onclick = function() {
         borderWidth: 3,
         borderDash: [6, 6],
         pointRadius: 0,
-        fill: false
+        fill: false,
+       
     });
 
     chart.update();
 };
-
 
 
  win.onbeforeunload = () => {

@@ -98,9 +98,6 @@ export async function handleDgmPointerMove(evt) {
         heightStatus.style.display = 'none';
         return;
     }
-
-    
-    
     const layerName = activeLayer.get('name');
     const data = activeLayer.getData(evt.pixel);
     

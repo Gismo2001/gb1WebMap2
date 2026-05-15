@@ -58,35 +58,24 @@ let profileMode = false;
  * Initialisiert den Permalink für die Karte
  * @param {ol/Map} map - Die OpenLayers Karteninstanz
  */
-
-
-
 export function initPermalink(map) {
     const permalink = new Permalink({
-        className: 'ol-permalink-button', // Eigene Klasse hinzufügen
-        refreshDelay:100,
-        urlReplace: true, 
+        className: 'ol-permalink-button',
+        urlReplace: false, // Initial aus
         localStorage: 'map-pos',
-        // --- Diese Optionen aktivieren den Button ---
-        visible: true,      // Zeigt den Button in der Toolbar/Karte an
-        anchor: true,       // Erzeugt einen Link-Button (Anker)
+        visible: false,    // Wird über CSS/JS gesteuert
+        anchor: true,
         onclick: function(url) {
-        navigator.clipboard.writeText(url).then(() => {
-        // Button kurzzeitig verändern als Feedback
-        const btn = document.querySelector('.ol-permalink-button button');
-        const originalText = btn.innerHTML;
-        btn.innerHTML = "✅"; 
-        setTimeout(() => {
-            btn.innerHTML = originalText;
-        }, 2000);
+            navigator.clipboard.writeText(url).then(() => {
+                const btn = document.querySelector('.ol-permalink-button button');
+                btn.innerHTML = "✅"; 
+                setTimeout(() => { btn.innerHTML = ""; }, 2000);
+            });
+        }
     });
-}
-    });
-
     map.addControl(permalink);
     return permalink;
 }
-
 export function createLayerSwitcher(map) {
   return new LayerSwitcher({
     reordering: true, // Erlaubt Neuanordnung
@@ -103,6 +92,7 @@ export function createLayerSwitcher(map) {
     },
   });
 }
+
 export function createMainToolbar(map) {
   const bar = new Bar({
     className: 'main-toolbar',
@@ -159,6 +149,80 @@ export function createMainToolbar(map) {
 
   return bar;
 }
+export function createSubBarI(map) {
+  // Permalink-Control suchen
+  const plControl = map.getControls().getArray().find(c => 
+    c.constructor.name === 'olcontrolPermalink' || c.get('urlReplace') !== undefined
+  );
+
+  const gpsToggleBtn = new Toggle({
+    html: '<i class="fa fa-map-marker"></i>',
+    title: 'GPS Position anzeigen',
+    onToggle: function (active) {
+      if (active) {
+        const started = startGpsTracking(map, {
+          onUnavailable: () => alert('Geolocation wird nicht unterstützt.'),
+          onError: (error) => alert(`ERROR: ${error.message}`),
+        });
+        if (!started) gpsToggleBtn.setActive(false);
+        return;
+      }
+      if (isGpsTrackingActive()) stopGpsTracking();
+    },
+  });
+
+  const ptnToogleBtn = new Toggle({
+    html: '<i class="fa fa-circle"></i>',
+    title: 'Punkt setzen',
+    onToggle: function (active) { 
+      if (active) {
+        initPtn(map); 
+        handleCRSChange();
+      } else {  
+        ptnDelFindCoord();
+      }
+    },
+  });
+
+  const fileToogleBtn = new Toggle({
+    html: '<i class="fa fa-file"></i>',
+    title: 'Datei laden',
+    onToggle: function (active) { 
+        if (active) {
+            fileToggleInput(map); 
+            setTimeout(() => { this.setActive(false); }, 100);
+        }
+    },  
+  });
+
+  // --- NEU: Permalink Toggle Button ---
+  const permalinkToggleBtn = new Toggle({
+    html: '🔗',
+    title: 'Permalink / Teilen aktivieren',
+    onToggle: function (active) {
+      if (plControl) {
+        // 1. Aktiviert das Schreiben in die Adresszeile
+        plControl.set('urlReplace', active);
+        
+        // 2. Blendet den Kopier-Button ein/aus
+        const plBtnElement = document.querySelector('.ol-permalink-button');
+        if (plBtnElement) {
+          plBtnElement.style.display = active ? 'block' : 'none';
+        }
+      }
+      
+      if (!active) {
+        // Säubert die URL beim Deaktivieren
+        window.location.hash = '';
+      }
+    }
+  });
+
+  return new Bar({ 
+    toggleOne: true, 
+    controls: [gpsToggleBtn, ptnToogleBtn, fileToogleBtn, permalinkToggleBtn] 
+  });
+}
 export function createSubBarT(map) {
   const tableToggleBtn = new Toggle({
     html: '<i class="fa fa-table" aria-hidden="true"></i>',
@@ -180,64 +244,6 @@ export function createSubBarT(map) {
   });
   tableToggleBtnInstance = tableToggleBtn;
   return new Bar({ toggleOne: true, controls: [tableToggleBtn] });
-}
-export function createSubBarI(map) { // GPS - Punkt setzen
-  const gpsToggleBtn = new Toggle({
-    html: '<i class="fa fa-map-marker"></i>',
-    title: 'GPS Position anzeigen',
-    onToggle: function (active) {
-      if (active) {
-        const started = startGpsTracking(map, {
-          onUnavailable: () => {
-            alert('Geolocation wird von diesem Browser nicht unterstützt.');
-          },
-          onError: (error) => {
-            alert(`ERROR: ${error.message}`);
-          },
-        });
-
-        if (!started) {
-          gpsToggleBtn.setActive(false);
-        }
-        return;
-      }
-
-      if (isGpsTrackingActive()) {
-        stopGpsTracking();
-      }
-    },
-  });
-  gpsToggleBtnInstance = gpsToggleBtn;
-
-  const ptnToogleBtn = new Toggle({
-    html: '<i class="fa fa-circle"></i>',
-    title: 'Punkt setzen',
-    onToggle: function (active) { 
-      if (active) {
-        // WICHTIG: Karte und Source übergeben (sourceEdit ist deine Source)
-        initPtn(map); 
-        handleCRSChange(); // Kein 'e' mehr nötig
-      } else {  
-        ptnDelFindCoord(); // Funktion zum löschen des Punktes aus (ptn.js)
-      }
-    },
-  });
-  ptnToogleBtnInstance = ptnToogleBtn;
-
-  const fileToogleBtn = new Toggle({
-    html: '<i class="fa fa-file"></i>',
-    title: 'Datei laden',
-    onToggle: function (active) { 
-        if (active) {
-            fileToggleInput(map); 
-            setTimeout(() => {
-                this.setActive(false);
-            }, 100);
-        }
-    },  
-  });
-
-return new Bar({ toggleOne: true, controls: [gpsToggleBtn, ptnToogleBtn, fileToogleBtn ] });
 }
 export function createSubBarW(map) {
   const DgmKachelLayer = createDgmKachelLayer();
@@ -439,8 +445,6 @@ export function initPrintControl(map) {
 
 import WMSCapabilities from 'ol-ext/control/WMSCapabilities';
 //import { profileLayer } from './chart.js';
-
-
  
 /**
  * Initialisiert das WMS-Capabilities Control

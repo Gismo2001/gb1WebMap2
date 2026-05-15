@@ -340,6 +340,7 @@ top: 4em;
 /* --- PERMALINK BUTTON UNTER DER TOOLBAR --- */
 .ol-permalink-button {
     /* Platziert den Button exakt unter die Toolbar (8em + Höhe der Toolbar) */
+    display: none; /* Versteckt den Button initial */
     top: 17.5em !important; 
     left: 0.5em !important;
     position: absolute;

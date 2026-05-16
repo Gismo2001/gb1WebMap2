@@ -16,8 +16,6 @@ import LayerGroup from 'ol/layer/Group';
 import TileWMS from 'ol/source/TileWMS';
 
 
-
-
 export function createGewLayer() {
   return new VectorLayer({
     source: new VectorSource({
@@ -960,6 +958,8 @@ export function createLayerStructure() {
      // 🏗️ Luftbilder
     new LayerGroup({
       title: 'Luftbilder',
+      name: 'Luftbilder',
+      permalink: 'Luftbilder',
       layers: [
         NOH1937, 
         NOH1957,
@@ -989,7 +989,10 @@ export function createLayerStructure() {
          // 🏗️ WMS-Layer
     new LayerGroup({
       title: 'WMS-Layer',
+      name: 'WMS-Layer',
+      permalink:'WMS-Layer',
       visible: false,
+
       layers: [
         alkisWms,
         nibisWms,

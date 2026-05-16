@@ -62,7 +62,7 @@ const plControl = new Permalink({
   refreshDelay:100,
   visible: true,
   localStorage: false,
-   onclick: function(url) {
+  onclick: function(url) {
         // Kopiert die URL direkt in die Zwischenablage
         navigator.clipboard.writeText(url).then(function() {
             alert("Link kopiert!");
@@ -77,11 +77,12 @@ const plControl = new Permalink({
 // control.js
 export function initPermalink(map) {
     const permalink = new Permalink({
-        className: 'ol-permalink-button',
-        refreshDelay:100,
-        visible: true,    // Initial unsichtbar
-        //urlReplace: false, // WICHTIG: Verhindert das Schreiben in die URL zu Beginn
-        localStorage: false,
+       className: 'ol-permalink-button',
+        urlReplace: false, 
+        refreshDelay: 100,
+        localStorage: false, 
+        visible: false,    
+        anchor: false, 
         onclick: function(url) {
             navigator.clipboard.writeText(url).then(() => {
                 const btn = document.querySelector('.ol-permalink-button button');
@@ -236,16 +237,15 @@ export function createSubBarI(map) {
   const permalinkToggleBtn = new Toggle({
     html: '🔗',
     title: 'Permalink / Teilen aktivieren',
-  onToggle: function (active) {
+    onToggle: function (active) {
       if (active) {
         // 1. Erst das Control zur Karte hinzufügen (erstellt das HTML-Element!)
         map.addControl(plControl);
         plControl.setUrlReplace(true);
-         
-        // 2. JETZT NACHDEM es auf der Karte ist, das Element im DOM suchen
+         // 2. JETZT NACHDEM es auf der Karte ist, das Element im DOM suchen
         const plBtnElement = document.querySelector('.ol-permalink-button');
-        console.log("eingeblendet: ", plBtnElement); // Sollte jetzt das DIV anzeigen!
-         
+        
+        
         // 3. Sichtbar machen
         if (plBtnElement) {
           plBtnElement.style.display = 'block';
@@ -254,13 +254,9 @@ export function createSubBarI(map) {
       } else {
         // Beim Ausblenden suchen wir es, bevor wir es von der Karte löschen
         const plBtnElement = document.querySelector('.ol-permalink-button');
-        if (plBtnElement) {
-          plBtnElement.style.display = 'none';
-        }
-
+        if (plBtnElement) {plBtnElement.style.display = 'none';}
         plControl.setUrlReplace(false);
         map.removeControl(plControl);
-        
         window.history.replaceState({}, document.title, window.location.pathname);
       }
     }

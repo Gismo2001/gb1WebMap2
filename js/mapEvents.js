@@ -589,99 +589,121 @@ async function askUserToChoose(currentClickResults, coord, map) {
 
     Object.keys(currentClickResults).forEach((layerName) => {
       const entry = currentClickResults[layerName];
-      entry.data.forEach((item, index) => {
-        const li = document.createElement('li');
-        const props = item.properties || item;
+      
+      // =====================================================
+      // SONDERFALL: Layer ist "Nibis Bohrdaten"
+      // =====================================================
+      if (layerName.toLowerCase().includes('nibis bohrdaten')) {
         
-        // 1. Einen Standard-Fallback-Namen definieren
-        let name = `Objekt ${index + 1}`;
-        
-        // =====================================================
-        // SONDERFALL: Layer ist "fsk"
-        // =====================================================
-        if (layerName.toLowerCase() === 'fsk') {
-          const propKeys = Object.keys(props);
-  
-          // 1. Die exakten Schlüsselnamen in den Daten finden (Groß-/Kleinschreibung ignorieren)
-          const gemarkKey  = propKeys.find(key => key.toLowerCase() === 'gemark');
-          const flurKey    = propKeys.find(key => key.toLowerCase() === 'flur');
-          const zaehlerKey = propKeys.find(key => key.toLowerCase() === 'zaehler');
-          const nennerKey  = propKeys.find(key => key.toLowerCase() === 'nenner');
-  
-          // 2. Die eigentlichen Werte aus den "props" auslesen (falls vorhanden, sonst Fallback "-")
-          const gemark  = gemarkKey  ? props[gemarkKey]  : '';
-          const flur    = flurKey    ? props[flurKey]    : '-';
-          const zaehler = zaehlerKey ? props[zaehlerKey] : '-';
-          const nenner  = nennerKey  ? props[nennerKey]  : '';
-
-          // 3. Den Namen schön zusammenbauen (z.B. "Saterland, Flur 2, 45/12")
-          // Falls ein Nenner existiert, hängen wir ein "/" davor, ansonsten lassen wir es weg
-          const nennerAnzeige = nenner ? `/${nenner}` : '';
-  
-          name = `${gemark}, Flur ${flur}, ${zaehler}${nennerAnzeige}`;
-        }
-        // =====================================================
-        // STANDARD-FALLBACK: Für alle anderen Layer
-        // =====================================================
-        else {
-          const propKeys = Object.keys(props);
-          // Wir suchen zuerst nach exakten oder teilweisen Treffern für "bezeichnung" oder "name"
-          const foundKey = propKeys.find(key => {
-            const lowerKey = key.toLowerCase();
-            return lowerKey.includes('name') || lowerKey.includes('bezeichnung');
-          });
+        // Da entry.data nun ein Array von Bohrungs-Objekten ist (dank des neuen Parsers):
+        entry.data.forEach((bohrung, index) => {
           
-          // Wenn ein passender Schlüssel gefunden wurde und einen Wert hat, nutzen wir ihn
-          if (foundKey && props[foundKey]) {
-            name = props[foundKey];
-          }
-        }
-
-        
-        li.innerHTML = `<strong>${layerName}</strong>: ${name}`;
-
-        // EINFACHER KLICK
-        li.onclick = () => {
-          showFeatureFromSelection(item, layerName, coord);
-          Array.from(list.children).forEach(el => el.classList.remove('selected'));
-          li.classList.add('selected');
-        };
-
-        // DOPPELKLICK
-        li.ondblclick = () => {
-          if (!map || typeof map.getView !== 'function') {
-            console.error("Map-Parameter fehlt oder ist ungültig!");
-            return;
-          }
-          let extent = null;
-          if (item.feature && typeof item.feature.getGeometry === 'function') {
-              extent = item.feature.getGeometry().getExtent();
-          } else if (item.geometry) {
-            const format = new GeoJSON(); 
-            const tempFeature = format.readFeature(item);
-            if (tempFeature) {
-                extent = tempFeature.getGeometry().getExtent();
+          // Namen aus den Attributen dieser spezifischen Bohrung fischen
+          let name = bohrung.LONGNAME || bohrung.ANAME || bohrung.PROJEKT;
+          // 2. Fallback: Wenn oben nichts gefunden wurde (oder '{null}' war), suchen wir dynamisch nach "*name*"
+          if (!name || name === '{null}') {
+            const allKeys = Object.keys(bohrung);
+            
+            // Finde den ersten Schlüssel, der das Wort "name" beinhaltet
+            const dynamicNameKey = allKeys.find(key => key.toLowerCase().includes('name'));
+            
+            // Wenn so ein Schlüssel existiert und einen gültigen Wert hat, nutzen wir ihn
+            if (dynamicNameKey && bohrung[dynamicNameKey] && bohrung[dynamicNameKey] !== '{null}') {
+              name = bohrung[dynamicNameKey];
             }
           }
-          if (extent) {
-            map.getView().fit(extent, { 
-                duration: 800, 
-                padding: [50, 50, 50, 50],
-                maxZoom: 18 
-            });
-          } else if (coord) {
-            map.getView().animate({
-                center: coord,
-                zoom: 18,
-                duration: 800
-            });
+
+          // 3. Letzter Notnagel: Wenn absolut kein Name auftreibbar ist
+          if (!name || name === '{null}') {
+            name = `Bohrung ${index + 1}`;
           }
-        };
-        list.appendChild(li);
-      });
+          const li = document.createElement('li');
+          li.innerHTML = `<strong>${layerName}</strong>: ${name}`;
+
+          // KLICK: Übergibt jetzt das exakte, saubere Objekt der Bohrung mit ALLEN Attributen
+          li.onclick = () => {
+            showFeatureFromSelection(bohrung, layerName, coord);
+            Array.from(list.children).forEach(el => el.classList.remove('selected'));
+            li.classList.add('selected');
+          };
+
+          li.ondblclick = () => {
+            if (coord) {
+              map.getView().animate({ center: coord, zoom: 18, duration: 800 });
+            }
+          };
+
+          list.appendChild(li);
+        });
+      }
+      // =====================================================
+      // FÜR ALLE ANDEREN LAYER (Standard-Vorgehen)
+      // =====================================================
+      else {
+        entry.data.forEach((item, index) => {
+          const li = document.createElement('li');
+          const props = item.properties || item;
+          let name = `Objekt ${index + 1}`;
+        
+          // SONDERFALL: Layer ist "fsk"
+          if (layerName.toLowerCase() === 'fsk') {
+            const propKeys = Object.keys(props);
+            const gemarkKey  = propKeys.find(key => key.toLowerCase() === 'gemark');
+            const flurKey    = propKeys.find(key => key.toLowerCase() === 'flur');
+            const zaehlerKey = propKeys.find(key => key.toLowerCase() === 'zaehler');
+            const nennerKey  = propKeys.find(key => key.toLowerCase() === 'nenner');
+    
+            const gemark  = gemarkKey  ? props[gemarkKey]  : '';
+            const flur    = flurKey    ? props[flurKey]    : '-';
+            const zaehler = zaehlerKey ? props[zaehlerKey] : '-';
+            const nenner  = nennerKey  ? props[nennerKey]  : '';
+            const nennerAnzeige = nenner ? `/${nenner}` : '';
+    
+            name = `${gemark}, Flur ${flur}, ${zaehler}${nennerAnzeige}`;
+          }
+          // STANDARD-FALLBACK (andere Vektor- oder WMS-Layer)
+          else {
+            const propKeys = Object.keys(props);
+            const foundKey = propKeys.find(key => {
+              const lowerKey = key.toLowerCase();
+              return lowerKey.includes('name') || lowerKey.includes('bezeichnung');
+            });
+            
+            if (foundKey && props[foundKey]) {
+              name = props[foundKey];
+            }
+          }
+  
+          li.innerHTML = `<strong>${layerName}</strong>: ${name}`;
+  
+          // Klick-Events
+          li.onclick = () => {
+            showFeatureFromSelection(item, layerName, coord);
+            Array.from(list.children).forEach(el => el.classList.remove('selected'));
+            li.classList.add('selected');
+          };
+  
+          li.ondblclick = () => {
+            let extent = null;
+            if (item.feature && typeof item.feature.getGeometry === 'function') {
+                extent = item.feature.getGeometry().getExtent();
+            } else if (item.geometry) {
+              const format = new GeoJSON(); 
+              const tempFeature = format.readFeature(item);
+              if (tempFeature) extent = tempFeature.getGeometry().getExtent();
+            }
+            if (extent) {
+              map.getView().fit(extent, { duration: 800, padding: [50, 50, 50, 50], maxZoom: 18 });
+            } else if (coord) {
+              map.getView().animate({ center: coord, zoom: 18, duration: 800 });
+            }
+          };
+          
+          list.appendChild(li);
+        });
+      }
     });
 }
-  
 function parseDeegreeGml(xmlString, layerName) {
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(xmlString, "text/xml");
@@ -721,40 +743,38 @@ function parseDeegreeGml(xmlString, layerName) {
 function parseNibisHTML(html) {
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, 'text/html');
-
-  const result = [];
-
-  // 👉 alle Tabellen durchgehen
+  const result = []; // Hier landen nachher die einzelnen Bohrungs-Objekte
+  
   const tables = doc.querySelectorAll('table');
+  tables.forEach((table, tableIndex) => {
+    const headers = Array.from(table.querySelectorAll('th')).map(th => th.textContent.trim());
+    const rows = table.querySelectorAll('tr');
+    
+    // Ein eigenes Objekt für diese spezifische Bohrung anlegen
+    const bohrungAttributes = {};
 
-tables.forEach((table) => {
-  const headers = Array.from(table.querySelectorAll('th')).map(th =>
-    th.textContent.trim()
-  );
+    rows.forEach((row, rowIndex) => {
+      if (rowIndex === 0) return; // Header überspringen
+      const cells = row.querySelectorAll('td');
 
-  const rows = table.querySelectorAll('tr');
+      if (cells.length === headers.length && cells.length > 0) {
+        headers.forEach((header, i) => {
+          const text = cells[i].textContent.trim();
+          // Wir speichern das Attribut direkt als Key-Value-Paar im Bohrungs-Objekt
+          bohrungAttributes[header] = text;
+        });
+      }
+    });
 
-  rows.forEach((row, rowIndex) => {
-    if (rowIndex === 0) return; // Header überspringen
-
-    const cells = row.querySelectorAll('td');
-
-    if (cells.length === headers.length && cells.length > 0) {
-      headers.forEach((header, i) => {
-
-        const text = cells[i].textContent.trim();
-
-        result.push({
-  attribute: header,
-  value: text
-});
-
-      });
+    // Nur hinzufügen, wenn die Tabelle auch echte Daten enthielt
+    if (Object.keys(bohrungAttributes).length > 0) {
+      // Metadaten für dein restliches System anhängen
+      bohrungAttributes.origin_layer = 'Nibis Bohrdaten';
+      result.push(bohrungAttributes);
     }
   });
-});
 
-  return result;
+  return result; // Gibt jetzt ein Array von Objekten zurück: [ {LONGNAME: 'Haren 1', ...}, {LONGNAME: 'Haren 2', ...} ]
 }
 
 export function parseArcGISXml(xmlString, layerName) {

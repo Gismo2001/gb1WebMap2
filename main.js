@@ -74,7 +74,9 @@ const layers = createLayerStructure();
 export const map = createMap('map', layers);
 
 // Permalink aktivieren
-//initPermalink(map);
+initPermalink(map);
+
+
 
 
 // LayerSwitcher hinzufügen

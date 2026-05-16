@@ -36,7 +36,7 @@ import { layerSwitcher } from '../main.js';
 import SearchPhoton from 'ol-ext/control/SearchPhoton';
 
 import Permalink from 'ol-ext/control/Permalink';
-let plControl = null;
+
 
 let searchPlaceControl = null; //Erstmal die Ortssuche auf null
 let isTableActive = false;
@@ -53,7 +53,22 @@ const profileSource = createProfilSource();
 const profileLayer = createProfilLayer(profileSource);
 let profileMode = false;
 
+//export const plControl = null; 
 
+
+// --- Control definieren ---
+const plControl = new Permalink({
+  className: 'ol-permalink mein-spezial-button', // Eigene Klasse hinzufügen
+  refreshDelay:100,
+  visible: true,
+  localStorage: false,
+   onclick: function(url) {
+        // Kopiert die URL direkt in die Zwischenablage
+        navigator.clipboard.writeText(url).then(function() {
+            alert("Link kopiert!");
+        });
+    }
+});
 
 /**
  * Initialisiert den Permalink für die Karte

@@ -51,7 +51,21 @@ let printToogleBtnInstance = null;
 const profileSource = createProfilSource();
 const profileLayer = createProfilLayer(profileSource);
 let profileMode = false;
-//let plControl;
+let plControl = null;
+
+// --- Control definieren ---
+plControl = new Permalink({
+  className: 'ol-permalink-button',
+  refreshDelay:100,
+  visible: true,
+  localStorage: false,
+   onclick: function(url) {
+        // Kopiert die URL direkt in die Zwischenablage
+        navigator.clipboard.writeText(url).then(function() {
+            alert("Link kopiert!");
+        });
+    }
+});
 
 
 

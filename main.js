@@ -48,7 +48,7 @@ import { fromArrayBuffer } from 'geotiff';
 
 import { loadedDgms, loadedDoms } from './js/dgmdom.js';  
 
-import { initPermalink } from './js/controls.js';
+import { initPermalink  } from './js/controls.js';
 
 window.$ = window.jQuery = $;
 window.Chart = Chart;

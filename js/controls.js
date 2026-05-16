@@ -36,6 +36,7 @@ import { layerSwitcher } from '../main.js';
 import SearchPhoton from 'ol-ext/control/SearchPhoton';
 
 import Permalink from 'ol-ext/control/Permalink';
+let plControl = null;
 
 let searchPlaceControl = null; //Erstmal die Ortssuche auf null
 let isTableActive = false;
@@ -51,21 +52,6 @@ let printToogleBtnInstance = null;
 const profileSource = createProfilSource();
 const profileLayer = createProfilLayer(profileSource);
 let profileMode = false;
-let plControl = null;
-
-// --- Control definieren ---
-plControl = new Permalink({
-  className: 'ol-permalink-button',
-  refreshDelay:100,
-  visible: true,
-  localStorage: false,
-   onclick: function(url) {
-        // Kopiert die URL direkt in die Zwischenablage
-        navigator.clipboard.writeText(url).then(function() {
-            alert("Link kopiert!");
-        });
-    }
-});
 
 
 
@@ -165,11 +151,31 @@ export function createMainToolbar(map) {
 
   return bar;
 }
+
 export function createSubBarI(map) {
-  // Permalink-Control suchen
-  const plControl = map.getControls().getArray().find(c => 
-    c.constructor.name === 'olcontrolPermalink' || c.get('urlReplace') !== undefined
-  );
+  // 1. Erst prüfen, ob plControl (die globale Variable von ganz oben) existiert. Wenn nicht: frisch erstellen!
+  if (!plControl) {
+    console.log("Permalink wird jetzt initialisiert, da die Map bereit ist.");
+    plControl = new Permalink({
+        className: 'ol-permalink-button',
+        urlReplace: false, 
+        refreshDelay: 100,
+        localStorage: false, 
+        visible: false,    
+        anchor: false,     
+        onclick: function(url) {
+            navigator.clipboard.writeText(url).then(() => {
+                const btn = document.querySelector('.ol-permalink-button button');
+                if (btn) {
+                    btn.innerHTML = "✅"; 
+                    setTimeout(() => { btn.innerHTML = ""; }, 2000);
+                }
+            });
+        }
+    });
+  }
+
+  // --- DIE ALTE SUCHE WURDE HIER ENTFERNT ---
 
   const gpsToggleBtn = new Toggle({
     html: '<i class="fa fa-map-marker"></i>',
@@ -211,27 +217,37 @@ export function createSubBarI(map) {
     },  
   });
 
-  // --- NEU: Permalink Toggle Button ---
- // --- Permalink Toggle Button ---
+  // --- Permalink Toggle Button ---
   const permalinkToggleBtn = new Toggle({
     html: '🔗',
     title: 'Permalink / Teilen aktivieren',
+  onToggle: function (active) {
+      if (active) {
+        // 1. Erst das Control zur Karte hinzufügen (erstellt das HTML-Element!)
+        map.addControl(plControl);
+        plControl.setUrlReplace(true);
+         
+        // 2. JETZT NACHDEM es auf der Karte ist, das Element im DOM suchen
+        const plBtnElement = document.querySelector('.ol-permalink-button');
+        console.log("eingeblendet: ", plBtnElement); // Sollte jetzt das DIV anzeigen!
+         
+        // 3. Sichtbar machen
+        if (plBtnElement) {
+          plBtnElement.style.display = 'block';
+        }
+         
+      } else {
+        // Beim Ausblenden suchen wir es, bevor wir es von der Karte löschen
+        const plBtnElement = document.querySelector('.ol-permalink-button');
+        if (plBtnElement) {
+          plBtnElement.style.display = 'none';
+        }
 
-     onToggle: function (active) {
-     if (active) {
-         map.addControl(plControl);
-         plControl.setUrlReplace(true);
-         
-         
-         const hatUrl = plControl.hasUrlParam ? 'ja' : 'nein';
-         
-       } else {
         plControl.setUrlReplace(false);
-         const hatUrl = plControl.hasUrlParam ? 'ja' : 'nein';
-         
-         map.removeControl(plControl);
-         
-       }
+        map.removeControl(plControl);
+        
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
     }
   });
 

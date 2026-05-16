@@ -479,16 +479,14 @@ export function showTableDebounced(data) {
 
 // Tabelle schließen
 export function closeTable() {
-  isTableActive = false; // Status auf false setzen
-  clearHighlightedFeature(); // Alle Hervorhebungen in der Karte entfernen
-  if (splitInstance) { // Wenn eine Split.js-Instanz existiert
-    splitInstance.destroy(); // Split.js-Instanz zerstören, damit die Karte wieder 100% bekommt
-    splitInstance = null; // Referenz zurücksetzen
+  isTableActive = false; 
+  clearHighlightedFeature(); 
+  if (splitInstance) { 
+    splitInstance.destroy(); 
+    splitInstance = null; 
   }
-  // ... restliche Aufräumarbeiten wie gehabt
   document.getElementById("wms-table-container").style.display = "none";
   deactivateTableToggle();
-  // ... Karte auf 100% setzen
 }
 
 export function switchLayerData(results) {

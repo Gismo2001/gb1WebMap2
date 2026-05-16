@@ -309,6 +309,16 @@ top: 4em;
     border-bottom: 1px solid #ccc;
 }
 
+#layer-selector {
+    max-width: 100px; /* Oder ein em-Wert wie 12em – passe den Wert nach Wunsch an */
+    width: 100%;       /* Nutzt den Platz bis zur maximalen Breite aus */
+    
+    /* Optional: Verhindert, dass der Text hässlich über den Rand bricht */
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
 /* Container des Search-Controls */
 .ol-search {
     max-width: 80vw; /* Maximal 80% der Bildschirmbreite */

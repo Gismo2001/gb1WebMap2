@@ -1383,13 +1383,14 @@ const title =
 }
 document.addEventListener('click', (e) => {
   const box = document.getElementById('feature-select');
-  
   if (!box || box.classList.contains('hidden')) return;
-
+  // Ausnahme: Wenn der Klick auf den Tabellen-Schließen-Button ging, tu nichts!
+  if (e.target.id === 'close-table-btn' || e.target.closest('#close-table-btn')) {
+    return;
+  }
   // Prüfen, ob der Klick auf die Karte ging, um die Box zu öffnen
   // Falls du eine ID für deinen Karten-Container hast (z.B. 'map')
   const isMapClick = e.target.closest('#map'); 
-
   // Wenn der Klick außerhalb der Box war UND nicht der Klick war, der die Box öffnet
   if (!box.contains(e.target)) {
     // Falls du sicherstellen willst, dass ein neuer Klick auf ein Feature 

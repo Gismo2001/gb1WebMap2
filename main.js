@@ -134,7 +134,11 @@ initTable(map);
 initPtn(map); 
 
 //Eventlistener für den "Schließen"-Button der Tabelle, damit die Karte wieder 100% bekommt
-document.getElementById('close-table-btn').addEventListener('click', closeTable);
+document.getElementById('close-table-btn').addEventListener('click', function(e) {
+    e.stopPropagation(); // WICHTIG: Verhindert, dass das document den Klick mitbekommt!
+    closeTable();
+});
+
 map.on('moveend', () => {
   // Nur wenn der User die Tabelle offen hat, führen wir das Update aus
   if (getTableActive()) {

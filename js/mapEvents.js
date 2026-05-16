@@ -254,7 +254,6 @@ export function initMapClick(map) {
       
     }
     
-
     // --- 3. WMS & VEKTOR ABFRAGEN (FÜR TABELLE / POPUP) ---
     const requestId = ++latestClickRequestId;
     const promises = [];
@@ -505,33 +504,20 @@ if (needsSelection) {
   // =====================================================
 
   if (typeof highlightFeatureForRow === 'function') {
-
     highlightFeatureForRow(featureData);
   }
 
   // =====================================================
   // Tabellenbutton
   // =====================================================
-
   setTimeout(() => {
-
-    const btn =
-      document.getElementById('open-table-btn');
-
+    const btn = document.getElementById('open-table-btn');
     if (btn) {
-
-      btn.onclick = () => {
-
-        updateSelector([chosenLayer]);
-
-        showTableDebounced(
-
-          currentClickResults[chosenLayer].data.map(
-            item => item.properties || item
-          )
+      btn.onclick = () => {updateSelector([chosenLayer]);
+      showTableDebounced(
+          currentClickResults[chosenLayer].data.map(item => item.properties || item)
         );
-
-        popupOverlay.setPosition(undefined);
+      popupOverlay.setPosition(undefined);
       };
     }
 
@@ -596,70 +582,106 @@ function showFeatureFromSelection(selected, layerName, coord) {
 }
 
 async function askUserToChoose(currentClickResults, coord, map) {
-    // Wir geben kein Promise zurück, das die Funktion beendet, 
-    // sondern steuern die Anzeige direkt aus dem Klick-Event.
-    
     const container = document.getElementById('feature-select');
     const list = document.getElementById('feature-select-li');
-    
     list.innerHTML = '';
     container.classList.remove('hidden');
 
     Object.keys(currentClickResults).forEach((layerName) => {
-        const entry = currentClickResults[layerName];
+      const entry = currentClickResults[layerName];
+      entry.data.forEach((item, index) => {
+        const li = document.createElement('li');
+        const props = item.properties || item;
         
-entry.data.forEach((item, index) => {
-    const li = document.createElement('li');
-    const props = item.properties || item;
-    const name = props.Name || props.name || props.Bezeichnung || `Objekt ${index + 1}`;
-    
-    li.innerHTML = `<strong>${layerName}</strong>: ${name}`;
-    
-    // EINFACHER KLICK
-    li.onclick = () => {
-        showFeatureFromSelection(item, layerName, coord);
-        Array.from(list.children).forEach(el => el.classList.remove('selected'));
-        li.classList.add('selected');
-    };
+        // 1. Einen Standard-Fallback-Namen definieren
+        let name = `Objekt ${index + 1}`;
+        
+        // =====================================================
+        // SONDERFALL: Layer ist "fsk"
+        // =====================================================
+        if (layerName.toLowerCase() === 'fsk') {
+          const propKeys = Object.keys(props);
+  
+          // 1. Die exakten Schlüsselnamen in den Daten finden (Groß-/Kleinschreibung ignorieren)
+          const gemarkKey  = propKeys.find(key => key.toLowerCase() === 'gemark');
+          const flurKey    = propKeys.find(key => key.toLowerCase() === 'flur');
+          const zaehlerKey = propKeys.find(key => key.toLowerCase() === 'zaehler');
+          const nennerKey  = propKeys.find(key => key.toLowerCase() === 'nenner');
+  
+          // 2. Die eigentlichen Werte aus den "props" auslesen (falls vorhanden, sonst Fallback "-")
+          const gemark  = gemarkKey  ? props[gemarkKey]  : '';
+          const flur    = flurKey    ? props[flurKey]    : '-';
+          const zaehler = zaehlerKey ? props[zaehlerKey] : '-';
+          const nenner  = nennerKey  ? props[nennerKey]  : '';
 
-    // DOPPELKLICK
-    li.ondblclick = () => {
-        // map kommt jetzt sicher als Parameter der Funktion askUserToChoose an
-        if (!map || typeof map.getView !== 'function') {
-            console.error("Map-Parameter fehlt oder ist ungültig!");
-            return;
+          // 3. Den Namen schön zusammenbauen (z.B. "Saterland, Flur 2, 45/12")
+          // Falls ein Nenner existiert, hängen wir ein "/" davor, ansonsten lassen wir es weg
+          const nennerAnzeige = nenner ? `/${nenner}` : '';
+  
+          name = `${gemark}, Flur ${flur}, ${zaehler}${nennerAnzeige}`;
+        }
+        // =====================================================
+        // STANDARD-FALLBACK: Für alle anderen Layer
+        // =====================================================
+        else {
+          const propKeys = Object.keys(props);
+          // Wir suchen zuerst nach exakten oder teilweisen Treffern für "bezeichnung" oder "name"
+          const foundKey = propKeys.find(key => {
+            const lowerKey = key.toLowerCase();
+            return lowerKey.includes('name') || lowerKey.includes('bezeichnung');
+          });
+          
+          // Wenn ein passender Schlüssel gefunden wurde und einen Wert hat, nutzen wir ihn
+          if (foundKey && props[foundKey]) {
+            name = props[foundKey];
+          }
         }
 
-        let extent = null;
-        if (item.feature && typeof item.feature.getGeometry === 'function') {
-            extent = item.feature.getGeometry().getExtent();
-        } else if (item.geometry) {
-            // Falls es GeoJSON-Daten sind
-            const format = new GeoJSON(); // GeoJSON ist oben in deiner Datei importiert
+        
+        li.innerHTML = `<strong>${layerName}</strong>: ${name}`;
+
+        // EINFACHER KLICK
+        li.onclick = () => {
+          showFeatureFromSelection(item, layerName, coord);
+          Array.from(list.children).forEach(el => el.classList.remove('selected'));
+          li.classList.add('selected');
+        };
+
+        // DOPPELKLICK
+        li.ondblclick = () => {
+          if (!map || typeof map.getView !== 'function') {
+            console.error("Map-Parameter fehlt oder ist ungültig!");
+            return;
+          }
+          let extent = null;
+          if (item.feature && typeof item.feature.getGeometry === 'function') {
+              extent = item.feature.getGeometry().getExtent();
+          } else if (item.geometry) {
+            const format = new GeoJSON(); 
             const tempFeature = format.readFeature(item);
             if (tempFeature) {
                 extent = tempFeature.getGeometry().getExtent();
             }
-        }
-
-        if (extent) {
+          }
+          if (extent) {
             map.getView().fit(extent, { 
                 duration: 800, 
                 padding: [50, 50, 50, 50],
                 maxZoom: 18 
             });
-        } else if (coord) {
+          } else if (coord) {
             map.getView().animate({
                 center: coord,
                 zoom: 18,
                 duration: 800
             });
-        }
-    };
-    list.appendChild(li);
-});
+          }
+        };
+        list.appendChild(li);
+      });
     });
 }
+  
 function parseDeegreeGml(xmlString, layerName) {
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(xmlString, "text/xml");
@@ -1228,18 +1250,12 @@ function buildPopupContent(featureOrProps, layerName) {
   if (!featureOrProps) {
     return "<p>Keine Daten</p>";
   }
-
   // =====================================================
   // OL-Feature ODER normales Objekt
   // =====================================================
-
-  const isOlFeature =
-    typeof featureOrProps.getProperties === 'function';
+  const isOlFeature = typeof featureOrProps.getProperties === 'function';
   console.log("aufgerufen Build is ol: ", isOlFeature)
-  const daten = isOlFeature
-    ? featureOrProps.getProperties()
-    : featureOrProps;
-
+  const daten = isOlFeature ? featureOrProps.getProperties(): featureOrProps;
   let html = "";
 
   // =====================================================
@@ -1253,7 +1269,6 @@ function buildPopupContent(featureOrProps, layerName) {
       `ID: ${daten.fsk}<br>` +
       `Flur: ${daten.Flur}<br>` +
       `Flurstk.: ${daten.Zaehler}/${daten.Flur}`;
-
     html += `<strong>${ueberschrift}</strong><br>`;
     html += `<span>${info}</span><br>`;
 
@@ -1264,39 +1279,36 @@ function buildPopupContent(featureOrProps, layerName) {
       html += `<strong>Kachel: ${daten.tile_id}</strong><br>`;
     }
 
-  } else {
-  const preferredKeys = [
-  'name',
-  'bezeich',
-  'titel',
-  'label',
-  'objectid'
-];
+} else {
+    // 1. Priorisierte Suchbegriffe (Wortbestandteile) definieren
+    const preferredKeys = [
+      'name',
+      'bezeich', // deckt bezeich, bezeichnung, bezeichnung_neu etc. ab
+      'titel',
+      'label',
+      'typ',
+      'nummer',
+      'id'       // 'id' am Ende, da es oft in anderen Wörtern vorkommt (z.B. 'gemeinde_id')
+    ];
 
-// passendes Feld dynamisch suchen
-const dynamicKey = Object.keys(daten).find(key => {
-const lower = key.toLowerCase();
+    // 2. Alle Schlüssel des Daten-Objekts holen
+    const datenKeys = Object.keys(daten);
 
-  return preferredKeys.some(word =>
-    lower.includes(word)
-  );
-});
+    // 3. Den ersten Schlüssel finden, der einen unserer Wunschbegriffe enthält
+    let dynamicKey = null;
 
-const title =
-  daten[dynamicKey] ||
-  daten.name ||
-  daten.Name ||
-  daten.bezeich ||
-  daten.bezeichnung ||
-  daten.Bezeichnung ||
-  daten.titel ||
-  daten.Titel ||
-  daten.label ||
-  daten.Label ||
-  daten.typ ||
-  daten.nummer ||
-  daten.id ||
-  'Keine Bezeichnung';
+    // Wir gehen die preferredKeys der Reihe nach durch (Priorität von oben nach unten)
+    for (const word of preferredKeys) {
+      dynamicKey = datenKeys.find(key => key.toLowerCase().includes(word));
+      
+      // Wenn wir einen Schlüssel gefunden haben und dieser im Objekt auch einen Wert hat, brechen wir ab
+      if (dynamicKey && daten[dynamicKey]) {
+        break;
+      }
+    }
+
+    // 4. Titel auslesen oder Fallback nutzen
+    const title = dynamicKey ? daten[dynamicKey] : 'Keine Bezeichnung';
 
     html += `<strong>${title}</strong><br>`;
   }
@@ -1304,14 +1316,9 @@ const title =
   // =====================================================
   // DGM / DOM Link
   // =====================================================
-
-  const kachelUrl =
-    daten.dgm1 || daten.dom1;
-
+  const kachelUrl = daten.dgm1 || daten.dom1;
   if (kachelUrl) {
-
     let bbox = null;
-
     // Nur OL-Feature besitzt Geometry
     if (isOlFeature) {
       bbox =
@@ -1339,28 +1346,12 @@ const title =
 
   const fotoLinks = [];
 
-  if (daten.foto1)
-    fotoLinks.push(
-      `<a href="${daten.foto1}" target="_blank" class="popup-link">Foto 1</a>`
-    );
-
-  if (daten.foto2)
-    fotoLinks.push(
-      `<a href="${daten.foto2}" target="_blank" class="popup-link">Foto 2</a>`
-    );
-
-  if (daten.foto3)
-    fotoLinks.push(
-      `<a href="${daten.foto3}" target="_blank" class="popup-link">Foto 3</a>`
-    );
-
-  if (daten.foto4)
-    fotoLinks.push(
-      `<a href="${daten.foto4}" target="_blank" class="popup-link">Foto 4</a>`
-    );
+  if (daten.foto1) fotoLinks.push(`<a href="${daten.foto1}" target="_blank" class="popup-link">Foto 1</a>` );
+  if (daten.foto2) fotoLinks.push(`<a href="${daten.foto2}" target="_blank" class="popup-link">Foto 2</a>` );
+  if (daten.foto3) fotoLinks.push(`<a href="${daten.foto3}" target="_blank" class="popup-link">Foto 3</a>` );
+  if (daten.foto4) fotoLinks.push(`<a href="${daten.foto4}" target="_blank" class="popup-link">Foto 4</a>` );
 
   if (fotoLinks.length > 0) {
-
     html += `
       <div style="margin-top:8px;">
         ${fotoLinks.join(", ")}
@@ -1371,7 +1362,6 @@ const title =
   // =====================================================
   // Tabelle
   // =====================================================
-
   html += `
     <br>
     <button id="open-table-btn" style="font-size:12px;">
@@ -1396,7 +1386,6 @@ document.addEventListener('click', (e) => {
     // Falls du sicherstellen willst, dass ein neuer Klick auf ein Feature 
     // die Box nicht schließt, bevor die neuen Daten geladen sind:
     if (isMapClick) return; 
-
     box.classList.add('hidden');
   }
 });

@@ -76,28 +76,20 @@ export function updateSelector(names) {
   }
 }
 export function showTable(data) {
-  if (!Array.isArray(data)) {
-  data = data ? [data] : [];
-  }
-  data = data.map(item => {
-
-  const clean = {};
-
-  Object.entries(item).forEach(([key, value]) => {
-
+  if (!Array.isArray(data)) {data = data ? [data] : []; } data = data.map(item => {
+    const clean = {};
+    Object.entries(item).forEach(([key, value]) => {
     // komplexe Objekte überspringen
-    if (
-      typeof value === 'object' &&
-      value !== null
-    ) {
-      return;
-    }
-
-    clean[key] = value;
+      if (
+        typeof value === 'object' &&
+        value !== null
+      ) {
+        return;
+      }
+      clean[key] = value;
+    });
+    return clean;
   });
-
-  return clean;
-});
   isTableActive = true;
   const container = document.getElementById("wms-table-container");
   const tableElement = document.getElementById("wms_data_table");
@@ -127,39 +119,34 @@ export function showTable(data) {
   const selector = document.getElementById('layer-selector');
   const layerName = selector ? selector.value : "unknown";
   const normalizedName = layerName.toLowerCase();
-let idKey;
+  let idKey;
 
-// 1. Deine expliziten Zuweisungen
-if (normalizedName === 'fsk') {
+  // 1. Deine expliziten Zuweisungen
+  if (normalizedName === 'fsk') {
     idKey = 'OBJECTID';
-} else if (normalizedName.startsWith('shapefile')) {
+  } else if (normalizedName.startsWith('shapefile')) {
     idKey = 'objectid';
-// ... (normalizedName Logik davor)
-
-} else {
+  } else {
     // 2. Dynamische Erkennung für WMS und unbekannte Layer
     if (data && data.length > 0) {
-        // Wir nehmen das erste Element, das tatsächlich ein Objekt ist
-        const firstItem = data.find(item => item !== null && typeof item === 'object');
-        
-        if (firstItem) {
-            const commonKeys = ['ID_con', 'id', 'gml_id', 'OBJECTID', 'objectid', 'FID'];
-            
-            // Sicherer Check mit dem optionalen Chaining oder Prüfung von firstItem
-            idKey = commonKeys.find(key => key in firstItem);
-
-            if (!idKey) {
-                idKey = Object.keys(firstItem)[0]; 
-                console.warn(`Kein bekannter ID-Key gefunden. Nutze Fallback: ${idKey}`);
-            }
-        } else {
-            // Fallback, wenn data nur aus null/undefined besteht
-            idKey = 'ID_con';
+      // Wir nehmen das erste Element, das tatsächlich ein Objekt ist
+      const firstItem = data.find(item => item !== null && typeof item === 'object');
+      if (firstItem) {
+        const commonKeys = ['ID_con', 'id', 'gml_id', 'OBJECTID', 'objectid', 'FID'];
+        // Sicherer Check mit dem optionalen Chaining oder Prüfung von firstItem
+        idKey = commonKeys.find(key => key in firstItem);
+        if (!idKey) {
+          idKey = Object.keys(firstItem)[0]; 
+          console.warn(`Kein bekannter ID-Key gefunden. Nutze Fallback: ${idKey}`);
         }
+      } else {
+        // Fallback, wenn data nur aus null/undefined besteht
+        idKey = 'ID_con';
+      }
     } else {
         idKey = 'ID_con';
     }
-}
+  }
   // 👉 3. Reset-Button Logik (Jetzt kennt er normalizedName korrekt)
   if (resetBtn) {
     resetBtn.onclick = () => {
@@ -184,8 +171,6 @@ if (normalizedName === 'fsk') {
     };
     if (!tableElement.classList.contains("hide-filters")) filterBtn.classList.add("active");
   }
-
-  
   // 👉 5. Daten vorbereiten (mit Safety-Check)
   const uniqueData = (data || []).filter((item, index, self) => {
     // 1. Check: Existiert das Item überhaupt?
@@ -205,13 +190,9 @@ if (normalizedName === 'fsk') {
   if (table && previousLayer === normalizedName) {
     table.replaceData(uniqueData);
   } else {
-    if (table) {
-      table.destroy();
-      table = null;
-    }
+    if (table) { table.destroy(); table = null; }
     tableElement.innerHTML = "";
     tableElement.setAttribute("data-current-layer", normalizedName);
-
     try {
       table = new Tabulator("#wms_data_table", {
         data: uniqueData,
@@ -241,8 +222,6 @@ if (normalizedName === 'fsk') {
               }
               return value;
             };
-
-            
             column.headerContextMenu = [
               { label: "Spalte ausblenden", action: (e, col) => col.hide() },
               { label: "🔄 Alles zurücksetzen", action: () => resetBtn.click() }
@@ -250,7 +229,6 @@ if (normalizedName === 'fsk') {
             column.headerFilter = "input";
             column.headerFilterPlaceholder = "Suche...";
             if (column.field === "stat_von") column.sorter = "number";
-
             column.headerFilterFunc = function(headerValue, rowValue) {
               if (!headerValue) return true;
               const val = String(rowValue || "").trim();
@@ -267,11 +245,8 @@ if (normalizedName === 'fsk') {
               return new RegExp(search.replace(/\*/g, ".*"), "i").test(val);
             };
           });
-
-          
           return definitions;
         },
-       
       });
      
       setupTableEvents(table, tableElement, idKey, layerName);
@@ -287,7 +262,6 @@ function setupTableEvents(table, tableElement, idKey, layerName) {
   // TABLE BUILT
   // =====================================================
   table.on("tableBuilt", () => {
-    
     tableElement.setAttribute("tabindex", "0");
     focusTable(tableElement);
   });
@@ -295,26 +269,19 @@ function setupTableEvents(table, tableElement, idKey, layerName) {
   // ROW SELECTION
   // =====================================================
   table.on("rowSelectionChanged", (data, rows) => {
-
     if (!rows.length) return;
-
     const row = rows[0];
-
     highlightFeatureForRow(row.getData());
   });
   // =====================================================
   // MOUSE OVER
   // =====================================================
   table.on("rowMouseOver", (e, row) => {
-
     if (interactionMode === "keyboard") return;
-
     highlightFeatureForRow(row.getData());
   });
   table.on("rowMouseOut", () => {
-
     if (interactionMode === "keyboard") return;
-
     clearHighlightedFeature();
   });
   // =====================================================
@@ -329,13 +296,11 @@ function setupTableEvents(table, tableElement, idKey, layerName) {
   // DOUBLE CLICK → ZOOM
   // =====================================================
   table.on("rowDblClick", (e, row) => {
-
     const rowData = row.getData();
-
     zoomToFeature(layerName, rowData);
   });
   // =====================================================
-  // ROW CLICK
+  // ROW Cell CLICK
   // =====================================================
   table.on("cellClick", (e, cell) => {
     const value = cell.getValue();
@@ -360,33 +325,21 @@ function setupTableEvents(table, tableElement, idKey, layerName) {
   // =====================================================
   // KEYBOARD NAVIGATION
   // =====================================================
-
   tableElement.onkeydown = (e) => {
-
     const rows = table.getRows();
-
     if (!rows.length) return;
-
     const selected = table.getSelectedRows()[0];
 
     // -------------------------------------------------
     // UP / DOWN
     // -------------------------------------------------
-
     if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-
       interactionMode = "keyboard";
-
       e.preventDefault();
-
       let nextRow;
-
       if (!selected) {
-
         nextRow = rows[0];
-
       } else {
-
         nextRow = e.key === "ArrowDown"
           ? selected.getNextRow()
           : selected.getPrevRow();
@@ -402,20 +355,15 @@ function setupTableEvents(table, tableElement, idKey, layerName) {
     // -------------------------------------------------
 
     if (e.key === "Enter") {
-
       e.preventDefault();
-      
       zoomSelectedRow(table, layerName);
     }
 
     // -------------------------------------------------
     // ESC → Highlight entfernen
     // -------------------------------------------------
-
     if (e.key === "Escape") {
-
       clearHighlightedFeature();
-
       table.deselectRow();
     }
   };
@@ -460,7 +408,6 @@ function setupTableEvents(table, tableElement, idKey, layerName) {
     table.deselectRow();
     row.select();
     highlightFeatureForRow(row.getData());
-
   });
   // 👉 MOBILE DOUBLE TAP
   table.on("cellDblTap", (e, cell) => {
@@ -468,15 +415,12 @@ function setupTableEvents(table, tableElement, idKey, layerName) {
     zoomToFeature(layerName, row.getData());
   });
 }
-
 export function showTableDebounced(data) {
   clearTimeout(showTableTimeout);
   showTableTimeout = setTimeout(() => {
     showTable(data);
   }, 150);  // 👈 150ms perfekt
 }
-
-
 // Tabelle schließen
 export function closeTable() {
   isTableActive = false; 
@@ -488,26 +432,15 @@ export function closeTable() {
   document.getElementById("wms-table-container").style.display = "none";
   deactivateTableToggle();
 }
-
 export function switchLayerData(results) {
-
-  const selector =
-    document.getElementById('layer-selector');
-
+  const selector = document.getElementById('layer-selector');
   if (!selector) return;
-
-  const selectedLayer =
-    selector.value;
-
-  const entry =
-    results[selectedLayer];
-
+  const selectedLayer = selector.value;
+  const entry = results[selectedLayer];
   if (!entry) return;
-
   // =====================================================
   // Nur echte Datensätze holen
   // =====================================================
-
   const data =
     Array.isArray(entry)
       ? entry
@@ -524,12 +457,9 @@ export function switchLayerData(results) {
 
   showTableDebounced(normalizedData);
 }
-
 export function getTableActive() {
   return isTableActive;
 }
-
-
 function initResizeObserver() {
   const tableContainer = document.getElementById("wms_data_table");
   if (!tableContainer) return;
@@ -542,29 +472,21 @@ function initResizeObserver() {
         table.redraw(true);   // sanft + stabil
       } catch (e) {}
     }
-
     if (mapRef) {
       mapRef.updateSize();
     }
   });
   resizeObserver.observe(tableContainer);
 }
-
 export function clearHighlightedFeature() {
- 
   if (highlightedFeature) {
- 
     highlightedFeature.setStyle(undefined);
     highlightedFeature = null;
   }
 }
-
 export function highlightFeatureForRow(rowData) {
-  
   const layerName = rowData.origin_layer || 
                     (document.getElementById('layer-selector') ? document.getElementById('layer-selector').value : null);
-
-  
   if (!layerName) {
     console.warn("Highlight abgebrochen: Kein LayerName in rowData oder Selector gefunden.", rowData);
     return;
@@ -572,22 +494,15 @@ export function highlightFeatureForRow(rowData) {
   let idKey = null;
   clearHighlightedFeature();
   if (!mapRef) return;
-  
   const selector = document.getElementById('layer-selector');
-  
   if (!layerName) {
     console.warn("Highlight abgebrochen: Kein LayerName gefunden");
     return;
   }
   let targetLayer = null;
-  
   mapRef.getLayers().getArray().forEach((l) => {
-  
-   
     if (l.get('name') === layerName) targetLayer = l;
-     
     if (!targetLayer && l.getLayers) {
-      
       l.getLayers().getArray().forEach((subL) => {
         if (subL.get('name') === layerName) targetLayer = subL;
       });
@@ -595,12 +510,9 @@ export function highlightFeatureForRow(rowData) {
   });
   //nsole.log ("Targetlayer: ",targetLayer)
   if (!targetLayer) return;
-  
   const source = targetLayer.getSource();
   if (!source || typeof source.getFeatures !== 'function') return;
-  
   const normalizedName = layerName.toLowerCase();
-    
   // Schlüssel bestimmen je nach Layer
   if (normalizedName === 'fsk') {
       idKey = 'OBJECTID';
@@ -634,7 +546,6 @@ export function highlightFeatureForRow(rowData) {
   feature.setStyle(hoverHighlightStyle);
   highlightedFeature = feature;
 }
-
 function zoomToFeature(layerName, rowData) {
   if (!mapRef) return;
   // 👉 Layer rekursiv suchen
@@ -692,15 +603,12 @@ function zoomToFeature(layerName, rowData) {
     maxZoom: 16
   });
 }
-
 function zoomSelectedRow(table, layerName) {
   const selected = table.getSelectedRows()[0];
   if (!selected) return;
   
   zoomToFeature(layerName, selected.getData());
 }
-
-
 function selectAndHighlightRow(table, row) {
   if (!row) return;
 
@@ -714,13 +622,11 @@ function selectAndHighlightRow(table, row) {
 
   highlightFeatureForRow(row.getData());
 }
-
 function focusTable(tableElement) {
   if (window.innerWidth > 768) {
     tableElement.focus({ preventScroll: true });
   }
 }
-
 function isUrl(value) {
   if (!value) return false;
   return /^https?:\/\/|^www\./i.test(value);

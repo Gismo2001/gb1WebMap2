@@ -51,7 +51,7 @@ let printToogleBtnInstance = null;
 const profileSource = createProfilSource();
 const profileLayer = createProfilLayer(profileSource);
 let profileMode = false;
-let plControl;
+//let plControl;
 
 
 
@@ -79,7 +79,6 @@ export function initPermalink(map) {
     map.addControl(permalink);
     return permalink;
 }
-
 export function createLayerSwitcher(map) {
   return new LayerSwitcher({
     reordering: true, // Erlaubt Neuanordnung
@@ -96,7 +95,6 @@ export function createLayerSwitcher(map) {
     },
   });
 }
-
 export function createMainToolbar(map) {
   const bar = new Bar({
     className: 'main-toolbar',

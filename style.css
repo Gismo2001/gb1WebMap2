@@ -347,6 +347,7 @@ top: 4em;
   padding: 5px;
   background-color: #0062ff;
 }
+
 /* --- PERMALINK BUTTON UNTER DER TOOLBAR --- */
 .ol-permalink-button {
     /* Platziert den Button exakt unter die Toolbar (8em + Höhe der Toolbar) */
@@ -354,7 +355,7 @@ top: 4em;
     top: 17.5em !important; 
     left: 0.5em !important;
     position: absolute;
-    z-index: 25;
+    z-index: 2500;
 }
 
 /* Optional: Damit der Button optisch exakt zu den anderen (I, W, T) passt */

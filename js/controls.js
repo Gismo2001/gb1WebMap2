@@ -52,31 +52,7 @@ const profileSource = createProfilSource();
 const profileLayer = createProfilLayer(profileSource);
 let profileMode = false;
 
-
-
-/**
- * Initialisiert den Permalink für die Karte
- * @param {ol/Map} map - Die OpenLayers Karteninstanz
- */
-// control.js
-export function initPermalink(map) {
-    const permalink = new Permalink({
-        className: 'ol-permalink-button',
-        urlReplace: false, // WICHTIG: Verhindert das Schreiben in die URL zu Beginn
-        localStorage: 'map-pos',
-        visible: false,    // Initial unsichtbar
-        anchor: true,
-        onclick: function(url) {
-            navigator.clipboard.writeText(url).then(() => {
-                const btn = document.querySelector('.ol-permalink-button button');
-                btn.innerHTML = "✅"; 
-                setTimeout(() => { btn.innerHTML = ""; }, 2000);
-            });
-        }
-    });
-    map.addControl(permalink);
-    return permalink;
-}
+let plControl = null;
 
 export function createLayerSwitcher(map) {
   return new LayerSwitcher({
@@ -151,11 +127,31 @@ export function createMainToolbar(map) {
 
   return bar;
 }
+
 export function createSubBarI(map) {
-  // Permalink-Control suchen
-  const plControl = map.getControls().getArray().find(c => 
-    c.constructor.name === 'olcontrolPermalink' || c.get('urlReplace') !== undefined
-  );
+  // 1. Erst prüfen, ob plControl (die globale Variable von ganz oben) existiert. Wenn nicht: frisch erstellen!
+  if (!plControl) {
+    console.log("Permalink wird jetzt initialisiert, da die Map bereit ist.");
+    plControl = new Permalink({
+        className: 'ol-permalink-button',
+        urlReplace: false, 
+        refreshDelay: 100,
+        localStorage: false, 
+        visible: false,    
+        anchor: false,     
+        onclick: function(url) {
+            navigator.clipboard.writeText(url).then(() => {
+                const btn = document.querySelector('.ol-permalink-button button');
+                if (btn) {
+                    btn.innerHTML = "✅"; 
+                    setTimeout(() => { btn.innerHTML = ""; }, 2000);
+                }
+            });
+        }
+    });
+  }
+
+  // --- DIE ALTE SUCHE WURDE HIER ENTFERNT ---
 
   const gpsToggleBtn = new Toggle({
     html: '<i class="fa fa-map-marker"></i>',
@@ -197,25 +193,36 @@ export function createSubBarI(map) {
     },  
   });
 
-  // --- NEU: Permalink Toggle Button ---
+  // --- Permalink Toggle Button ---
   const permalinkToggleBtn = new Toggle({
     html: '🔗',
     title: 'Permalink / Teilen aktivieren',
     onToggle: function (active) {
-      if (plControl) {
-        // 1. Aktiviert das Schreiben in die Adresszeile
-        plControl.set('urlReplace', active);
-        
-        // 2. Blendet den Kopier-Button ein/aus
+      if (active) {
+        // 1. Erst das Control zur Karte hinzufügen (erstellt das HTML-Element!)
+        map.addControl(plControl);
+        plControl.setUrlReplace(true);
+         
+        // 2. JETZT NACHDEM es auf der Karte ist, das Element im DOM suchen
+        const plBtnElement = document.querySelector('.ol-permalink-button');
+        console.log("eingeblendet: ", plBtnElement); // Sollte jetzt das DIV anzeigen!
+         
+        // 3. Sichtbar machen
+        if (plBtnElement) {
+          plBtnElement.style.display = 'block';
+        }
+         
+      } else {
+        // Beim Ausblenden suchen wir es, bevor wir es von der Karte löschen
         const plBtnElement = document.querySelector('.ol-permalink-button');
         if (plBtnElement) {
-          plBtnElement.style.display = active ? 'block' : 'none';
+          plBtnElement.style.display = 'none';
         }
-      }
-      
-      if (!active) {
-        // Säubert die URL beim Deaktivieren
-        window.location.hash = '';
+
+        plControl.setUrlReplace(false);
+        map.removeControl(plControl);
+        
+        window.history.replaceState({}, document.title, window.location.pathname);
       }
     }
   });

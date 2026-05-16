@@ -51,8 +51,34 @@ let printToogleBtnInstance = null;
 const profileSource = createProfilSource();
 const profileLayer = createProfilLayer(profileSource);
 let profileMode = false;
+let plControl;
 
-let plControl = null;
+
+
+/**
+ * Initialisiert den Permalink für die Karte
+ * @param {ol/Map} map - Die OpenLayers Karteninstanz
+ */
+// control.js
+export function initPermalink(map) {
+    const permalink = new Permalink({
+        className: 'ol-permalink-button',
+        refreshDelay:100,
+        visible: true,    // Initial unsichtbar
+        //urlReplace: false, // WICHTIG: Verhindert das Schreiben in die URL zu Beginn
+        localStorage: false,
+        onclick: function(url) {
+            navigator.clipboard.writeText(url).then(() => {
+                const btn = document.querySelector('.ol-permalink-button button');
+                console.log ("Button an-/abgeschaltet")
+                btn.innerHTML = "✅"; 
+                setTimeout(() => { btn.innerHTML = ""; }, 2000);
+            });
+        }
+    });
+    map.addControl(permalink);
+    return permalink;
+}
 
 export function createLayerSwitcher(map) {
   return new LayerSwitcher({
@@ -127,31 +153,11 @@ export function createMainToolbar(map) {
 
   return bar;
 }
-
 export function createSubBarI(map) {
-  // 1. Erst prüfen, ob plControl (die globale Variable von ganz oben) existiert. Wenn nicht: frisch erstellen!
-  if (!plControl) {
-    console.log("Permalink wird jetzt initialisiert, da die Map bereit ist.");
-    plControl = new Permalink({
-        className: 'ol-permalink-button',
-        urlReplace: false, 
-        refreshDelay: 100,
-        localStorage: false, 
-        visible: false,    
-        anchor: false,     
-        onclick: function(url) {
-            navigator.clipboard.writeText(url).then(() => {
-                const btn = document.querySelector('.ol-permalink-button button');
-                if (btn) {
-                    btn.innerHTML = "✅"; 
-                    setTimeout(() => { btn.innerHTML = ""; }, 2000);
-                }
-            });
-        }
-    });
-  }
-
-  // --- DIE ALTE SUCHE WURDE HIER ENTFERNT ---
+  // Permalink-Control suchen
+  const plControl = map.getControls().getArray().find(c => 
+    c.constructor.name === 'olcontrolPermalink' || c.get('urlReplace') !== undefined
+  );
 
   const gpsToggleBtn = new Toggle({
     html: '<i class="fa fa-map-marker"></i>',
@@ -193,37 +199,27 @@ export function createSubBarI(map) {
     },  
   });
 
-  // --- Permalink Toggle Button ---
+  // --- NEU: Permalink Toggle Button ---
+ // --- Permalink Toggle Button ---
   const permalinkToggleBtn = new Toggle({
     html: '🔗',
     title: 'Permalink / Teilen aktivieren',
-    onToggle: function (active) {
-      if (active) {
-        // 1. Erst das Control zur Karte hinzufügen (erstellt das HTML-Element!)
-        map.addControl(plControl);
-        plControl.setUrlReplace(true);
-         
-        // 2. JETZT NACHDEM es auf der Karte ist, das Element im DOM suchen
-        const plBtnElement = document.querySelector('.ol-permalink-button');
-        console.log("eingeblendet: ", plBtnElement); // Sollte jetzt das DIV anzeigen!
-         
-        // 3. Sichtbar machen
-        if (plBtnElement) {
-          plBtnElement.style.display = 'block';
-        }
-         
-      } else {
-        // Beim Ausblenden suchen wir es, bevor wir es von der Karte löschen
-        const plBtnElement = document.querySelector('.ol-permalink-button');
-        if (plBtnElement) {
-          plBtnElement.style.display = 'none';
-        }
 
+     onToggle: function (active) {
+     if (active) {
+         map.addControl(plControl);
+         plControl.setUrlReplace(true);
+         
+         
+         const hatUrl = plControl.hasUrlParam ? 'ja' : 'nein';
+         
+       } else {
         plControl.setUrlReplace(false);
-        map.removeControl(plControl);
-        
-        window.history.replaceState({}, document.title, window.location.pathname);
-      }
+         const hatUrl = plControl.hasUrlParam ? 'ja' : 'nein';
+         
+         map.removeControl(plControl);
+         
+       }
     }
   });
 

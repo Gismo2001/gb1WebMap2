@@ -48,7 +48,7 @@ import { fromArrayBuffer } from 'geotiff';
 
 import { loadedDgms, loadedDoms } from './js/dgmdom.js';  
 
-//import { initPermalink } from './js/controls.js';
+import { initPermalink } from './js/controls.js';
 
 window.$ = window.jQuery = $;
 window.Chart = Chart;
@@ -74,7 +74,7 @@ const layers = createLayerStructure();
 export const map = createMap('map', layers);
 
 // Permalink aktivieren
-//initPermalink(map);
+initPermalink(map);
 
 
 // LayerSwitcher hinzufügen

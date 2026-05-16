@@ -1246,7 +1246,7 @@ export function initPopup(map) {
 }
 
 function buildPopupContent(featureOrProps, layerName) {
-  console.log("aufgerufen Build")
+  
   if (!featureOrProps) {
     return "<p>Keine Daten</p>";
   }
@@ -1254,7 +1254,7 @@ function buildPopupContent(featureOrProps, layerName) {
   // OL-Feature ODER normales Objekt
   // =====================================================
   const isOlFeature = typeof featureOrProps.getProperties === 'function';
-  console.log("aufgerufen Build is ol: ", isOlFeature)
+  
   const daten = isOlFeature ? featureOrProps.getProperties(): featureOrProps;
   let html = "";
 

@@ -58,14 +58,14 @@ let profileMode = false;
  * Initialisiert den Permalink für die Karte
  * @param {ol/Map} map - Die OpenLayers Karteninstanz
  */
+// control.js
 export function initPermalink(map) {
     const permalink = new Permalink({
         className: 'ol-permalink-button',
-        urlReplace: false, // Initial aus
-        refreshDelay:100,
+        urlReplace: false, // WICHTIG: Verhindert das Schreiben in die URL zu Beginn
         localStorage: 'map-pos',
-        visible: false,    // Wird über CSS/JS gesteuert
-        //anchor: true,
+        visible: false,    // Initial unsichtbar
+        anchor: true,
         onclick: function(url) {
             navigator.clipboard.writeText(url).then(() => {
                 const btn = document.querySelector('.ol-permalink-button button');

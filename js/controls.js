@@ -62,9 +62,10 @@ export function initPermalink(map) {
     const permalink = new Permalink({
         className: 'ol-permalink-button',
         urlReplace: false, // Initial aus
+        refreshDelay:100,
         localStorage: 'map-pos',
         visible: false,    // Wird über CSS/JS gesteuert
-        anchor: true,
+        //anchor: true,
         onclick: function(url) {
             navigator.clipboard.writeText(url).then(() => {
                 const btn = document.querySelector('.ol-permalink-button button');
@@ -76,6 +77,7 @@ export function initPermalink(map) {
     map.addControl(permalink);
     return permalink;
 }
+
 export function createLayerSwitcher(map) {
   return new LayerSwitcher({
     reordering: true, // Erlaubt Neuanordnung

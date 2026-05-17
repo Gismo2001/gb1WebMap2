@@ -30,10 +30,13 @@ function isDgmKachelActive(map) {
   if (typeof getAllLayers !== 'function') return false;
   
   const allLayers = getAllLayers(map.getLayerGroup());
-  const kachelLayerObj = allLayers.find(l => l.get('title') === 'DGM Kacheln');
-  return kachelLayerObj ? kachelLayerObj.getVisible() : false;
+  const kachelLayerObj = allLayers.find(obj => 
+    (obj.layer.get('name') || '').toLowerCase() === 'dgm-kacheln' || 
+    (obj.layer.get('title') || '').toLowerCase() === 'dgm-kacheln'
+  );
+  
+  return kachelLayerObj ? kachelLayerObj.visible : false;
 }
-
 // Prüft, ob der DOM-Kachel-Layer im Layer-Switcher sichtbar ist
 function isDomKachelActive(map) {
   if (typeof getAllLayers !== 'function') return false;
@@ -46,7 +49,6 @@ function isDomKachelActive(map) {
   
   return kachelLayerObj ? kachelLayerObj.visible : false;
 }
-
 
 // Erstellt das Popup, falls es noch nicht existiert
 function getOrCreatePopup1(map) {
@@ -947,7 +949,7 @@ export function updateTableFromVisibleLayers(map) {
       
       return props;
     });
-
+    console.log ("Tabel debounce aufgerufen")
     showTableDebounced(normalizedData);
   } else {
     showTableDebounced([]);

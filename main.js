@@ -138,7 +138,6 @@ initPtn(map);
 // Der Event-Listener für den Popout-Button in main.js
 document.getElementById('popout-table-btn').addEventListener('click', () => {
     const childWin = getTableChildWindow();
-    
     if (childWin && !childWin.closed) {
         childWin.focus();
     } else {
@@ -150,9 +149,6 @@ document.getElementById('popout-table-btn').addEventListener('click', () => {
 // 2. Schließen-Button Event-Listener in main.js
 document.getElementById('close-table-btn').addEventListener('click', function(e) {
     e.stopPropagation(); 
-    
-    // Das erledigt bereits ALLES: blendet aus, schließt ggf. das Popout-Fenster 
-    // und deaktiviert die Buttons optisch.
     closeTable(); 
 });
 

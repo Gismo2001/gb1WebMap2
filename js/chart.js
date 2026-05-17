@@ -2,6 +2,7 @@ import Chart from 'chart.js/auto';
 import { Draw } from 'ol/interaction.js';
 import LineString from 'ol/geom/LineString';
 import { containsCoordinate } from 'ol/extent.js';
+import { profileSource, profileLayer } from './controls.js';
 // Importiere die aktiven Layer aus deiner dgmdom.js
 import { activeDgmRasterLayers, activeDomRasterLayers } from './dgmdom.js'; 
 

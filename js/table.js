@@ -129,17 +129,11 @@ export function showTable(data) {
 
   container.style.display = "flex";
   
-  
   // Split.js darf NUR ausgeführt werden, wenn die Tabelle im Hauptfenster eingebettet ist!
   // Wenn tableDoc !== document, sind wir im Popout-Fenster, dort brauchen wir kein Split.js.
   if (tableDoc === document) {
-   const mapElement = document.getElementById("map");
-    
-    // Falls Split.js beim Schließen nicht richtig aufgeräumt hat, erzwingen wir hier die Freiheit für die Karte:
-    if (mapElement) {
-      mapElement.style.height = ""; 
-      mapElement.style.width = "";  // Falls horizontaler/vertikaler Split Reste hinterlassen hat
-    }
+    const mapElement = document.getElementById("map");
+    if (mapElement) mapElement.style.height = "";
 
     if (!splitInstance) {
       splitInstance = Split(['#map', '#table-container'], {

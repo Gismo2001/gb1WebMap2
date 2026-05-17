@@ -112,6 +112,7 @@ export async function handleDgmPointerMove(evt) {
     }
 }
 
+
 export function disableDgmInteraction() {
     if (dgmClickListener) { unByKey(dgmClickListener); dgmClickListener = null; }
     if (dgmPointerMoveListener) { unByKey(dgmPointerMoveListener); dgmPointerMoveListener = null; }
@@ -198,6 +199,7 @@ export async function handleDomPointerMove(evt) {
         heightStatus.style.display = 'none';
     }
 }
+
 
 export function disableDomInteraction() {
     if (domClickListener) { unByKey(domClickListener); domClickListener = null; }

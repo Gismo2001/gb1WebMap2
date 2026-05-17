@@ -49,8 +49,8 @@ let printControlInstance = null;
 let printToogleBtnInstance = null;
 
 // Initialisierung (außerhalb der create-Funktion)
-const profileSource = createProfilSource();
-const profileLayer = createProfilLayer(profileSource);
+export const profileSource = createProfilSource();
+export const profileLayer = createProfilLayer(profileSource);
 let profileMode = false;
 
 //export const permalinkControl = null; 
@@ -262,25 +262,57 @@ export function createSubBarI(map) {
     controls: [gpsToggleBtn, ptnToogleBtn, fileToogleBtn, permalinkToggleBtn] 
   });
 }
+
+// Hilfsfunktion (falls noch nicht vorhanden), um zu prüfen ob das Popout-Fenster wirklich offen ist
+function isTableChildWindowOpen() {
+  // Greift auf die globale Variable aus table.js zu (stelle sicher, dass du Zugriff darauf hast oder importierst)
+  if (typeof tableChildWindow !== 'undefined' && tableChildWindow && !tableChildWindow.closed) {
+    return true;
+  }
+  // Alternativ über getTableDocument prüfen, ob es ungleich dem Haupt-document ist:
+  if (typeof getTableDocument === 'function') {
+    return getTableDocument() !== document;
+  }
+  return false;
+}
+
 export function createSubBarT(map) {
   const tableToggleBtn = new Toggle({
     html: '<i class="fa fa-table" aria-hidden="true"></i>',
     title: 'Tabelle anzeigen',
     className: 'tabelle',
     onToggle: function (active) {
-      isTableActive = active;
+      // FALL 1: Button wird EINGESCHALTET (active === true)
       if (active) {
-        // --- NEU: Hauptbutton optisch aktiv halten ---
+        isTableActive = true;
+        
+        // --- Optischer Zustand des Hauptbuttons ---
         if (mainTableBtnInstance) {
           mainTableBtnInstance.element.classList.add('is-running');
         }
+
+        // Falls aus irgendeinem Grund noch ein altes Popout-Fenster als "offen" gilt,
+        // schließen wir es jetzt, damit der anstehende Klick den SPLIT im Hauptfenster erzwingt!
+        if (isTableChildWindowOpen()) {
+          if (typeof tableChildWindow !== 'undefined' && tableChildWindow) {
+            tableChildWindow.close(); // Schließen triggert das Zurückholen des Containers
+          }
+        }
+
+        // Jetzt die Daten laden und die Tabelle (im Hauptfenster via Split) rendern
+        console.log ("update wird aufgerujfen")
         updateTableFromVisibleLayers(map);
+
+      // FALL 2: Button wird AUSGESCHALTET (active === false)
       } else {
-        closeTable();
-        // Das Entfernen der Klasse erfolgt zentral in deactivateTableToggle
+        // closeTable erledigt das Schließen des Splits ODER des Popouts vollautomatisch,
+        // da wir sie so intelligent umgebaut haben!
+        console.log("abgeschaltiet: ", isTableActive)
+        closeTable(); 
       }
     },
   });
+
   tableToggleBtnInstance = tableToggleBtn;
   return new Bar({ toggleOne: true, controls: [tableToggleBtn] });
 }

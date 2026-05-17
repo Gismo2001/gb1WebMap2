@@ -207,14 +207,29 @@ export function showTable(data) {
     if (!tableElement.classList.contains("hide-filters")) filterBtn.classList.add("active");
   }
 
-  // 👉 5. Daten vorbereiten
-  const uniqueData = (data || []).filter((item, index, self) => {
-    if (!item) return false;
-    const val = item[idKey];
-    return index === self.findIndex((t) => {
-      return t && t[idKey] === val;
+  // IN TABLE.JS innerhalb von showTable(data):
+  
+  // Hole den aktuellen Layernamen aus dem Selektor des richtigen Fensters
+  //const selector = tableDoc.getElementById('layer-selector');
+  const activeLayerName = selector ? selector.value : "unknown";
+
+  // 👉 5. Daten vorbereiten (und Layernamen fest in jedes Objekt reinschreiben!)
+  const uniqueData = (data || [])
+    .map(item => {
+      if (!item) return null;
+      // Wir klonen das Objekt und fügen 'origin_layer' hinzu, falls es fehlt!
+      return {
+        ...item,
+        origin_layer: item.origin_layer || activeLayerName
+      };
+    })
+    .filter((item, index, self) => {
+      if (!item) return false;
+      const val = item[idKey];
+      return index === self.findIndex((t) => {
+        return t && t[idKey] === val;
+      });
     });
-  });
   
   // =================================================================
   // 👉 6. Tabellen-Logik: Absolut krisensicheres Instanz-Management

@@ -24,7 +24,7 @@ import CircleStyle from 'ol/style/Circle';
 import { isTableEnabled } from './controls';
 
 let highlightedFeature = null;
-let clickTimeout = null;
+
 
 let interactionMode = "mouse"; 
 // "mouse" | "keyboard"
@@ -55,7 +55,6 @@ export function initTable(map) {
 }
 
 export function updateSelector(names) {
-  
   const selector = document.getElementById('layer-selector');
   if (!selector) return;
   // 1. Den aktuell ausgewählten Wert zwischenspeichern
@@ -72,7 +71,9 @@ export function updateSelector(names) {
   if (names.includes(previousSelection)) {
     selector.value = previousSelection;
   } else {
+    
     console.log("Vorheriger Layer nicht mehr in der Liste.");
+    
   }
 }
 export function showTable(data) {

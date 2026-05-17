@@ -943,6 +943,8 @@ export function createLayerStructure() {
     // 🗺️ Basiskarten
       new LayerGroup({
       title: 'Base',
+      name: 'Base',
+      permalink: 'Base',
       layers: [
         ESRISat,
         googleHyb,
@@ -1007,6 +1009,8 @@ export function createLayerStructure() {
     // 🏗️ Station
     new LayerGroup({
       title: 'Station',
+      name: 'Station',
+      permalink: 'Station',
       layers: [
       Km10scal,
       Km100scal,
@@ -1018,6 +1022,8 @@ export function createLayerStructure() {
      // 🌊 Bauwerke Linien
     new LayerGroup({
       title: 'Bauw.(L)',
+      name: 'Bauw.(L)',
+      permalink: 'Bauw.(L)',
       visible: false,
       layers: [
         umnLin,
@@ -1028,6 +1034,8 @@ export function createLayerStructure() {
     // 🏗️ Bauwerke Punkte
     new LayerGroup({
       title: 'Bauw.(P)',
+      name: 'Bauw.(P)',
+      permalink: 'Bauw.(P)',
       layers: [
         sonPun,
         ein,
@@ -1039,10 +1047,6 @@ export function createLayerStructure() {
         sle,
       ]
     }),
-   
-
-   
-    
   ];
 }
 

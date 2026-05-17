@@ -912,55 +912,29 @@ export function getVisibleVectorFeatures(map) {
   return results;
 }
 export function updateTableFromVisibleLayers(map) {
-
   if (!isTableEnabled()) return;
-
-  const results =
-    getVisibleVectorFeatures(map);
-
-  const layerNames =
-    Object.keys(results);
-
+  const results = getVisibleVectorFeatures(map);
+  const layerNames = Object.keys(results);
   if (layerNames.length > 0) {
-
-    const selector =
-      document.getElementById('layer-selector');
-
-    const currentSelection =
-      selector ? selector.value : null;
-
+    const selector = document.getElementById('layer-selector');
+    const currentSelection = selector ? selector.value : null;
     updateSelector(layerNames);
-
-    let layerToShow =
-      layerNames[0];
-
+    let layerToShow = layerNames[0];
     if (
-      currentSelection &&
-      results[currentSelection]
+      currentSelection &&  results[currentSelection]
     ) {
-      layerToShow =
-        currentSelection;
+      layerToShow = currentSelection;
     }
-
-    const entry =
-      results[layerToShow];
-
+    const entry = results[layerToShow];
     const data =
       Array.isArray(entry)
         ? entry
         : entry?.data || [];
 
-    const normalizedData =
-      data.map(item =>
-        item.properties || item
-      );
-
+    const normalizedData =  data.map(item => item.properties || item );
     showTableDebounced(normalizedData);
-
   } else {
-
     showTableDebounced([]);
-
     updateSelector([]);
   }
 }

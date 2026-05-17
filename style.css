@@ -312,7 +312,6 @@ top: 4em;
 #layer-selector {
     max-width: 100px; /* Oder ein em-Wert wie 12em – passe den Wert nach Wunsch an */
     width: 100%;       /* Nutzt den Platz bis zur maximalen Breite aus */
-    
     /* Optional: Verhindert, dass der Text hässlich über den Rand bricht */
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -506,4 +505,22 @@ top: 4em;
     background-color: #e7f3ff;
     border-left: 4px solid #007bff;
     font-weight: bold;
+}
+
+.toast {
+  visibility: hidden;
+  min-width: 150px;
+  background-color: #333;
+  color: #fff;
+  text-align: center;
+  border-radius: 4px;
+  padding: 2px;
+  position: fixed;
+  z-index: 1;
+  left: 50%;
+  bottom: 30px;
+  transform: translateX(-50%);
+}
+.toast.show {
+  visibility: visible;
 }

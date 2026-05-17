@@ -53,29 +53,23 @@ const profileSource = createProfilSource();
 const profileLayer = createProfilLayer(profileSource);
 let profileMode = false;
 
-//export const plControl = null; 
+//export const permalinkControl = null; 
 
 
 // --- Control definieren ---
-const plControl = new Permalink({
-  className: 'ol-permalink mein-spezial-button', // Eigene Klasse hinzufügen
+const permalinkControl = new Permalink({
+  className: 'ol-permalink permalinkControl', // Eigene Klasse hinzufügen
   refreshDelay:100,
   visible: true,
   localStorage: false,
   onclick: function(url) {
-        // Kopiert die URL direkt in die Zwischenablage
-        navigator.clipboard.writeText(url).then(function() {
-            alert("Link kopiert!");
-        });
-    }
+    navigator.clipboard.writeText(url).then(function() {alert("Link kopiert!"); });
+  }
 });
 
-/**
- * Initialisiert den Permalink für die Karte
- * @param {ol/Map} map - Die OpenLayers Karteninstanz
- */
-// control.js
-export function initPermalink(map) {
+
+// Initialisiert permalinkButton
+export function initPermalinkButton(map) {
     const permalink = new Permalink({
        className: 'ol-permalink-button',
         urlReplace: false, 
@@ -86,10 +80,12 @@ export function initPermalink(map) {
         onclick: function(url) {
             navigator.clipboard.writeText(url).then(() => {
                 const btn = document.querySelector('.ol-permalink-button button');
-                console.log ("Button an-/abgeschaltet")
+                console.log ("permalinkButton geclickt");
+                
                 btn.innerHTML = "✅"; 
                 setTimeout(() => { btn.innerHTML = ""; }, 2000);
             });
+            zeigeNachricht("Link (aus init) erstellt");
         }
     });
     map.addControl(permalink);
@@ -169,10 +165,10 @@ export function createMainToolbar(map) {
 }
 
 export function createSubBarI(map) {
-  // 1. Erst prüfen, ob plControl (die globale Variable von ganz oben) existiert. Wenn nicht: frisch erstellen!
-  if (!plControl) {
-    console.log("Permalink wird jetzt initialisiert, da die Map bereit ist.");
-    plControl = new Permalink({
+  // 1. Erst prüfen, ob permalinkControl (die globale Variable von ganz oben) existiert. Wenn nicht: frisch erstellen!
+  if (!permalinkControl) {
+    console.log("Permalink wird initialisiert");
+    permalinkControl = new Permalink({
         className: 'ol-permalink-button',
         urlReplace: false, 
         refreshDelay: 100,
@@ -186,7 +182,9 @@ export function createSubBarI(map) {
                     btn.innerHTML = "✅"; 
                     setTimeout(() => { btn.innerHTML = ""; }, 2000);
                 }
+              
             });
+            zeigeNachricht("Link (aus Button) erstellt");
         }
     });
   }
@@ -239,25 +237,22 @@ export function createSubBarI(map) {
     title: 'Permalink / Teilen aktivieren',
     onToggle: function (active) {
       if (active) {
-        // 1. Erst das Control zur Karte hinzufügen (erstellt das HTML-Element!)
-        map.addControl(plControl);
-        plControl.setUrlReplace(true);
-         // 2. JETZT NACHDEM es auf der Karte ist, das Element im DOM suchen
-        const plBtnElement = document.querySelector('.ol-permalink-button');
-        
-        
-        // 3. Sichtbar machen
-        if (plBtnElement) {
-          plBtnElement.style.display = 'block';
+        //Control zur Karte hinzufügen (erstellt das HTML-Element!)
+        map.addControl(permalinkControl);
+        permalinkControl.setUrlReplace(true);
+         // Das Element im DOM suchen
+        const permalinkButton = document.querySelector('.ol-permalink-button');
+        //Sichtbar machen
+        if (permalinkButton) {
+          permalinkButton.style.display = 'block';
         }
-         
       } else {
-        // Beim Ausblenden suchen wir es, bevor wir es von der Karte löschen
-        const plBtnElement = document.querySelector('.ol-permalink-button');
-        if (plBtnElement) {plBtnElement.style.display = 'none';}
-        plControl.setUrlReplace(false);
-        map.removeControl(plControl);
-        window.history.replaceState({}, document.title, window.location.pathname);
+        // suchen, von der Karte löschen
+        const permalinkButton = document.querySelector('.ol-permalink-button');
+        if (permalinkButton) {permalinkButton.style.display = 'none';}
+        permalinkControl.setUrlReplace(false);
+        map.removeControl(permalinkControl);
+        //window.history.replaceState({}, document.title, window.location.pathname);
       }
     }
   });
@@ -551,4 +546,15 @@ export function initializeWMS(map) {
     }, 250); // Etwas großzügigerer Puffer für die Stabilität
         
     });
+}
+
+export function zeigeNachricht(txt) {
+  var x = document.getElementById("myShortMessage");
+  x.className = "toast show";
+  x.textContent = txt;
+  console.log (x);
+  // Nach 3 Sekunden (3000ms) wieder ausblenden
+  setTimeout(function(){ 
+    x.className = x.className.replace("toast show", "toast");   
+  }, 2000);
 }

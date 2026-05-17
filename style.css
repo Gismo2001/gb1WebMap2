@@ -143,7 +143,7 @@ html, body {
     color: #666;
 }
 
-#wms-table-container {
+#table-container {
     z-index: 3;
     width: 100%;
     overflow: hidden; 

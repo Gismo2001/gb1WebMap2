@@ -18,6 +18,7 @@ import { switchLayerData } from './js/table.js';
 import { getTableActive } from './js/table.js';  
 
 
+
 import { initMapClick } from './js/mapEvents.js';
 import { initPopup } from './js/mapEvents.js';
 import { switcherDrawList } from './js/mapEvents.js';
@@ -41,6 +42,8 @@ import { createDgmKachelLayer, createDomKachelLayer } from './js/layers.js';
 import $ from 'jquery';
 import Chart from 'chart.js/auto';
 
+import { detachTableWindow, getTableChildWindow } from './js/table.js';
+
 import { createProfilLayer } from './js/layers.js';
 import { profileMode } from './js/chart.js';
 
@@ -54,6 +57,7 @@ window.$ = window.jQuery = $;
 window.Chart = Chart;
 
 
+let activeTableInstance = null;
 
 let activeDgmRasterData = [];  
 let activeDomRasterData = [];  
@@ -131,11 +135,25 @@ document.getElementById('layer-selector').addEventListener('change', () => {
 
 initTable(map);
 initPtn(map); 
+// Der Event-Listener für den Popout-Button in main.js
+document.getElementById('popout-table-btn').addEventListener('click', () => {
+    const childWin = getTableChildWindow();
+    
+    if (childWin && !childWin.closed) {
+        childWin.focus();
+    } else {
+        // Einfach nur aufrufen – kein "table" mehr übergeben!
+        detachTableWindow(); 
+    }
+});
 
-//Eventlistener für den "Schließen"-Button der Tabelle, damit die Karte wieder 100% bekommt
+// 2. Schließen-Button Event-Listener in main.js
 document.getElementById('close-table-btn').addEventListener('click', function(e) {
-    e.stopPropagation(); // WICHTIG: Verhindert, dass das document den Klick mitbekommt!
-    closeTable();
+    e.stopPropagation(); 
+    
+    // Das erledigt bereits ALLES: blendet aus, schließt ggf. das Popout-Fenster 
+    // und deaktiviert die Buttons optisch.
+    closeTable(); 
 });
 
 map.on('moveend', () => {

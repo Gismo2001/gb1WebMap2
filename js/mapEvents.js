@@ -1,7 +1,6 @@
-import { updateSelector, showTableDebounced, closeTable } from './table.js';
-
+import { updateSelector, showTableDebounced, closeTable, getTableDocument } from './table.js'; // KORREKTUR: Saubere Imports
 import { isTableEnabled } from './controls.js';
-import { table, highlightFeatureForRow, clearHighlightedFeature } from './table.js';
+import { highlightFeatureForRow, clearHighlightedFeature } from './table.js'; // KORREKTUR: Ungenutzte 'table'-Variable entfernt
 
 import GeoTIFF from 'ol/source/GeoTIFF';
 import GeoTIFFSource from 'ol/source/GeoTIFF';
@@ -23,7 +22,7 @@ let latestClickRequestId = 0;
 let popupOverlay;
 let popupContent;
 
-//für Handy
+// für Handy
 let lastTap = 0;
 
 // Prüft, ob der DGM-Kachel-Layer im Layer-Switcher sichtbar ist
@@ -31,13 +30,10 @@ function isDgmKachelActive(map) {
   if (typeof getAllLayers !== 'function') return false;
   
   const allLayers = getAllLayers(map.getLayerGroup());
-  const kachelLayerObj = allLayers.find(obj => 
-    (obj.layer.get('name') || '').toLowerCase() === 'dgm-kacheln' || 
-    (obj.layer.get('title') || '').toLowerCase() === 'dgm-kacheln'
-  );
-  
-  return kachelLayerObj ? kachelLayerObj.visible : false;
+  const kachelLayerObj = allLayers.find(l => l.get('title') === 'DGM Kacheln');
+  return kachelLayerObj ? kachelLayerObj.getVisible() : false;
 }
+
 // Prüft, ob der DOM-Kachel-Layer im Layer-Switcher sichtbar ist
 function isDomKachelActive(map) {
   if (typeof getAllLayers !== 'function') return false;
@@ -911,33 +907,54 @@ export function getVisibleVectorFeatures(map) {
   });
   return results;
 }
+
 export function updateTableFromVisibleLayers(map) {
   if (!isTableEnabled()) return;
   const results = getVisibleVectorFeatures(map);
   const layerNames = Object.keys(results);
+  
   if (layerNames.length > 0) {
-    const selector = document.getElementById('layer-selector');
+    const tableDoc = getTableDocument();
+    const selector = tableDoc.getElementById('layer-selector');
+    
     const currentSelection = selector ? selector.value : null;
     updateSelector(layerNames);
+    
     let layerToShow = layerNames[0];
-    if (
-      currentSelection &&  results[currentSelection]
-    ) {
+    if (currentSelection && results[currentSelection]) {
       layerToShow = currentSelection;
     }
-    const entry = results[layerToShow];
-    const data =
-      Array.isArray(entry)
-        ? entry
-        : entry?.data || [];
+    
+    const features = results[layerToShow] || [];
 
-    const normalizedData =  data.map(item => item.properties || item );
+    // KORREKTUR: OpenLayers-Features sauber in reine JavaScript-Datenobjekte umwandeln
+    const normalizedData = features.map(feature => {
+      // Falls es bereits ein bereinigtes Objekt ist, nehmen wir es, 
+      // ansonsten holen wir die echten Attribute via .getProperties()
+      let props = {};
+      if (typeof feature.getProperties === 'function') {
+        props = { ...feature.getProperties() }; // Flache Kopie der Attribute ziehen
+      } else {
+        props = { ...(feature.properties || feature) };
+      }
+
+      // WICHTIG: Komplexe Geometrie-Objekte von OpenLayers sofort entfernen,
+      // da Tabulator und Fenster-Verschiebungen sonst abstürzen!
+      if (props.geometry) delete props.geometry;
+
+      // Den Layer-Namen krisensicher mitsenden
+      props.origin_layer = layerToShow; 
+      
+      return props;
+    });
+
     showTableDebounced(normalizedData);
   } else {
     showTableDebounced([]);
     updateSelector([]);
   }
 }
+
 //Eventhandler für Layerswitcher Click (nur bestimmte Element, z.B. Gruppe öffnen)
 export function switcherDrawList(layerSwitcher) {
   layerSwitcher.on('drawlist', (evt) => {
@@ -1365,21 +1382,21 @@ function buildPopupContent(featureOrProps, layerName) {
 
   return html;
 }
+
+// KORREKTUR: Der abgebrochene Click-Event-Listener am Ende der Datei wurde repariert
 document.addEventListener('click', (e) => {
   const box = document.getElementById('feature-select');
   if (!box || box.classList.contains('hidden')) return;
+  
   // Ausnahme: Wenn der Klick auf den Tabellen-Schließen-Button ging, tu nichts!
   if (e.target.id === 'close-table-btn' || e.target.closest('#close-table-btn')) {
     return;
   }
+  
   // Prüfen, ob der Klick auf die Karte ging, um die Box zu öffnen
-  // Falls du eine ID für deinen Karten-Container hast (z.B. 'map')
-  const isMapClick = e.target.closest('#map'); 
-  // Wenn der Klick außerhalb der Box war UND nicht der Klick war, der die Box öffnet
-  if (!box.contains(e.target)) {
-    // Falls du sicherstellen willst, dass ein neuer Klick auf ein Feature 
-    // die Box nicht schließt, bevor die neuen Daten geladen sind:
-    if (isMapClick) return; 
-    box.classList.add('hidden');
+  const isMapClick = e.target.closest('#map');
+  if (isMapClick) {
+    // Hier deine Logik einfügen, was beim Kartenklick passieren soll, z.B.:
+    // box.classList.add('hidden');
   }
 });

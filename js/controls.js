@@ -26,7 +26,7 @@ import CanvasAttribution from 'ol-ext/control/CanvasAttribution';
 import CanvasTitle from 'ol-ext/control/CanvasTitle';
 import CanvasScaleLine from 'ol-ext/control/CanvasScaleLine';
 
-import { fileToggleInput } from './mapEvents.js';
+//import { fileToggleInput } from './mapEvents.js';
 import { Style, Text } from 'ol/style';
 
 import { isDgmActive, setDgmActive, disableDgmInteraction  } from './dgmdom.js';
@@ -399,17 +399,28 @@ export function createDataTable(map) {
   });
   return table;
 }
+
 export function isTableEnabled() {
   return isTableActive;
 }
-export function deactivateTableToggle() { // Funktion zum Deaktivieren des Table-Toggles und Entfernen der Hauptbutton-Markierung
-  if (tableToggleBtnInstance) { // Falls Tabelleninstanz existiert
-    tableToggleBtnInstance.setActive(false); // Tabelle deaktivieren
+
+// In control.js oder table.js (wo deactivateTableToggle definiert ist)
+export function deactivateTableToggle() {
+  // 1. Dem Toggle-Button auf der Karte sagen, dass er wieder "deaktiviert" ist
+  if (tableToggleBtnInstance && typeof tableToggleBtnInstance.setActive === 'function') {
+    // Falls deine Toggle-Bibliothek (z.B. ol-ext) "setActive" nutzt:
+    tableToggleBtnInstance.setActive(false); 
+  } else if (tableToggleBtnInstance && tableToggleBtnInstance.element) {
+    // Fallback: Falls die Bibliothek die CSS-Klasse manuell verwaltet:
+    tableToggleBtnInstance.element.classList.remove('active');
   }
-  if (mainTableBtnInstance) { // Falls Hauptbutton-Instanz existiert
-    mainTableBtnInstance.element.classList.remove('is-running'); //Blau-Markierung vom Hauptbutton entfernen
+
+  // 2. Den Hauptbutton optisch zurücksetzen (dein bestehender Code)
+  if (mainTableBtnInstance) {
+    mainTableBtnInstance.element.classList.remove('is-running');
   }
 }
+
 export function searchPlaceControlFunc() {
   let searchPlaceControl = new SearchPhoton({
   reverse: true,

@@ -3,9 +3,11 @@ import 'tabulator-tables/dist/css/tabulator.min.css';
 import Split from 'split.js';
 import { deactivateTableToggle } from './controls'; 
 
+
 import { getLayerByName } from './utils'; 
 
 let splitInstance = null;
+let tableChildWindow = null; // Speichert die Referenz auf das neue Fenster
 let isTableActive = false; 
 
 export let mapRef = null;
@@ -55,69 +57,105 @@ export function initTable(map) {
 }
 
 export function updateSelector(names) {
-  const selector = document.getElementById('layer-selector');
+  // KORREKTUR: Hole das Dokument des Fensters, in dem die Tabelle gerade lebt
+  const tableDoc = getTableDocument();
+  const selector = tableDoc.getElementById('layer-selector');
+  
   if (!selector) return;
+
   // 1. Den aktuell ausgewählten Wert zwischenspeichern
   const previousSelection = selector.value;
+
   // 2. Das Dropdown neu aufbauen
   selector.replaceChildren();
+  
   names.forEach((name) => {
-    const option = document.createElement('option');
+    // WICHTIG: Erstelle das Element im Kontext des Ziel-Dokuments!
+    const option = tableDoc.createElement('option');
     option.value = name;
     option.textContent = name;
     selector.appendChild(option);
   });
+
   // 3. Prüfen, ob der alte Wert in der neuen Liste noch existiert
   if (names.includes(previousSelection)) {
     selector.value = previousSelection;
   } else {
-    
     console.log("Vorheriger Layer nicht mehr in der Liste.");
-    
   }
 }
+
 export function showTable(data) {
-  if (!Array.isArray(data)) {data = data ? [data] : []; } data = data.map(item => {
+  if (!Array.isArray(data)) {
+    data = data ? [data] : []; 
+  } 
+  
+  data = data.map(item => {
     const clean = {};
     Object.entries(item).forEach(([key, value]) => {
-    // komplexe Objekte überspringen
-      if (
-        typeof value === 'object' &&
-        value !== null
-      ) {
+      // komplexe Objekte überspringen
+      if (typeof value === 'object' && value !== null) {
         return;
       }
       clean[key] = value;
     });
     return clean;
   });
+
   isTableActive = true;
-  const container = document.getElementById("wms-table-container");
-  const tableElement = document.getElementById("wms_data_table");
-  const filterBtn = document.getElementById("filter-toggle");
-  const resetBtn = document.getElementById("table-reset");
 
-  if (!container || !tableElement) return;
+  // 1. Das aktuell richtige Dokument holen (Hauptfenster oder Popout)
+  const tableDoc = getTableDocument();
 
-  // 👉 1. UI-Zustand (Container & Split)
+  // 2. ALLE Elemente aus diesem spezifischen Dokument heraussuchen
+  const container = tableDoc.getElementById("table-container");
+  if (!container) return; // Sicherheits-Check vorgezogen
+
+  // 👉 Klone/Doppelte Header-Elemente im Container verhindern
+  const existingHeaders = container.querySelectorAll("#table-header");
+  if (existingHeaders.length > 1) {
+    for (let i = 1; i < existingHeaders.length; i++) {
+      existingHeaders[i].remove();
+    }
+  }
+
+  const tableElement = tableDoc.getElementById("wms_data_table");
+ 
+  const filterBtn = tableDoc.getElementById("filter-toggle");      
+  const resetBtn = tableDoc.getElementById("table-reset");        
+
+  // Sicherheitscheck: Wenn das Tabellen-Element im aktuellen Fenster nicht existiert, abbrechen
+  if (!tableElement) return;
+
   container.style.display = "flex";
-  const mapElement = document.getElementById("map");
-  if (mapElement) mapElement.style.height = "";
+  
+  
+  // Split.js darf NUR ausgeführt werden, wenn die Tabelle im Hauptfenster eingebettet ist!
+  // Wenn tableDoc !== document, sind wir im Popout-Fenster, dort brauchen wir kein Split.js.
+  if (tableDoc === document) {
+   const mapElement = document.getElementById("map");
+    
+    // Falls Split.js beim Schließen nicht richtig aufgeräumt hat, erzwingen wir hier die Freiheit für die Karte:
+    if (mapElement) {
+      mapElement.style.height = ""; 
+      mapElement.style.width = "";  // Falls horizontaler/vertikaler Split Reste hinterlassen hat
+    }
 
-  if (!splitInstance) {
-    splitInstance = Split(['#map', '#wms-table-container'], {
-      sizes: [70, 30],
-      minSize: [100, 0],
-      direction: 'vertical',
-      gutterSize: 10,
-      onDrag: () => { if (mapRef) mapRef.updateSize(); },
-      onDragEnd: (sizes) => { if (sizes[1] <= 5) closeTable(); }
-    });
+    if (!splitInstance) {
+      splitInstance = Split(['#map', '#table-container'], {
+        sizes: [70, 30],
+        minSize: [100, 0],
+        direction: 'vertical',
+        gutterSize: 10,
+        onDrag: () => { if (mapRef) mapRef.updateSize(); },
+        onDragEnd: (sizes) => { if (sizes[1] <= 5) closeTable(); }
+      });
+    }
   }
   if (mapRef) mapRef.updateSize();
 
-  // 👉 2. Layer & Daten bestimmen (Muss vor dem Reset-Button kommen!)
-  const selector = document.getElementById('layer-selector');
+  // 👉 2. Layer & Daten bestimmen (KORREKTUR: Suche im tableDoc!)
+  const selector = tableDoc.getElementById('layer-selector');
   const layerName = selector ? selector.value : "unknown";
   const normalizedName = layerName.toLowerCase();
   let idKey;
@@ -130,32 +168,34 @@ export function showTable(data) {
   } else {
     // 2. Dynamische Erkennung für WMS und unbekannte Layer
     if (data && data.length > 0) {
-      // Wir nehmen das erste Element, das tatsächlich ein Objekt ist
       const firstItem = data.find(item => item !== null && typeof item === 'object');
       if (firstItem) {
         const commonKeys = ['ID_con', 'id', 'gml_id', 'OBJECTID', 'objectid', 'FID'];
-        // Sicherer Check mit dem optionalen Chaining oder Prüfung von firstItem
         idKey = commonKeys.find(key => key in firstItem);
         if (!idKey) {
           idKey = Object.keys(firstItem)[0]; 
           console.warn(`Kein bekannter ID-Key gefunden. Nutze Fallback: ${idKey}`);
         }
       } else {
-        // Fallback, wenn data nur aus null/undefined besteht
         idKey = 'ID_con';
       }
     } else {
         idKey = 'ID_con';
     }
   }
-  // 👉 3. Reset-Button Logik (Jetzt kennt er normalizedName korrekt)
+
+ // 👉 3. Reset-Button Logik
   if (resetBtn) {
     resetBtn.onclick = () => {
       if (table) {
         const storageId = "tabulator-wms_table_" + normalizedName;
         localStorage.removeItem(storageId);
+        
+        // Löschen der Instanz erzwingen
         table.destroy();
-        table = null;
+        table = null; 
+        
+        // Tabelle komplett neu aufbauen lassen
         showTable(data); 
         console.log(`Layout für Layer ${normalizedName} zurückgesetzt.`);
       }
@@ -172,30 +212,36 @@ export function showTable(data) {
     };
     if (!tableElement.classList.contains("hide-filters")) filterBtn.classList.add("active");
   }
-  // 👉 5. Daten vorbereiten (mit Safety-Check)
+
+  // 👉 5. Daten vorbereiten
   const uniqueData = (data || []).filter((item, index, self) => {
-    // 1. Check: Existiert das Item überhaupt?
     if (!item) return false;
     const val = item[idKey];
-    // 2. Check: Wenn das Item den Key gar nicht hat, trotzdem behalten (oder filtern)
-    // Wir erlauben das Item, wenn val null/undefined ist, aber wir müssen 
-    // beim findIndex extrem vorsichtig sein:
     return index === self.findIndex((t) => {
-      return t && t[idKey] === val; // t && stellt sicher, dass t nicht undefined ist
+      return t && t[idKey] === val;
     });
   });
   
-  // 👉 6. Tabellen-Logik: Update oder Neubau
-  const previousLayer = tableElement.getAttribute("data-current-layer");
-
-  if (table && previousLayer === normalizedName) {
+  // =================================================================
+  // 👉 6. Tabellen-Logik: Absolut krisensicheres Instanz-Management
+  // =================================================================
+  
+  // Wir prüfen, ob im Gedächtnis bereits eine Tabulator-Instanz existiert
+  if (table) {
+    // Wenn die Instanz existiert, aktualisieren wir einfach NUR die Daten!
+    // Das verhindert den berüchtigten "this.dataLoader.load is not a function" Fehler im Popout.
     table.replaceData(uniqueData);
+    
+    // Wir merken uns den aktuellen Layer auf dem Element
+    tableElement.setAttribute("data-current-layer", normalizedName);
   } else {
-    if (table) { table.destroy(); table = null; }
+    // NUR WENN NOCH GAR KEINE TABELLE EXISTIERT, BAUEN WIR SIE EINMALIG NEU:
     tableElement.innerHTML = "";
     tableElement.setAttribute("data-current-layer", normalizedName);
+    
     try {
-      table = new Tabulator("#wms_data_table", {
+      // Wir übergeben das direkte HTML-Element
+      table = new Tabulator(tableElement, {
         data: uniqueData,
         height: "100%",
         layout: "fitData",
@@ -204,7 +250,7 @@ export function showTable(data) {
         placeholder: "Keine Objekte im Sichtbereich.",
         autoColumns: true,
         selectable: 1,
-        selectableRows:true, //make rows selectable
+        selectableRows: true,
         persistence: {
           sort: true,
           filter: true,
@@ -214,7 +260,6 @@ export function showTable(data) {
         persistenceMode: "local", 
         autoColumnsDefinitions: function(definitions) {
           definitions.forEach((column) => {
-            // URL‑Formatter
             column.formatter = function(cell) {
               const value = cell.getValue();
               if (!value) return value;
@@ -249,13 +294,14 @@ export function showTable(data) {
           return definitions;
         },
       });
-     
+      
       setupTableEvents(table, tableElement, idKey, layerName);
 
     } catch (err) {
-      console.error("Tabulator Fehler:", err);
+      console.error("Tabulator Initialisierungs-Fehler:", err);
     }
   }
+
 }
 // Hilfsfunktion für die Events (um showTable übersichtlich zu halten)
 function setupTableEvents(table, tableElement, idKey, layerName) {
@@ -416,6 +462,7 @@ function setupTableEvents(table, tableElement, idKey, layerName) {
     zoomToFeature(layerName, row.getData());
   });
 }
+
 export function showTableDebounced(data) {
   clearTimeout(showTableTimeout);
   showTableTimeout = setTimeout(() => {
@@ -426,13 +473,30 @@ export function showTableDebounced(data) {
 export function closeTable() {
   isTableActive = false; 
   clearHighlightedFeature(); 
+
+  // Split.js wird nur zerstört, wenn es im Hauptfenster überhaupt aktiv war
   if (splitInstance) { 
     splitInstance.destroy(); 
     splitInstance = null; 
   }
-  document.getElementById("wms-table-container").style.display = "none";
+
+  // KORREKTUR 1: Nutze getTableDocument(), um den Container im richtigen Fenster zu finden!
+  const tableDoc = getTableDocument();
+  const container = tableDoc.getElementById("table-container");
+  if (container) {
+    container.style.display = "none";
+  }
+
+  // KORREKTUR 2: Falls das Popout-Fenster noch offen ist, schließen wir es aktiv.
+  // Das sorgt dafür, dass 'tableChildWindow.onbeforeunload' anspringt 
+  // und den Container sauber wieder im Hauptlayout einhängt.
+  if (tableChildWindow && !tableChildWindow.closed) {
+    tableChildWindow.close(); 
+  }
+
   deactivateTableToggle();
 }
+
 export function switchLayerData(results) {
   const selector = document.getElementById('layer-selector');
   if (!selector) return;
@@ -631,4 +695,86 @@ function focusTable(tableElement) {
 function isUrl(value) {
   if (!value) return false;
   return /^https?:\/\/|^www\./i.test(value);
+}
+
+
+export function detachTableWindow() { // Kein Parameter mehr nötig!
+    const tableContainer = document.getElementById('table-container');
+    if (!tableContainer) return;
+
+    // TRICK: Holt sich die aktive Tabulator-Instanz direkt vom HTML-Element
+    const tableInstance = Tabulator.findTable("#wms_data_table")[0]; 
+    if (!tableInstance) {
+        alert("Bitte öffne zuerst die Tabelle über den Button auf der Karte, bevor du sie auslagerst.");
+        return;
+    }
+
+    // 1. Neues Browserfenster öffnen
+    tableChildWindow = window.open('', 'TablePopout', 'width=1200,height=600,scrollbars=yes,resizable=yes');
+    if (!tableChildWindow) {
+        alert("Pop-up-Blocker aktiv? Bitte erlaube Pop-ups für diese Seite.");
+        return;
+    }
+
+    tableChildWindow.document.title = "Attributtabelle";
+
+    // Styles der Hauptseite rüberkopieren (inkl. style.css)
+    tableChildWindow.document.head.innerHTML = '';
+    Array.from(document.head.querySelectorAll('link[rel="stylesheet"], style')).forEach((styleEl) => {
+        tableChildWindow.document.head.appendChild(styleEl.cloneNode(true));
+    });
+
+    // Container komplett in das neue Fenster verschieben
+    tableChildWindow.document.body.style.margin = "0";
+    tableChildWindow.document.body.style.padding = "0";
+    tableChildWindow.document.body.appendChild(tableContainer);
+
+    tableContainer.style.display = 'flex'; 
+    tableContainer.style.height = '100vh'; 
+
+    // Tabulator im neuen Fenster die Breite neu berechnen lassen
+    setTimeout(() => {
+        tableInstance.redraw(true);
+    }, 150);
+
+    tableChildWindow.onbeforeunload = () => {
+        returnFromPopout();
+    };
+}
+// Funktion, um die Tabelle wieder sauber in die Hauptseite einzugliedern
+function returnFromPopout() {
+    const tableContainer = document.getElementById('table-container');
+    const mainLayout = document.getElementById('main-layout'); // Dein umschließender Hauptcontainer
+    
+    if (tableContainer && mainLayout) {
+        // Tabelle wieder im Hauptlayout einhängen
+        mainLayout.appendChild(tableContainer);
+        
+        // CSS wieder auf die Split-Grüße (z.B. 50vh) zurücksetzen
+        tableContainer.style.height = '50vh'; 
+        tableContainer.style.display = 'none'; // Oder 'flex', je nachdem ob sie offen bleiben soll
+        
+        tableChildWindow = null;
+        
+        // Haupt-Layout-Splitter (falls du z.B. Split.js nutzt) hier ggf. updaten
+        console.log("Tabelle erfolgreich zurückgeholt.");
+    }
+}
+// Ganz unten in table.js hinzufügen:
+export function getTableChildWindow() {
+    return tableChildWindow;
+}
+
+// Gibt das Document-Objekt des Fensters zurück, in dem die Tabelle GERADE lebt
+export function getTableDocument() {
+    if (tableChildWindow && !tableChildWindow.closed) {
+        return tableChildWindow.document;
+    }
+    return document; // Hauptfenster-Dokument als Fallback
+}
+
+// Hilfsfunktion, um Elemente flexibel in beiden Fenstern zu finden
+export function getTableElement(id) {
+    const doc = getTableDocument();
+    return doc.getElementById(id);
 }

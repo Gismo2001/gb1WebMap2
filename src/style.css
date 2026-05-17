@@ -29,6 +29,24 @@
     font-size: 16px;
   }
 }
+/* Greift nur, wenn die Bildschirmhöhe 450 Pixel oder weniger beträgt (typisch für Handy-Querformat) */
+@media screen and (max-height: 450px) {
+  
+  /* Falls deine Toolbar eine ol-ext Klasse nutzt (z.B. .ol-bar) */
+  .ol-bar {
+    flex-direction: row !important; /* Reihen statt Spalten */
+    top: 10px !important;           /* Ein Stück nach oben schieben */
+    left: 50px !important;          /* Platz neben den Standard-Zoom-Buttons lassen */
+    bottom: auto !important;        /* Untere Begrenzung aufheben */
+  }
+
+  /* Richtet die Unter-Menüs (Sub-Bars wie dein "I"-Menü) ebenfalls horizontal aus */
+  .ol-bar .ol-bar {
+    flex-direction: row !important;
+    margin-left: 5px !important;
+    margin-top: 0 !important;
+  }
+}
 
 @media (prefers-color-scheme: dark) {
   :root {

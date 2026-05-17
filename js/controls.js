@@ -416,7 +416,6 @@ export function searchPlaceControlFunc() {
   position: true	
   });
   return searchPlaceControl;
-
 }
 
 //Print

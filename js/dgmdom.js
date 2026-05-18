@@ -101,15 +101,23 @@ export async function handleDgmPointerMove(evt) {
     const layerName = activeLayer.get('name');
     const data = activeLayer.getData(evt.pixel);
     
-    if (data && data.length > 0) {
-        const rawValue = data[0];
-        if (rawValue !== -9999 && !isNaN(rawValue) && rawValue !== 0) {
-        const layerName = activeLayer.get('name') || "";
-        const layerNr = layerName.split('_')[0];
-        heightValue.innerHTML = `DGM: ${rawValue.toFixed(2)} m`;
-        heightStatus.style.display = 'block';
+    if (data && data[0] !== -9999 && !Number.isNaN(data[0]) && layerName) {
+    const parts = layerName.split('_');
+    const layerId = parts[0]; // Das wäre "1", "2" oder "Lokal"
+
+    if (layerId === 'Lokal') {
+        // Schöne Anzeige für selbst geladene Dateien
+        heightValue.innerHTML = `Lokal: ${data[0].toFixed(2)} m`;
+    } else {
+        // Klassische Anzeige für deine Server-DGM
+        heightValue.innerHTML = `DGM-Nr_${layerId}: ${data[0].toFixed(2)} m`;
     }
-    }
+    
+    heightStatus.style.display = 'block';
+} else {
+    heightStatus.style.display = 'none';
+}
+
 }
 
 
@@ -191,13 +199,23 @@ export async function handleDomPointerMove(evt) {
     }
 
     const data = activeLayer.getData(evt.pixel);
-    if (data && data[0] !== -9999 && !Number.isNaN(data[0])) {
-        const layerNr = activeLayer.get('name').split('_')[0];
-        heightValue.innerHTML = `DOM-Nr_${layerNr}: ${data[0].toFixed(2)} m`;
+// Wenn es ein Float-Raster ist, sollte data ein Float32Array sein.
+// Wenn normalize: false aktiv ist, steht der echte Wert in data[0].
+
+if (data && data.length > 0) {
+    const rawValue = data[0];
+    
+    if (rawValue !== -9999 && !isNaN(rawValue) && rawValue !== 0) {
+        // Jetzt sollte hier 16.34 etc. stehen
+        console.log("Echter Höhenwert erkannt:", rawValue);
+        
+        const layerName = activeLayer.get('name') || "";
+        const layerNr = layerName.split('_')[0];
+        heightValue.innerHTML = `DGM: ${rawValue.toFixed(2)} m`;
         heightStatus.style.display = 'block';
-    } else {
-        heightStatus.style.display = 'none';
     }
+}
+
 }
 
 

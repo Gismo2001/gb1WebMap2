@@ -37,7 +37,7 @@ function isDgmKachelActive(map) {
   
   return kachelLayerObj ? kachelLayerObj.visible : false;
 }
-// Prüft, ob der DOM-Kachel-Layer im Layer-Switcher sichtbar ist
+// Prüft, ob der DGM-Kachel-Layer im Layer-Switcher sichtbar ist
 function isDomKachelActive(map) {
   if (typeof getAllLayers !== 'function') return false;
   
@@ -1026,56 +1026,61 @@ export function fileToggleInput(map) {
       const fileEnd = file.name.split('.').pop().toLowerCase();
 
 if (fileEnd === 'tif' || fileEnd === 'tiff') {
-    const reader = new FileReader(); 
-    reader.onload = (e) => { 
-    const arrayBuffer = e.target.result; 
-    
-    // 1. Lokale Blob-URL erstellen (kein FileReader nötig!)
     const blobUrl = URL.createObjectURL(file);
-    const sourceName = `Lokal_TIF:${fileName}`;
+    const sourceName = `Lokal_DGM_${fileName}`;
 
-    // 2. WebGLTileLayer mit GeoTIFF Source erstellen
-    const tiffLayer = new WebGLTileLayer({
-        source: new GeoTIFF({
-            sources: [{ url: blobUrl }]
-        }),
-        title: sourceName,
-        name: sourceName
-    });
-    
-
-    // 3. In die DGM-Gruppe einsortieren (für die Ordnung im LayerSwitcher)
-    if (typeof dgmGroup !== 'undefined') {
-        const layers = map.getLayers().getArray();
-        if (!layers.includes(dgmGroup)) {
-            map.addLayer(dgmGroup); // Falls Gruppe noch nicht in der Map war
-        }
-        dgmGroup.getLayers().push(tiffLayer);
-    } else {
-        map.addLayer(tiffLayer);
+    const tiffSource = new GeoTIFFSource({
+    sources: [{ 
+        url: blobUrl,
+        nodata: -9999 
+    }],
+    projection: 'EPSG:25832',
+    // Zwingt OL, die Rohwerte als Float32 zu behalten:
+    normalize: false, 
+    // Verhindert, dass OL die Daten für die Anzeige in RGBA umwandelt:
+    convertToRGB: false, 
+    sourceOptions: { 
+        allowFullFile: true 
     }
+});
 
-    // 4. Den Layer für deine Höhenabfrage/Profil-Schnitt registrieren
-    // WICHTIG: Damit dein Profil-Chart auch auf dieses TIF zugreifen kann!
-    if (typeof activeDgmRasterLayers !== 'undefined') {
+    tiffSource.getView().then((viewConfig) => {
+        const extent3857 = transformExtent(viewConfig.extent, 'EPSG:25832', 'EPSG:3857');
+        
+        const tiffLayer = new WebGLTileLayer({
+            source: tiffSource,
+            title: sourceName,
+            name: sourceName, // Damit layer.get('name') für dgmdom.js existiert!
+            style: createGeoTiffStyle(13, 32), 
+            opacity: 1
+        });
+
+        tiffLayer.bbox = extent3857;
+        // Das Objekt für die globale Verwaltung erstellen
+        const localDgmData = { 
+          bbox: extent3857, 
+          min: 13,   // Hier deine ermittelten Werte nutzen
+          max: 32, 
+          layer: tiffLayer 
+        };
+        // In die Gruppen/Arrays (wie bisher)
+        if (dgmGroup) dgmGroup.getLayers().push(tiffLayer);
+        activeDgmRasterData.push(localDgmData);
         activeDgmRasterLayers.push(tiffLayer);
-    }
+        const overall = getOverallDgmMinMax();
+        activeDgmRasterData.forEach(d => {
+          d.layer.setStyle(createGeoTiffStyle(overall.min, overall.max));
+        });
 
-    // 5. Automatisch zum Bild zoomen
-    tiffLayer.getSource().getView().then((viewConfig) => {
-        map.getView().fit(viewConfig.extent, { duration: 1000, padding: [20, 20, 20, 20] });
+        // Zoom
+        map.getView().fit(extent3857, { duration: 1000 });
+
+        // Force Refresh: Manchmal braucht WebGL nach dem Laden einen Trigger
+        tiffLayer.getSource().refresh();
+        
+        if (typeof layerSwitcher !== 'undefined') layerSwitcher.render();
     });
-
-    // 6. LayerSwitcher aktualisieren
-    if (typeof layerSwitcher !== 'undefined') {
-        layerSwitcher.render();
-    }
-    
-    console.log(`Lokales GeoTIFF geladen: ${fileName}`);
-};
-   reader.readAsArrayBuffer(file); 
-}
-  
+}  
 //Shapefile-Logik (ZIP)
       else if (fileEnd === 'zip') {
         const reader = new FileReader();

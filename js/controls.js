@@ -26,7 +26,7 @@ import CanvasAttribution from 'ol-ext/control/CanvasAttribution';
 import CanvasTitle from 'ol-ext/control/CanvasTitle';
 import CanvasScaleLine from 'ol-ext/control/CanvasScaleLine';
 
-//import { fileToggleInput } from './mapEvents.js';
+import { fileToggleInput } from './mapEvents.js';
 import { Style, Text } from 'ol/style';
 
 import { isDgmActive, setDgmActive, disableDgmInteraction  } from './dgmdom.js';

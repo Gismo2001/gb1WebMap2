@@ -125,7 +125,7 @@ export function disableDgmInteraction() {
     if (dgmClickListener) { unByKey(dgmClickListener); dgmClickListener = null; }
     if (dgmPointerMoveListener) { unByKey(dgmPointerMoveListener); dgmPointerMoveListener = null; }
     
-    const p = document.getElementById('popup1');
+    const p = document.getElementById('popupForDgmDom');
     if (p) p.style.display = 'none';
     
     const hs = document.getElementById('height-status-container');
@@ -223,7 +223,7 @@ export function disableDomInteraction() {
     if (domClickListener) { unByKey(domClickListener); domClickListener = null; }
     if (domPointerMoveListener) { unByKey(domPointerMoveListener); domPointerMoveListener = null; }
     
-    const p = document.getElementById('popup1');
+    const p = document.getElementById('popupForDgmDom');
     if (p) p.style.display = 'none';
     
     const hs = document.getElementById('height-status-container');

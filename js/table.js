@@ -154,7 +154,7 @@ export function showTable(data) {
   const normalizedName = layerName.toLowerCase();
   let idKey;
 
-  // 1. Deine expliziten Zuweisungen
+  // 3. Deine expliziten Zuweisungen
   if (normalizedName === 'fsk') {
     idKey = 'OBJECTID';
   } else if (normalizedName.startsWith('shapefile')) {
@@ -191,6 +191,7 @@ export function showTable(data) {
         
         // Tabelle komplett neu aufbauen lassen
         showTable(data); 
+        console.log("tabelle angezeigt durch resetbutton")
         console.log(`Layout für Layer ${normalizedName} zurückgesetzt.`);
       }
     };
@@ -206,9 +207,6 @@ export function showTable(data) {
     };
     if (!tableElement.classList.contains("hide-filters")) filterBtn.classList.add("active");
   }
-
-  // IN TABLE.JS innerhalb von showTable(data):
-  
   // Hole den aktuellen Layernamen aus dem Selektor des richtigen Fensters
   //const selector = tableDoc.getElementById('layer-selector');
   const activeLayerName = selector ? selector.value : "unknown";
@@ -232,17 +230,19 @@ export function showTable(data) {
     });
   
   // =================================================================
-  // 👉 6. Tabellen-Logik: Absolut krisensicheres Instanz-Management
+  // 6. Tabellen-Logik: Absolut krisensicheres Instanz-Management
   // =================================================================
   
   // Wir prüfen, ob im Gedächtnis bereits eine Tabulator-Instanz existiert
   if (table) {
+    console.log('Prüfung beginnt')
     // Wenn die Instanz existiert, aktualisieren wir einfach NUR die Daten!
     // Das verhindert den berüchtigten "this.dataLoader.load is not a function" Fehler im Popout.
     table.replaceData(uniqueData);
-    
+    console.log('Daten wurden ersetzt')
     // Wir merken uns den aktuellen Layer auf dem Element
     tableElement.setAttribute("data-current-layer", normalizedName);
+    
   } else {
     // NUR WENN NOCH GAR KEINE TABELLE EXISTIERT, BAUEN WIR SIE EINMALIG NEU:
     tableElement.innerHTML = "";
@@ -304,34 +304,32 @@ export function showTable(data) {
         },
       });
       
-      setupTableEvents(table, tableElement, idKey, layerName);
+      
 
     } catch (err) {
       console.error("Tabulator Initialisierungs-Fehler:", err);
     }
+   
   }
-
+setupTableEvents(table, tableElement, idKey, activeLayerName);
 }
 // Hilfsfunktion für die Events (um showTable übersichtlich zu halten)
 function setupTableEvents(table, tableElement, idKey, layerName) {
-  // =====================================================
-  // TABLE BUILT
-  // =====================================================
+  
   table.on("tableBuilt", () => {
     tableElement.setAttribute("tabindex", "0");
     focusTable(tableElement);
   });
-  // =====================================================
+ 
   // ROW SELECTION
-  // =====================================================
   table.on("rowSelectionChanged", (data, rows) => {
     if (!rows.length) return;
     const row = rows[0];
     highlightFeatureForRow(row.getData());
   });
-  // =====================================================
+ 
   // MOUSE OVER
-  // =====================================================
+ 
   table.on("rowMouseOver", (e, row) => {
     if (interactionMode === "keyboard") return;
     highlightFeatureForRow(row.getData());
@@ -483,29 +481,76 @@ export function closeTable() {
   isTableActive = false; 
   clearHighlightedFeature(); 
 
-  // Split.js wird nur zerstört, wenn es im Hauptfenster überhaupt aktiv war
+  // 1. Split.js sauber zerstören
   if (splitInstance) { 
     splitInstance.destroy(); 
     splitInstance = null; 
+    console.log('Splitinstanz zerstört')
   }
 
-  // KORREKTUR 1: Nutze getTableDocument(), um den Container im richtigen Fenster zu finden!
-  const tableDoc = getTableDocument();
+  const tableContainer = document.getElementById('table-container');
+  if (tableContainer) {
+
+    // unsichtbar machen
+    tableContainer.style.display = 'none';
+
+    // wichtig!
+    tableContainer.style.width = '';
+    tableContainer.style.height = '';
+    tableContainer.style.flexBasis = '';
+
+    // optional:
+    tableContainer.style.pointerEvents = 'none';
+  
+    console.log ("tabelcontainer ausgeschaltet")
+  }
+   // Karte wieder auf volle Größe
+  const mapDiv = document.getElementById('map');
+
+  if (mapDiv) {
+    mapDiv.style.width = '100%';
+    mapDiv.style.flexBasis = '100%';
+  }
+
+  // EXTREM wichtig bei OpenLayers
+  setTimeout(() => {
+    mapRef.updateSize();
+  }, 50);
+
+  mapRef.updateSize();
+
+  // 2. Dokument holen und Tabellen-Container komplett verstecken
+  /* const tableDoc = getTableDocument();
   const container = tableDoc.getElementById("table-container");
   if (container) {
     container.style.display = "none";
+    // 👉 WICHTIG: Die von Split.js reingeschriebenen Inline-Größen restlos löschen!
+    container.style.height = ""; 
+    container.style.width = "";
   }
 
-  // KORREKTUR 2: Falls das Popout-Fenster noch offen ist, schließen wir es aktiv.
-  // Das sorgt dafür, dass 'tableChildWindow.onbeforeunload' anspringt 
-  // und den Container sauber wieder im Hauptlayout einhängt.
+  // =================================================================
+  // 👉 DIE RETTUNG FÜR DIE KARTE & DEN KLICK-EVENT-LISTENER:
+  // Wir löschen die alten Split-Styles und setzen die Karte auf 100%
+  // =================================================================
+  const mapElement = document.getElementById("map");
+  if (mapElement) {
+    mapElement.style.height = "100%"; // Karte wieder auf Vollbild zwingen
+    mapElement.style.width = "100%";
+  }
+
+  // OpenLayers sofort befehlen, seine Klick-Matrix neu zu berechnen!
+  if (mapRef) {
+    mapRef.updateSize(); 
+  }
+  // =================================================================
+
   if (tableChildWindow && !tableChildWindow.closed) {
     tableChildWindow.close(); 
-  }
+  } */
 
   deactivateTableToggle();
 }
-
 export function switchLayerData(results) {
   const selector = document.getElementById('layer-selector');
   if (!selector) return;
@@ -530,6 +575,7 @@ export function switchLayerData(results) {
     );
 
   showTableDebounced(normalizedData);
+  console.log("tabelle angezeigt durch switchLayer")
 }
 export function getTableActive() {
   return isTableActive;

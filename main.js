@@ -26,6 +26,7 @@ import { switcherToggle } from './js/mapEvents.js';
 import { getClickResults } from './js/mapEvents.js';
 import { updateTableFromVisibleLayers  } from './js/mapEvents.js';
 import { getVisibleVectorFeatures } from './js/mapEvents.js';
+import { isTableActive } from './js/controls.js';
 
 import { searchPlaceControlFunc } from './js/controls.js';
 import { initSearchEvents } from './js/mapEvents.js'; // Import hinzufügen
@@ -148,13 +149,13 @@ document.getElementById('popout-table-btn').addEventListener('click', () => {
 
 // 2. Schließen-Button Event-Listener in main.js
 document.getElementById('close-table-btn').addEventListener('click', function(e) {
-    e.stopPropagation(); 
+    //e.stopPropagation(); 
     closeTable(); 
 });
 
 map.on('moveend', () => {
   // Nur wenn der User die Tabelle offen hat, führen wir das Update aus
   if (getTableActive()) {
-    updateTableFromVisibleLayers(map);
+    //updateTableFromVisibleLayers(map);
   }
 });

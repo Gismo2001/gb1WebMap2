@@ -5,7 +5,6 @@ import { TabulatorFull as Tabulator } from 'tabulator-tables';
 import 'tabulator-tables/dist/css/tabulator.min.css';
 import 'ol/ol.css';
 import 'ol-ext/dist/ol-ext.css';   // 👈 unbedingt notwendig!
-
 import { updateTableFromVisibleLayers } from './mapEvents.js';
 import { closeTable } from './table.js';
 
@@ -39,7 +38,7 @@ import Permalink from 'ol-ext/control/Permalink';
 
 
 let searchPlaceControl = null; //Erstmal die Ortssuche auf null
-let isTableActive = false;
+export let isTableActive = false;
 let tableToggleBtnInstance = null;
 let gpsToggleBtnInstance = null;
 let ptnToogleBtnInstance = null;
@@ -300,7 +299,7 @@ export function createSubBarT(map) {
         }
 
         // Jetzt die Daten laden und die Tabelle (im Hauptfenster via Split) rendern
-        console.log ("update wird aufgerujfen")
+       
         updateTableFromVisibleLayers(map);
 
       // FALL 2: Button wird AUSGESCHALTET (active === false)
@@ -438,6 +437,7 @@ export function isTableEnabled() {
 
 // In control.js oder table.js (wo deactivateTableToggle definiert ist)
 export function deactivateTableToggle() {
+  isTableActive = false;
   // 1. Dem Toggle-Button auf der Karte sagen, dass er wieder "deaktiviert" ist
   if (tableToggleBtnInstance && typeof tableToggleBtnInstance.setActive === 'function') {
     // Falls deine Toggle-Bibliothek (z.B. ol-ext) "setActive" nutzt:
@@ -450,6 +450,7 @@ export function deactivateTableToggle() {
   // 2. Den Hauptbutton optisch zurücksetzen (dein bestehender Code)
   if (mainTableBtnInstance) {
     mainTableBtnInstance.element.classList.remove('is-running');
+  
   }
 }
 

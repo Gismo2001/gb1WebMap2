@@ -390,7 +390,6 @@ console.log(isTableEnabled & "::" & isTableActive)
   map.on('pointermove', handleCombinedPointerMove);
   
 }
-
 function handleCombinedPointerMove(evt) {
   if (evt.dragging) return;
 
@@ -413,31 +412,28 @@ function handleCombinedPointerMove(evt) {
   if (heightStatus) heightStatus.style.display = 'none';
 }
 
-
 async function handleClickResult(currentClickResults, coord, map) {
   // Wenn der Profilmodus aktiv ist, darf hier nichts passieren
-  if (profileMode) {
-    console.log("Klick-Interaktion ignoriert, da Profilmodus aktiv.");
+  if (profileMode) { console.log("Klick-Interaktion ignoriert, da Profilmodus aktiv.");
     return; 
   }
 // =====================================================
 // Duplikate entfernen
 // =====================================================
-  for (const layerName of Object.keys(currentClickResults)) {
-    const entry = currentClickResults[layerName];
-    const seen = new Set();
-    entry.data = entry.data.filter((item) => {
-      // VectorFeature ODER WMS
-      const props = item.properties || item;
-      const id =
-        props.OBJECTID ||
-        props.ID_con ||
-        props.ID ||
-        props.objectid ||
-        props.tile_id ||
-        props.id ||
-        JSON.stringify(props);
-
+for (const layerName of Object.keys(currentClickResults)) {
+  const entry = currentClickResults[layerName];
+  const seen = new Set();
+  entry.data = entry.data.filter((item) => {
+    // VectorFeature ODER WMS
+    const props = item.properties || item;
+    const id =
+      props.OBJECTID ||
+      props.ID_con ||
+      props.ID ||
+      props.objectid ||
+      props.tile_id ||
+      props.id ||
+      JSON.stringify(props);
       if (seen.has(id)) {
         return false;
       }
@@ -445,90 +441,69 @@ async function handleClickResult(currentClickResults, coord, map) {
       return true;
     });
   }
-
   // =====================================================
   // Layer / Feature Auswahl
   // =====================================================
-
   const layerNames = Object.keys(currentClickResults);
   let chosenLayer = layerNames[0];
   let chosenIndex = 0;
   const needsSelection = !isDgmActive && !isDomActive && (layerNames.length > 1 || currentClickResults[layerNames[0]].data.length > 1 );
-if (needsSelection) {
-  const choice =
-      await askUserToChoose(currentClickResults, coord, map);
-
+  if (needsSelection) {
+    const choice = await askUserToChoose(currentClickResults, coord, map);
     if (!choice) return;
-
     chosenLayer = choice.layer;
     chosenIndex = choice.index;
   }
-
-  const entry =
-    currentClickResults[chosenLayer];
-
-  const selected =
-    entry.data[chosenIndex];
-
+  const entry = currentClickResults[chosenLayer];
+  const selected = entry.data[chosenIndex];
   // =====================================================
   // VectorFeature ODER WMS-Objekt
   // =====================================================
-
-  const isWrappedFeature =
-    selected &&
-    selected.properties &&
-    selected.feature;
-
-  const featureData =
-    isWrappedFeature
-      ? selected.properties
-      : selected;
-
-  const feature =
-    isWrappedFeature
-      ? selected.feature
-      : null;
-
+  const isWrappedFeature =  selected && selected.properties &&  selected.feature;
+  const featureData = isWrappedFeature ? selected.properties : selected;
+  const feature = isWrappedFeature ? selected.feature : null;
   // =====================================================
   // Popup anzeigen
   // =====================================================
-
   if (!shouldShowPopup(entry.layer)) return;
-
   popupContent.innerHTML =
     buildPopupContent(
       feature || featureData,
       chosenLayer
     );
-
   popupOverlay.setPosition(coord);
-
   featureData.origin_layer = chosenLayer;
-
   // =====================================================
   // Highlight
   // =====================================================
-
   if (typeof highlightFeatureForRow === 'function') {
     highlightFeatureForRow(featureData);
   }
-
   // =====================================================
   // Tabellenbutton
   // =====================================================
-  setTimeout(() => {
-    const btn = document.getElementById('open-table-btn');
-    if (btn) {
-      btn.onclick = () => {updateSelector([chosenLayer]);
-      showTableDebounced(
-        
-          currentClickResults[chosenLayer].data.map(item => item.properties || item)
-        );
-        console.log("tabelle angezeigt durch tabellenbutton")
-      popupOverlay.setPosition(undefined);
+ setTimeout(() => {
+    // 1. Bereits existierender Tabellen-Button
+    const btnTable = document.getElementById('open-table-btn');
+    if (btnTable) {
+      btnTable.onclick = () => {
+        updateSelector([chosenLayer]);
+        showTableDebounced(currentClickResults[chosenLayer].data.map(item => item.properties || item));
+        popupOverlay.setPosition(undefined);
       };
     }
 
+    // 2. NEUER DATEN-BUTTON (Für das Modal-Popup)
+    const btnDaten = document.getElementById('open-daten-btn');
+    if (btnDaten) {
+      btnDaten.onclick = () => {
+        // Schließe das OpenLayers Karten-Popup
+        popupOverlay.setPosition(undefined);
+        
+        // Öffne das Modal-Popup mit den Feature-Daten
+        zeigteDatenImModal(featureData, chosenLayer);
+      };
+    }
   }, 0);
 }
 
@@ -576,8 +551,9 @@ function showFeatureFromSelection(selected, layerName, coord) {
         highlightFeatureForRow(featureData);
     }
 
-    // 3. Tabellen-Button Logik (falls vorhanden)
+    // 3. Tabellen-Button & Daten-Button Logik
     setTimeout(() => {
+        // Tabellen-Button
         const btn = document.getElementById('open-table-btn');
         if (btn) {
             btn.onclick = () => {
@@ -585,11 +561,28 @@ function showFeatureFromSelection(selected, layerName, coord) {
                 showTableDebounced([featureData]);
                 popupOverlay.setPosition(undefined);
             };
-            console.log("tabelle angezeigt durch opentabelbutton")
+            console.log("tabelle angezeigt durch opentabelbutton");
+        }
+
+        // 👉 DATEN-BUTTON (Erweiterung für die Auswahlliste)
+        const datenBtn = document.getElementById('open-daten-btn');
+        if (datenBtn) {
+            datenBtn.onclick = () => {
+                console.log("Datenansicht geöffnet für:", featureData);
+                
+                // 1. Karten-Popup schließen, um Platz zu machen
+                popupOverlay.setPosition(undefined);
+                
+                // 2. Das Daten-Modal mit den Attributen des ausgewählten Objekts öffnen
+                if (typeof zeigteDatenImModal === 'function') {
+                    zeigteDatenImModal(featureData, layerName);
+                } else {
+                    console.error("Die Funktion zeigteDatenImModal wurde nicht gefunden!");
+                }
+            };
         }
     }, 0);
 }
-
 async function askUserToChoose(currentClickResults, coord, map) {
     const container = document.getElementById('feature-select');
     const list = document.getElementById('feature-select-li');
@@ -1224,13 +1217,14 @@ function shouldShowPopup(layer) {
 }
 
 
-function createFotoLink(url, label) {
+function createDatenLink(url, label) {
   if (url && url.trim() !== '') {
     
     return `<a href="${url}" onclick="window.open('${url}', '_blank'); return false;">${label}</a>`;
   }
   return label;
 }
+
 export function initPopup(map) {
   const container = document.getElementById('popup');
   const content = document.getElementById('popup-content');
@@ -1252,7 +1246,6 @@ export function initPopup(map) {
 }
 
 function buildPopupContent(featureOrProps, layerName) {
-  
   if (!featureOrProps) {
     return "<p>Keine Daten</p>";
   }
@@ -1284,7 +1277,6 @@ function buildPopupContent(featureOrProps, layerName) {
     if (daten.tile_id) {
       html += `<strong>Kachel: ${daten.tile_id}</strong><br>`;
     }
-
 } else {
     // 1. Priorisierte Suchbegriffe (Wortbestandteile) definieren
     const preferredKeys = [
@@ -1299,23 +1291,18 @@ function buildPopupContent(featureOrProps, layerName) {
 
     // 2. Alle Schlüssel des Daten-Objekts holen
     const datenKeys = Object.keys(daten);
-
     // 3. Den ersten Schlüssel finden, der einen unserer Wunschbegriffe enthält
     let dynamicKey = null;
-
     // Wir gehen die preferredKeys der Reihe nach durch (Priorität von oben nach unten)
     for (const word of preferredKeys) {
       dynamicKey = datenKeys.find(key => key.toLowerCase().includes(word));
-      
       // Wenn wir einen Schlüssel gefunden haben und dieser im Objekt auch einen Wert hat, brechen wir ab
       if (dynamicKey && daten[dynamicKey]) {
         break;
       }
     }
-
     // 4. Titel auslesen oder Fallback nutzen
     const title = dynamicKey ? daten[dynamicKey] : 'Keine Bezeichnung';
-
     html += `<strong>${title}</strong><br>`;
   }
 
@@ -1332,7 +1319,6 @@ function buildPopupContent(featureOrProps, layerName) {
           .getGeometry()
           ?.getExtent() || null;
     }
-
     html += `
       <div style="margin-top:5px;">
         <a href="#"
@@ -1364,23 +1350,20 @@ function buildPopupContent(featureOrProps, layerName) {
       </div>
     `;
   }
-
-  // =====================================================
-  // Tabelle
+ // =====================================================
+  // 👉 AKTION-BUTTONS NEBENEINANDER (MITHILFE VON FLEXBOX)
   // =====================================================
   html += `
-    <br>
-    <button id="open-table-btn" style="font-size:12px;">
-      Details anzeigen
-    </button>
+    <div style="display: flex; gap: 8px; margin-top: 12px;">
+      <button id="open-table-btn" style="font-size: 12px; padding: 2px 4px; cursor: pointer; flex: 1;">Tabelle</button>
+      <button id="open-daten-btn" style="font-size: 12px; padding: 2px 4px; cursor: pointer; flex: 1;">Daten</button>
+    </div>
   `;
-
   return html;
 }
+
 document.addEventListener('click', (e) => {
   const box = document.getElementById('feature-select');
-  //if (!box || box.classList.contains('hidden')) return;
-
   // Ausnahme: Wenn der Klick auf den Tabellen-Schließen-Button ging, tu nichts!
   if (e.target.id === 'close-table-btn' || e.target.closest('#close-table-btn')) {
     return;
@@ -1396,3 +1379,59 @@ document.addEventListener('click', (e) => {
     box.classList.add('hidden');
   }
 });
+
+function zeigteDatenImModal(daten, layerName) {
+  const modal = document.getElementById("daten-modal");
+  const content = document.getElementById("daten-modal-content");
+  const closeBtn = document.getElementById("close-daten-modal");
+
+  if (!modal || !content) return;
+
+  closeBtn.onclick = () => { modal.style.display = "none"; };
+  modal.onclick = (e) => { if (e.target === modal) modal.style.display = "none"; };
+
+  let tableHtml = `<table style="width: 100%; border-collapse: collapse; text-align: left;">`;
+  tableHtml += `<thead>
+                  <tr style="background-color: #f2f2f2; border-bottom: 2px solid #ddd;">
+                    <th style="padding: 6px;">Attribut</th>
+                    <th style="padding: 6px;">Wert</th>
+                  </tr>
+                </thead><tbody>`;
+
+  Object.entries(daten).forEach(([key, value]) => {
+    if (key === 'geometry' || (typeof value === 'object' && value !== null) || key === 'origin_layer') {
+      return;
+    }
+
+    let displayValue;
+    if (value === undefined || value === null || String(value).trim() === "") {
+      displayValue = "<em>keine Angabe</em>";
+    } else {
+      // 👉 HIER DIE PRÜFUNG: Wenn der Wert eine URL ist, wird er zum Link.
+      // Wir prüfen kurz, ob der Wert mit http, https oder www. beginnt
+      const isUrl = String(value).trim().match(/^https?:\/\//i) || String(value).trim().toLowerCase().startsWith('www.');
+      
+      if (isUrl) {
+        // Falls es mit www. anfängt, spendieren wir für window.open noch das Protokoll
+        const formalUrl = String(value).trim().toLowerCase().startsWith('www.') ? `https://${value}` : value;
+        
+        // Wir nutzen deine Funktion! Als Label nehmen wir z.B. "Link öffnen" 
+        // oder den gekürzten Wert, damit das Modal nicht gesprengt wird.
+        displayValue = createDatenLink(formalUrl, "Link öffnen 🌐");
+      } else {
+        displayValue = value;
+      }
+    }
+
+    tableHtml += `
+      <tr style="border-bottom: 1px solid #eee;">
+        <td style="padding: 6px; font-weight: bold; color: #555; width: 40%; word-break: break-all;">${key}</td>
+        <td style="padding: 6px; color: #111; word-break: break-all;">${displayValue}</td>
+      </tr>`;
+  });
+
+  tableHtml += `</tbody></table>`;
+  
+  content.innerHTML = tableHtml;
+  modal.style.display = "flex";
+}

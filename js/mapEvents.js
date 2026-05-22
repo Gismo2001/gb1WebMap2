@@ -1219,8 +1219,7 @@ function shouldShowPopup(layer) {
 
 function createDatenLink(url, label) {
   if (url && url.trim() !== '') {
-    
-    return `<a href="${url}" onclick="window.open('${url}', '_blank'); return false;">${label}</a>`;
+    return `<a href="${url}" style="color: #0078d4; text-decoration: underline;" onclick="window.open('${url}', '_blank'); return false;">${label}</a>`;
   }
   return label;
 }
@@ -1398,25 +1397,48 @@ function zeigteDatenImModal(daten, layerName) {
                   </tr>
                 </thead><tbody>`;
 
-  Object.entries(daten).forEach(([key, value]) => {
-    if (key === 'geometry' || (typeof value === 'object' && value !== null) || key === 'origin_layer') {
-      return;
+Object.entries(daten).forEach(([key, value]) => {
+    const lowerKey = key.toLowerCase();
+
+    // =================================================================
+    // 🚫 BLACKLIST: DIESE ATTRIBUTE WERDEN RADIKAL AUSGEBLENDET
+    // =================================================================
+    // Liste von Wortbestandteilen, die auf Geometrie- oder Systemdaten hinweisen
+    const geometryKeywords = [
+      'geom', 
+      'shape', 
+      'geometry', 
+      'the_geom', 
+      'spatial',
+      'boundingbox',
+      'bbox',
+      'koordinat', // fängt Koordinaten, Koordinatenliste etc. ab
+      'origin_layer' // Dein internes Tabellen-Attribut
+    ];
+
+    // 1. Prüfen, ob der Schlüssel eines der Geometrie-Wörter enthält
+    const isGeometry = geometryKeywords.some(keyword => lowerKey.includes(keyword));
+
+    // 2. Prüfen, ob es sich um ein komplexes JavaScript-Objekt handelt (z.B. OL-Geometry-Instanzen)
+    const isComplexObject = typeof value === 'object' && value !== null;
+
+    // Wenn eins von beiden zutrifft: Sofort abbrechen und die Zeile ignorieren!
+    if (isGeometry || isComplexObject) {
+      return; 
     }
 
+    // =================================================================
+    // AB HIER FOLGT DEINE NORMALE LISTEN-GENERIERUNG
+    // =================================================================
     let displayValue;
     if (value === undefined || value === null || String(value).trim() === "") {
       displayValue = "<em>keine Angabe</em>";
     } else {
-      // 👉 HIER DIE PRÜFUNG: Wenn der Wert eine URL ist, wird er zum Link.
-      // Wir prüfen kurz, ob der Wert mit http, https oder www. beginnt
-      const isUrl = String(value).trim().match(/^https?:\/\//i) || String(value).trim().toLowerCase().startsWith('www.');
+      const stringValue = String(value).trim();
+      const isUrl = stringValue.match(/^https?:\/\//i) || stringValue.toLowerCase().startsWith('www.');
       
       if (isUrl) {
-        // Falls es mit www. anfängt, spendieren wir für window.open noch das Protokoll
-        const formalUrl = String(value).trim().toLowerCase().startsWith('www.') ? `https://${value}` : value;
-        
-        // Wir nutzen deine Funktion! Als Label nehmen wir z.B. "Link öffnen" 
-        // oder den gekürzten Wert, damit das Modal nicht gesprengt wird.
+        const formalUrl = stringValue.toLowerCase().startsWith('www.') ? `https://${stringValue}` : stringValue;
         displayValue = createDatenLink(formalUrl, "Link öffnen 🌐");
       } else {
         displayValue = value;

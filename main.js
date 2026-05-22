@@ -13,7 +13,7 @@ import { createMainToolbar } from './js/controls.js';
 import { registerProjections } from './js/projection.js';
 
 import { initTable } from './js/table.js';
-import { closeTable } from './js/table.js';
+import { closeTable, getTableDocument } from './js/table.js';
 import { switchLayerData } from './js/table.js';
 import { getTableActive } from './js/table.js';  
 
@@ -123,7 +123,7 @@ container.addEventListener('click', async function (event) {
   }
 });
   
-document.getElementById('layer-selector').addEventListener('change', () => {
+getTableDocument().getElementById('layer-selector').addEventListener('change', () => {
   // 1. Hole WMS Klick-Daten
   const clickResults = getClickResults();
   // 2. Hole aktuelle Vektor-Daten (Bauw. L/P etc.)

@@ -6,7 +6,7 @@ import 'tabulator-tables/dist/css/tabulator.min.css';
 import 'ol/ol.css';
 import 'ol-ext/dist/ol-ext.css';   // 👈 unbedingt notwendig!
 import { updateTableFromVisibleLayers } from './mapEvents.js';
-import { closeTable } from './table.js';
+import { closeTable, getTableChildWindow, getTableDocument } from './table.js';
 
 import { isGpsTrackingActive, startGpsTracking, stopGpsTracking } from './gps.js';
 import { handleCRSChange, ptnDelFindCoord, initPtn } from './ptn.js';
@@ -264,11 +264,12 @@ export function createSubBarI(map) {
 
 // Hilfsfunktion (falls noch nicht vorhanden), um zu prüfen ob das Popout-Fenster wirklich offen ist
 function isTableChildWindowOpen() {
-  // Greift auf die globale Variable aus table.js zu (stelle sicher, dass du Zugriff darauf hast oder importierst)
-  if (typeof tableChildWindow !== 'undefined' && tableChildWindow && !tableChildWindow.closed) {
-    return true;
+  // Wenn ein Kind-Fenster aktiv ist, ist die Tabelle ausgelagert
+  if (typeof getTableChildWindow === 'function') {
+    const child = getTableChildWindow();
+    if (child && !child.closed) return true;
   }
-  // Alternativ über getTableDocument prüfen, ob es ungleich dem Haupt-document ist:
+  // Falls kein Kind-Fenster verfügbar ist, prüfen wir, ob das Dokument anders ist
   if (typeof getTableDocument === 'function') {
     return getTableDocument() !== document;
   }
@@ -445,12 +446,12 @@ export function deactivateTableToggle() {
   } else if (tableToggleBtnInstance && tableToggleBtnInstance.element) {
     // Fallback: Falls die Bibliothek die CSS-Klasse manuell verwaltet:
     tableToggleBtnInstance.element.classList.remove('active');
+    tableToggleBtnInstance.element.classList.remove('ol-active');
   }
 
   // 2. Den Hauptbutton optisch zurücksetzen (dein bestehender Code)
   if (mainTableBtnInstance) {
     mainTableBtnInstance.element.classList.remove('is-running');
-  
   }
 }
 

@@ -338,7 +338,7 @@ export function initMapClick(map) {
         const firstLayerData = currentClickResults[layerNames[0]];
         const firstItem =  firstLayerData.data[0];
         const clickedFeatureData =  firstItem.properties || firstItem;
-        const selector = document.getElementById('layer-selector');
+        const selector = getTableDocument().getElementById('layer-selector');
         const currentSelectedLayer = selector ? selector.value : "unknown";
         
         if (typeof table !== 'undefined' && table && currentSelectedLayer === layerNames[0]) {
@@ -969,7 +969,7 @@ export function switcherToggle(layerSwitcher) {
 layerSwitcher.on('drawlist', (evt) => {
   var layer = evt.layer;
   evt.li.querySelector('label').addEventListener('click', () => {
-    //console.log(layer.get('title') +' Toggle: '+ layer.getVisible());
+    console.log(layer.get('title') +' Toggle: '+ layer.getVisible());
   });
 });
 }

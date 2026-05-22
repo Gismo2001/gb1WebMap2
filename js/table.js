@@ -127,6 +127,7 @@ export function showTable(data) {
   if (!tableElement) return;
 
   container.style.display = "flex";
+  container.style.pointerEvents = "auto";
   
   // Split.js darf NUR ausgeführt werden, wenn die Tabelle im Hauptfenster eingebettet ist!
   // Wenn tableDoc !== document, sind wir im Popout-Fenster, dort brauchen wir kein Split.js.
@@ -234,11 +235,11 @@ export function showTable(data) {
   
   // Wir prüfen, ob im Gedächtnis bereits eine Tabulator-Instanz existiert
   if (table) {
-    console.log('Prüfung beginnt')
+
     // Wenn die Instanz existiert, aktualisieren wir einfach NUR die Daten!
     // Das verhindert den berüchtigten "this.dataLoader.load is not a function" Fehler im Popout.
     table.replaceData(uniqueData);
-    console.log('Daten wurden ersetzt')
+
     // Wir merken uns den aktuellen Layer auf dem Element
     tableElement.setAttribute("data-current-layer", normalizedName);
     
@@ -307,7 +308,7 @@ export function showTable(data) {
     }
    
   }
-console.log('Hallo');
+
 setupTableEvents(table, tableElement, idKey, activeLayerName);
 }
 // Hilfsfunktion für die Events (um showTable übersichtlich zu halten)
@@ -486,9 +487,13 @@ export function closeTable() {
     console.log('Splitinstanz zerstört')
   }
 
-  const tableContainer = document.getElementById('table-container');
-  if (tableContainer) {
+  const tableDoc = getTableDocument();
+  let tableContainer = tableDoc ? tableDoc.getElementById('table-container') : null;
+  if (!tableContainer && tableDoc !== document) {
+    tableContainer = document.getElementById('table-container');
+  }
 
+  if (tableContainer) {
     // unsichtbar machen
     tableContainer.style.display = 'none';
 
@@ -496,13 +501,12 @@ export function closeTable() {
     tableContainer.style.width = '';
     tableContainer.style.height = '';
     tableContainer.style.flexBasis = '';
-
-    // optional:
     tableContainer.style.pointerEvents = 'none';
-  
-    console.log ("tabelcontainer ausgeschaltet")
+
+    console.log("tabelcontainer ausgeschaltet")
   }
-   // Karte wieder auf volle Größe
+
+  // Karte wieder auf volle Größe
   const mapDiv = document.getElementById('map');
 
   if (mapDiv) {
@@ -517,40 +521,19 @@ export function closeTable() {
 
   mapRef.updateSize();
 
-  // 2. Dokument holen und Tabellen-Container komplett verstecken
-  /* const tableDoc = getTableDocument();
-  const container = tableDoc.getElementById("table-container");
-  if (container) {
-    container.style.display = "none";
-    // 👉 WICHTIG: Die von Split.js reingeschriebenen Inline-Größen restlos löschen!
-    container.style.height = ""; 
-    container.style.width = "";
-  }
-
-  // =================================================================
-  // 👉 DIE RETTUNG FÜR DIE KARTE & DEN KLICK-EVENT-LISTENER:
-  // Wir löschen die alten Split-Styles und setzen die Karte auf 100%
-  // =================================================================
-  const mapElement = document.getElementById("map");
-  if (mapElement) {
-    mapElement.style.height = "100%"; // Karte wieder auf Vollbild zwingen
-    mapElement.style.width = "100%";
-  }
-
-  // OpenLayers sofort befehlen, seine Klick-Matrix neu zu berechnen!
-  if (mapRef) {
-    mapRef.updateSize(); 
-  }
-  // =================================================================
-
   if (tableChildWindow && !tableChildWindow.closed) {
-    tableChildWindow.close(); 
-  } */
+    tableChildWindow._closingFromApp = true;
+    // Zuerst die Tabelle zurück in das Hauptfenster bringen,
+    // damit sie nach Schließen des Popouts wieder verfügbar ist.
+    returnFromPopout();
+    tableChildWindow.close();
+    tableChildWindow = null;
+  }
 
   deactivateTableToggle();
 }
 export function switchLayerData(results) {
-  const selector = document.getElementById('layer-selector');
+  const selector = getTableDocument().getElementById('layer-selector');
   if (!selector) return;
   const selectedLayer = selector.value;
   const entry = results[selectedLayer];
@@ -604,7 +587,7 @@ export function clearHighlightedFeature() {
 }
 export function highlightFeatureForRow(rowData) {
   const layerName = rowData.origin_layer || 
-                    (document.getElementById('layer-selector') ? document.getElementById('layer-selector').value : null);
+                    (getTableDocument().getElementById('layer-selector') ? getTableDocument().getElementById('layer-selector').value : null);
   if (!layerName) {
     console.warn("Highlight abgebrochen: Kein LayerName in rowData oder Selector gefunden.", rowData);
     return;
@@ -612,7 +595,7 @@ export function highlightFeatureForRow(rowData) {
   let idKey = null;
   clearHighlightedFeature();
   if (!mapRef) return;
-  const selector = document.getElementById('layer-selector');
+  const selector = getTableDocument().getElementById('layer-selector');
   if (!layerName) {
     console.warn("Highlight abgebrochen: Kein LayerName gefunden");
     return;
@@ -782,6 +765,11 @@ export function detachTableWindow() { // Kein Parameter mehr nötig!
     tableChildWindow.document.body.style.padding = "0";
     tableChildWindow.document.body.appendChild(tableContainer);
 
+    const popoutBtn = tableChildWindow.document.getElementById('popout-table-btn');
+    if (popoutBtn) {
+      popoutBtn.style.display = 'none';
+    }
+
     tableContainer.style.display = 'flex'; 
     tableContainer.style.height = '100vh'; 
 
@@ -790,26 +778,60 @@ export function detachTableWindow() { // Kein Parameter mehr nötig!
         tableInstance.redraw(true);
     }, 50);
 
+    const childCloseBtn = tableChildWindow.document.getElementById('close-table-btn');
+    if (childCloseBtn) {
+      childCloseBtn.addEventListener('click', () => {
+        closeTable();
+        if (tableChildWindow && !tableChildWindow.closed) {
+          tableChildWindow._closingFromApp = true;
+          tableChildWindow.close();
+        }
+      });
+    }
+
+    tableChildWindow._closingFromApp = false;
     tableChildWindow.onbeforeunload = () => {
+        if (tableChildWindow && tableChildWindow._closingFromApp) {
+          return;
+        }
         returnFromPopout();
+        deactivateTableToggle();
+        tableChildWindow = null;
     };
 }
 // Funktion, um die Tabelle wieder sauber in die Hauptseite einzugliedern
 function returnFromPopout() {
-    const tableContainer = document.getElementById('table-container');
-    const mainLayout = document.getElementById('main-layout'); // Dein umschließender Hauptcontainer
-    
+    const parentWindow = (typeof window !== 'undefined' && window.opener) ? window.opener : window;
+    const parentDoc = parentWindow.document;
+    const mainLayout = parentDoc.getElementById('main-layout');
+
+    let tableContainer = parentDoc.getElementById('table-container');
+    if (!tableContainer && window.document) {
+      tableContainer = window.document.getElementById('table-container');
+    }
+    if (!tableContainer && tableChildWindow && tableChildWindow.document) {
+      tableContainer = tableChildWindow.document.getElementById('table-container');
+    }
+
     if (tableContainer && mainLayout) {
         // Tabelle wieder im Hauptlayout einhängen
         mainLayout.appendChild(tableContainer);
         
-        // CSS wieder auf die Split-Grüße (z.B. 50vh) zurücksetzen
-        tableContainer.style.height = '50vh'; 
-        tableContainer.style.display = 'none'; // Oder 'flex', je nachdem ob sie offen bleiben soll
-        
+        // Popout-Button wieder anzeigen, wenn er existiert
+        const popoutBtn = tableContainer.querySelector('#popout-table-btn');
+        if (popoutBtn) {
+          popoutBtn.style.display = '';
+        }
+
+        // CSS wieder auf die Split-Größe zurücksetzen
+        tableContainer.style.height = '50vh';
+        tableContainer.style.display = 'none';
+        tableContainer.style.pointerEvents = 'none';
+        tableContainer.style.width = '';
+        tableContainer.style.flexBasis = '';
+
         tableChildWindow = null;
         
-        // Haupt-Layout-Splitter (falls du z.B. Split.js nutzt) hier ggf. updaten
         console.log("Tabelle erfolgreich zurückgeholt.");
     }
 }

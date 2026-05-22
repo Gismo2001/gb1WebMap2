@@ -72,7 +72,7 @@ function getOrCreatePopupForDgmDom(map) {
 
 // 🟢 SPEZIALISIERTER FALL 1a: Kachelauswahl dgm
 export function handleDgmKachelSelection(map, evt) {
-  const popupForDgmDom = getOrCreatepopupForDgmDom(map);
+  const popupForDgmDom = getOrCreatePopupForDgmDom(map);
   let featureFound = false;
   map.forEachFeatureAtPixel(evt.pixel, (feature) => {
     featureFound = true;
@@ -115,6 +115,7 @@ export function handleDomKachelSelection(map, evt) {
     const alreadyLoaded = loadedDoms.some(d => d.tile_id === props.tile_id);
     popupForDgmDom.style.left = `${evt.pixel[0] + 10}px`;
     popupForDgmDom.style.top = `${evt.pixel[1] + 10}px`;
+    popupForDgmDom.style.width = `30px`;
     popupForDgmDom.innerHTML = `
       <b>Kachel:</b> ${props.tile_id}<br>
       <b>Datum:</b> ${props.Aktualitaet}<br><br>

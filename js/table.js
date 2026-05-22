@@ -120,7 +120,6 @@ export function showTable(data) {
   }
 
   const tableElement = tableDoc.getElementById("wms_data_table");
- 
   const filterBtn = tableDoc.getElementById("filter-toggle");      
   const resetBtn = tableDoc.getElementById("table-reset");        
 
@@ -303,14 +302,12 @@ export function showTable(data) {
           return definitions;
         },
       });
-      
-      
-
     } catch (err) {
       console.error("Tabulator Initialisierungs-Fehler:", err);
     }
    
   }
+console.log('Hallo');
 setupTableEvents(table, tableElement, idKey, activeLayerName);
 }
 // Hilfsfunktion für die Events (um showTable übersichtlich zu halten)
@@ -434,7 +431,7 @@ function setupTableEvents(table, tableElement, idKey, layerName) {
   table.on("rowTouchStart", (e, row) => {
     pressTimer = setTimeout(() => {
       zoomToFeature(layerName, row.getData());
-    }, 600);
+    }, 50);
   });
 
   table.on("rowTouchEnd", () => {
@@ -468,13 +465,14 @@ function setupTableEvents(table, tableElement, idKey, layerName) {
     const row = cell.getRow();
     zoomToFeature(layerName, row.getData());
   });
+  
 }
 
 export function showTableDebounced(data) {
   clearTimeout(showTableTimeout);
   showTableTimeout = setTimeout(() => {
     showTable(data);
-  }, 150);  // 👈 150ms perfekt
+  }, 50);  // 👈 75ms perfekt
 }
 // Tabelle schließen
 export function closeTable() {
@@ -790,7 +788,7 @@ export function detachTableWindow() { // Kein Parameter mehr nötig!
     // Tabulator im neuen Fenster die Breite neu berechnen lassen
     setTimeout(() => {
         tableInstance.redraw(true);
-    }, 150);
+    }, 50);
 
     tableChildWindow.onbeforeunload = () => {
         returnFromPopout();

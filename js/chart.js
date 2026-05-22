@@ -5,6 +5,7 @@ import { containsCoordinate } from 'ol/extent.js';
 import { profileSource, profileLayer } from './controls.js';
 // Importiere die aktiven Layer aus deiner dgmdom.js
 import { activeDgmRasterLayers, activeDomRasterLayers } from './dgmdom.js'; 
+import dragDataPlugin from 'chartjs-plugin-dragdata';
 
 
 let profileDraw = null;
@@ -195,39 +196,37 @@ win.addMarker = addMarker;
   resizeChartContainer();
 
   const chart = new win.Chart(ctx, {
-  
     type: "line",
-        data: {
-            labels: distances,
-            datasets: [{
-                label: isDom ? "DOM Höhe (m)" : "DGM Höhe (m)",
-                data: heights,
-                borderColor: color,
-                //backgroundColor: color.replace('1)', '0.2)'),
-                backgroundColor:'rgba(205, 205, 205, 0.89)',
-                borderWidth: 2,
-                fill: true,
-                tension: 0.1,
-                pointRadius: 0
-            }]
-        },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: 'nearest', intersect: false },
-      onHover: function(event, elements) {
-          if (elements.length > 0) {
-              const index = elements[0].index;
-              const coord = coords[index];
-              // Rufe die Funktion über das Fenster-Objekt auf
-              if (typeof win.addMarker === 'function') {
-                  win.addMarker(coord);
+      data: {
+        labels: distances,
+        datasets: [{
+          label: isDom ? "DOM Höhe (m)" : "DGM Höhe (m)",
+          data: heights,
+          borderColor: color,
+          //backgroundColor: color.replace('1)', '0.2)'),
+          backgroundColor:'rgba(205, 205, 205, 0.89)',
+          borderWidth: 2,
+          fill: true,
+          tension: 0.1,
+          pointRadius: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'nearest', intersect: false },
+        onHover: function(event, elements) {
+        if (elements.length > 0) {
+          const index = elements[0].index;
+          const coord = coords[index];
+          if (typeof win.addMarker === 'function') {
+            win.addMarker(coord);
               }
           } else {
-              // Marker entfernen wenn die Maus nicht über einem Punkt ist
-              if (typeof win.addMarker === 'function') {
-                  win.addMarker(null);
-              }
+            // Marker entfernen wenn die Maus nicht über einem Punkt ist
+            if (typeof win.addMarker === 'function') {
+              win.addMarker(null);
+            }
           }
       },
       scales: {
@@ -257,53 +256,118 @@ win.addMarker = addMarker;
     link.click();
     win.document.body.removeChild(link);
   };
-win.document.getElementById("addHorizontalBtn").onclick = function() {
+win.document.getElementById("addHorizontalBtn").onclick = function () {
+
     const value = win.prompt("Höhe für horizontale Linie (m):");
+
     if (value === null) return;
+
     const h = parseFloat(value);
+
     if (isNaN(h)) {
         win.alert("Bitte eine gültige Zahl eingeben.");
         return;
     }
 
-    // 1. Der Datensatz für die Wasserfläche (Füllung)
-    // Wir nehmen den Wasserstand h, aber nur dort, wo h > Gelände ist.
-    // Ansonsten nehmen wir die Gelände-Höhe selbst (dadurch wird die Füllung 0).
-    const waterFillData = heights.map(heightVal => heightVal < h ? h : heightVal);
+    // =====================================================
+    // 1. Wasserfläche
+    // =====================================================
+
+    const waterFillData = heights.map(heightVal =>
+        heightVal < h ? h : heightVal
+    );
 
     chart.data.datasets.push({
         label: "Wasserstand (" + h + " m)",
         data: waterFillData,
+
         borderColor: 'rgba(0, 120, 255, 0.5)',
-        backgroundColor: 'rgba(0, 120, 255, 0.4)', // Das Blau für das Wasser
+        backgroundColor: 'rgba(0, 120, 255, 0.4)',
+
         borderWidth: 1,
         pointRadius: 0,
-        tension: 0.1,
-        tooltip: { display: false }, // Versteckt diesen Datensatz im Tooltip
-        //events: [] // Verhindert, dass der Datensatz überhaupt auf Interaktionen reagiert
+
+        tension: 0,
+
+        tooltip: { display: false },
+        events: [],
+
         fill: {
-            target: 0, // Füllt den Bereich zum ersten Dataset (dein DGM/DOM)
-            above: 'rgba(0, 120, 255, 0.4)' // Farbe nur dort, wo Wasser ÜBER dem Gelände liegt
+            target: 0,
+            above: 'rgba(0, 120, 255, 0.4)'
         }
     });
 
-    // 2. Der Datensatz für die gestrichelte Linie (wie bisher)
+    // =====================================================
+    // 2. Horizontale Linie
+    // =====================================================
+
     const horizontalData = new Array(distances.length).fill(h);
+
     chart.data.datasets.push({
+
         label: "Horizontale " + h + " m",
+
         data: horizontalData,
+
         borderColor: `hsl(${Math.random() * 360}, 70%, 50%)`,
+
         borderWidth: 3,
+
         borderDash: [6, 6],
+
         pointRadius: 0,
+        pointHitRadius: 20,
+
         fill: false,
-       
+
+        dragData: true,
+        dragX: false,
+        dragY: true,
     });
+
+    // =====================================================
+    // 3. Globale Drag-Funktion setzen
+    // =====================================================
+
+    chart.options.plugins.dragData = {
+
+        round: 2,
+
+        onDrag: function (e, datasetIndex, index, value) {
+
+            const ds = chart.data.datasets[datasetIndex];
+
+            // Nur horizontale Linien behandeln
+            if (!ds.label.startsWith("Horizontale")) {
+                return false;
+            }
+
+            // 🔹 ALLE Punkte gleich setzen
+            ds.data = ds.data.map(() => value);
+
+            // 🔹 Label aktualisieren
+            ds.label = `Horizontale ${value.toFixed(2)} m`;
+
+            // 🔹 Wasserfläche aktualisieren
+            const waterDataset = chart.data.datasets[datasetIndex - 1];
+
+            if (waterDataset) {
+
+                waterDataset.data = heights.map(hVal =>
+                    hVal < value ? value : hVal
+                );
+            }
+
+            chart.update('none');
+
+            // 🔹 verhindert Einzelpunktverschiebung
+            return false;
+        }
+    };
 
     chart.update();
 };
-
-
  win.onbeforeunload = () => {
   // 1. Marker aufräumen
   if (markerLayer && currentMap) {

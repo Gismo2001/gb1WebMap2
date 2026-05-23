@@ -54,6 +54,8 @@ import { loadedDgms, loadedDoms } from './js/dgmdom.js';
 
 import { initPermalinkButton  } from './js/controls.js';
 
+import { initDrawing } from './js/myDraw.js'; // 💡 Hierher verschieben!
+
 window.$ = window.jQuery = $;
 window.Chart = Chart;
 
@@ -69,7 +71,6 @@ let splitInstance = null;
 
 // Projektionen registrieren (Projection.js)
 registerProjections();
-
 
 
 // Layer erstellen
@@ -103,6 +104,9 @@ map.updateSize();
 
 // permalinkButton aktivieren, 
 initPermalinkButton(map);
+
+
+initDrawing(map);
 
 export const dgmKachelLayer = createDgmKachelLayer();
 export const domKachelLayer = createDomKachelLayer();

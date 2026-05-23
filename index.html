@@ -53,26 +53,21 @@
           <select id="layer-selector">
           </select>
         </div>    
-
         <div id="table-controls">
           <button id="filter-toggle" class="btn-control">Filtern</button>
           <button id="table-reset" title="Tabellenlayout zurücksetzen">🔄</button>
           <button id="popout-table-btn" title="In neues Fenster auslagern" style="margin-right: 5px; padding: 2px 6px; cursor: pointer;">🗗</button>
         </div>
-
         <button id="close-table-btn">✕ Schließen</button>
       </div>
 
       <div id="wms_data_table" class="hide-filters"></div>
     </div>
     <!-- POPUP -->
-    
     <div id="popup" class="ol-popup">
       <a href="#" id="popup-closer" class="ol-popup-closer">✕</a>
       <div id="popup-content"></div>
     </div>
-
-
     <!-- FILE INPUT -->
     <input type="file" id="geojsonInput" accept=".geojson,.json" style="display: none;" multiple>
   </div> <!-- ENDE main-layout -->
@@ -87,6 +82,35 @@
     <div id="daten-modal-content" style="overflow-y: auto; flex-grow: 1; font-size: 12px;"></div>
   </div>
 </div>
+<div id="draw-bar" style="position: absolute; bottom: 20px; left: 20px; z-index: 1000; background: white; padding: 5px; border-radius: 4px; box-shadow: 0 1px 5px rgba(0,0,0,0.4); display: flex; gap: 5px; align-items: center;">
+  <span style="font-size: 11px; font-weight: bold; color: #555; padding: 0 5px;">Zeichnen:</span>
+  <button id="draw-none" class="draw-btn active" data-type="None" title="Navigation (Ausschalten)">🖐️</button>
+  <button id="draw-point" class="draw-btn" data-type="Point" title="Punkt zeichnen">📍</button>
+  <button id="draw-line" class="draw-btn" data-type="LineString" title="Linie zeichnen">📏</button>
+  <button id="draw-poly" class="draw-btn" data-type="Polygon" title="Fläche zeichnen">⬡</button>
+  <button id="draw-circle" class="draw-btn" data-type="Circle" title="Kreis zeichnen">⭕</button>
+  <button id="draw-clear" style="background: #ffcccc; border: 1px solid #ff9999; border-radius: 3px; cursor: pointer; padding: 4px 8px; font-size: 12px;" title="Alle Zeichnungen löschen">🗑️</button>
+</div>
+
+<style>
+  .draw-btn {
+    background: #f8f9fa;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+  }
+  .draw-btn:hover { background: #e2e6ea; }
+  .draw-btn.active {
+    background: #0078d4;
+    color: white;
+    border-color: #005a9e;
+  }
+</style>
+
+
 </body>
 
 

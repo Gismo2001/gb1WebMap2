@@ -207,7 +207,7 @@ if (data && data.length > 0) {
     
     if (rawValue !== -9999 && !isNaN(rawValue) && rawValue !== 0) {
         // Jetzt sollte hier 16.34 etc. stehen
-        console.log("Echter Höhenwert erkannt:", rawValue);
+        //console.log("Echter Höhenwert erkannt:", rawValue);
         
         const layerName = activeLayer.get('name') || "";
         const layerNr = layerName.split('_')[0];

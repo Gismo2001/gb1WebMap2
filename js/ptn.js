@@ -6,11 +6,9 @@ import VectorLayer from 'ol/layer/Vector';
 import { Style, Circle, Fill, Stroke } from 'ol/style';
 
 
-// Diese Variablen halten wir lokal in diesem Modul
 let ptnSource = null;
 let ptnLayer = null;
 let mapRef = null;
-
 
 export function initPtn(map) { //hier wird map übergeben
     mapRef = map; // map wird mapRef zugewiesn

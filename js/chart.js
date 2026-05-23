@@ -2,17 +2,19 @@ import Chart from 'chart.js/auto';
 import { Draw } from 'ol/interaction.js';
 import LineString from 'ol/geom/LineString';
 import { containsCoordinate } from 'ol/extent.js';
-import { profileSource, profileLayer } from './controls.js';
-// Importiere die aktiven Layer aus deiner dgmdom.js
+import { profileSource, profileLayer, zeigeNachricht } from './controls.js';
+
 import { activeDgmRasterLayers, activeDomRasterLayers } from './dgmdom.js'; 
 import dragDataPlugin from 'chartjs-plugin-dragdata';
 
 
-let profileDraw = null;
-export let profileMode = false;
-let currentMap = null;
 
-// Diese Funktionen müssen exportiert werden, damit control.js sie nutzen kann
+
+let profileDraw = null;
+let currentMap = null;
+export let profileMode = false;
+
+
 export function enableProfileDrawing(map, source) {
   profileMode = true; // Setzen beim Start
   currentMap = map;
@@ -20,16 +22,14 @@ export function enableProfileDrawing(map, source) {
     source: source,
     type: 'LineString',
   });
-    map.addInteraction(profileDraw);
-    
-    profileDraw.on('drawend', function(evt) {
-        const coords = evt.feature.getGeometry().getCoordinates();
-        generateElevationProfile(coords);
-        // Interaction nach dem Zeichnen entfernen (optional, je nach Wunsch)
-        map.removeInteraction(profileDraw);
-        profileMode = false
-        
-    });
+  map.addInteraction(profileDraw);
+  profileDraw.on('drawend', function(evt) {
+    const coords = evt.feature.getGeometry().getCoordinates();
+    generateElevationProfile(coords);
+    // Interaction nach dem Zeichnen entfernen (optional, je nach Wunsch)
+    map.removeInteraction(profileDraw);
+    profileMode = false
+  });
 }
 
 export function disableProfileDrawing(map) {
@@ -39,47 +39,40 @@ export function disableProfileDrawing(map) {
     map.removeInteraction(profileDraw);
     profileDraw = null;
   }
-
-    // 2. Marker-Layer entfernen
-    if (markerLayer) {
-        map.removeLayer(markerLayer);
-        markerLayer = null;
-    }
-
-    // 3. Optional: Profil-Fenster schließen (falls gewünscht)
-    // Wenn du eine Referenz auf 'win' globaler speicherst, könntest du hier win.close() rufen.
+  // 2. Marker-Layer entfernen
+  if (markerLayer) {
+    map.removeLayer(markerLayer);
+    markerLayer = null;
+  }
 }
 function generateElevationProfile(coords) {
-    const profile = [];
-    let cumulativeDist = 0;
-    const activeLayer = [...activeDgmRasterLayers, ...activeDomRasterLayers].find(l => l.getVisible());
-    const layerLabel = activeLayer ? activeLayer.get('title') : "Höhe (m)";
-
-    for (let i = 0; i < coords.length - 1; i++) {
-        const c1 = coords[i];
-        const c2 = coords[i + 1];
-        const segmentPoints = getProfilePoints(c1, c2, 5);
-        
-        for (const p of segmentPoints) {
-            const height = getHeightAtCoordinate(p.coord);
-            if (height !== null) {
-                profile.push({
-                    distance: cumulativeDist + p.dist,
-                    height: height,
-                    coord: p.coord
-                });
-            }
-        }
-        const dx = c2[0] - c1[0];
-        const dy = c2[1] - c1[1];
-        cumulativeDist += Math.sqrt(dx*dx + dy*dy);
+  const profile = [];
+  let cumulativeDist = 0;
+  const activeLayer = [...activeDgmRasterLayers, ...activeDomRasterLayers].find(l => l.getVisible());
+  const layerLabel = activeLayer ? activeLayer.get('title') : "Höhe (m)";
+  for (let i = 0; i < coords.length - 1; i++) {
+    const c1 = coords[i];
+    const c2 = coords[i + 1];
+    const segmentPoints = getProfilePoints(c1, c2, 5);
+    for (const p of segmentPoints) {
+      const height = getHeightAtCoordinate(p.coord);
+      if (height !== null) {
+        profile.push({
+          distance: cumulativeDist + p.dist,
+          height: height,
+          coord: p.coord
+        });
+      }
     }
-    
-    if (profile.length > 0) {
-        showProfileChart(profile, layerLabel)
-    } else {
-        alert("Keine Höhendaten gefunden.");
-    }
+    const dx = c2[0] - c1[0];
+    const dy = c2[1] - c1[1];
+    cumulativeDist += Math.sqrt(dx*dx + dy*dy);
+  }
+  if (profile.length > 0) {
+    showProfileChart(profile, layerLabel)
+  } else {
+    zeigeNachricht("Keine Höhendaten gefunden.", "error");
+  }
 }
 
 // Nutzt deine activeDgmRasterLayers aus dgmdom.js
@@ -99,8 +92,6 @@ function getHeightAtCoordinate(coord) {
     }
     return null;
 }
-
-
 function updateDgmInteraction() {
   const kachelnVisible = dgmKachelLayer.getVisible();
   if (kachelnVisible) {
@@ -118,7 +109,6 @@ function updateDgmInteraction() {
    
   }
 }
-
 function lineIntersectsAnyDgm(coord1, coord2) {
 
   const lineExtent = boundingExtent([coord1, coord2]);
@@ -137,7 +127,6 @@ function lineIntersectsAnyDgm(coord1, coord2) {
 
   return false;
 }
-
 function getProfilePoints(coord1, coord2, step = 5) {
   const line = new LineString([coord1, coord2]);
   const length = line.getLength();
@@ -148,9 +137,7 @@ function getProfilePoints(coord1, coord2, step = 5) {
   }
   return points;
 }
-
 function showProfileChart(profile, layerlabel) {
-  
     // 1. Daten vorbereiten
     const distances = profile.map(p => p.distance.toFixed(2));
     const heights = profile.map(p => p.height.toFixed(2));
@@ -165,12 +152,12 @@ function showProfileChart(profile, layerlabel) {
     const win = window.open("", "Höhenprofil", "width=800,height=500");
     if (!win) return;
     win.Chart = window.Chart; 
-// Falls du jQuery nutzt, auch das rübergeben:
-win.jQuery = window.jQuery;
-win.$ = window.$;
-// Auch deine addMarker Funktion muss für das Fenster erreichbar sein
-win.addMarker = addMarker;
-  win.document.body.innerHTML = `
+    // Falls du jQuery nutzt, auch das rübergeben:
+    win.jQuery = window.jQuery;
+    win.$ = window.$;
+    // Auch deine addMarker Funktion muss für das Fenster erreichbar sein
+    win.addMarker = addMarker;
+    win.document.body.innerHTML = `
     <style>
       html, body {height:100%; margin:0;font-family:sans-serif;display:flex;flex-direction:column;}
       #chartContainer {flex:1;position:relative;}
@@ -183,19 +170,17 @@ win.addMarker = addMarker;
       <button id="addHorizontalBtn">Horizontale</button>
     </div>
     `;
-  
-  const ctx = win.document.getElementById("chart").getContext("2d");
-  const container = win.document.getElementById("chartContainer");
-
-  
-  function resizeChartContainer(){
+    const ctx = win.document.getElementById("chart").getContext("2d");
+    const container = win.document.getElementById("chartContainer");
+ 
+    function resizeChartContainer(){
     const headerHeight = 60;
     const controlsHeight = 60;
     container.style.height = (win.innerHeight - headerHeight - controlsHeight) + "px";
-  }
-  resizeChartContainer();
+    }
+    resizeChartContainer();
 
-  const chart = new win.Chart(ctx, {
+    const chart = new win.Chart(ctx, {
     type: "line",
       data: {
         labels: distances,
@@ -234,11 +219,11 @@ win.addMarker = addMarker;
         y: { title: { display:true, text:"Höhe (m)" }}
       }
     }
-  });
-  win.addEventListener("resize", () => {
+    });
+    win.addEventListener("resize", () => {
     resizeChartContainer(); 
     if (chart) chart.resize(); 
-});
+  });
 
   // CSV Export
   win.document.getElementById("exportCsvBtn").onclick = function(){
@@ -256,7 +241,7 @@ win.addMarker = addMarker;
     link.click();
     win.document.body.removeChild(link);
   };
-win.document.getElementById("addHorizontalBtn").onclick = function () {
+  win.document.getElementById("addHorizontalBtn").onclick = function () {
 
     const value = win.prompt("Höhe für horizontale Linie (m):");
 
@@ -367,8 +352,8 @@ win.document.getElementById("addHorizontalBtn").onclick = function () {
     };
 
     chart.update();
-};
- win.onbeforeunload = () => {
+  };
+  win.onbeforeunload = () => {
   // 1. Marker aufräumen
   if (markerLayer && currentMap) {
     markerLayer.getSource().clear();
@@ -385,7 +370,7 @@ win.document.getElementById("addHorizontalBtn").onclick = function () {
   
   // 3. Status zurücksetzen
   profileMode = false;
-};
+  };
 }
 
 

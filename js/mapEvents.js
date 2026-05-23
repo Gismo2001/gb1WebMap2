@@ -1,6 +1,6 @@
-import { updateSelector, showTableDebounced, closeTable, getTableDocument } from './table.js';
+import { table, highlightFeatureForRow, clearHighlightedFeature, updateSelector, showTableDebounced, closeTable, getTableDocument } from './table.js';
 import { isTableEnabled, isTableActive } from './controls.js';
-import { table, highlightFeatureForRow, clearHighlightedFeature } from './table.js';
+
 
 import GeoTIFF from 'ol/source/GeoTIFF';
 import GeoTIFFSource from 'ol/source/GeoTIFF';
@@ -12,22 +12,40 @@ import { EXCLUDED_LAYERS } from './config.js';
 import Overlay from 'ol/Overlay.js';
 import { toStringHDMS } from 'ol/coordinate'; // z.B. für Koordinatenanzeige
 
-import { isDgmActive, setDgmActive } from './dgmdom.js';
-import { isDomActive, setDomActive } from './dgmdom.js';
-import { profileMode } from './chart.js';
+import { isDgmActive, setDgmActive, isDomActive, setDomActive } from './dgmdom.js';
 
+import { loadedDgms, loadedDoms, addDgmLayer, addDomLayer } from './dgmdom.js';  
+import { activeDgmRasterLayers, activeDgmRasterData, activeDomRasterLayers, activeDomRasterData } from './dgmdom.js'
+import { handleDgmPointerMove, handleDomPointerMove } from './dgmdom.js'
+
+import { profileMode } from './chart.js';
 
 import { Style, Circle, Fill, Stroke } from 'ol/style';
 import Layer from 'ol/layer/Layer.js';
 
-
 import { getStyleForArtFSK } from './utils.js';
+
+import {  createEmpty,  extend,  containsCoordinate} from 'ol/extent.js';
+
+
+import GeoJSON from 'ol/format/GeoJSON';
+import KML from 'ol/format/KML';
+import shp from 'shpjs';
+import VectorSource from 'ol/source/Vector';
+import VectorLayer from 'ol/layer/Vector';
+
+import {  getOverallDgmMinMax, createGeoTiffStyle } from './dgmdom.js';
+import { dgmGroup } from './layers.js';
+
+import { drawSearchPoint } from './ptn.js';
+
+import { initDrawing, isDrawingActive } from './myDraw.js';
+
 
 let currentClickResults = {};
 let latestClickRequestId = 0;
 
-let popupOverlay;
-let popupContent;
+let popupOverlay, popupContent;
 
 //für Handy
 let lastTap = 0;
@@ -52,8 +70,6 @@ function isDomKachelActive(map) {
   );
   return kachelLayerObj ? kachelLayerObj.visible : false;
 }
-
-
 // Erstellt das Popup, falls es noch nicht existiert
 function getOrCreatePopupForDgmDom(map) {
   let popupForDgmDom = document.getElementById('popupForDgmDom');
@@ -69,7 +85,6 @@ function getOrCreatePopupForDgmDom(map) {
   }
   return popupForDgmDom;
 }
-
 // 🟢 SPEZIALISIERTER FALL 1a: Kachelauswahl dgm
 export function handleDgmKachelSelection(map, evt) {
   const popupForDgmDom = getOrCreatePopupForDgmDom(map);
@@ -136,8 +151,6 @@ export function handleDomKachelSelection(map, evt) {
   });
   if (!featureFound) popupForDgmDom.style.display = 'none';
 }
-
-
 // 🔵 SPEZIALISIERTER FALL 2a: Höhenabfrage DGM
 export function handleDgmHeightQuery(map, evt, visibleDgmLayers) {
   // Wenn der Profilmodus aktiv ist, darf hier nichts passieren
@@ -172,7 +185,6 @@ export function handleDgmHeightQuery(map, evt, visibleDgmLayers) {
     popupForDgmDom.style.display = 'none';
   }
 }
-
 // 🔵 SPEZIALISIERTER FALL 2b: Höhenabfrage DOM
 export function handleDomHeightQuery(map, evt, visibleDomLayers) {
   // Wenn der Profilmodus aktiv ist, darf hier nichts passieren
@@ -206,18 +218,14 @@ export function handleDomHeightQuery(map, evt, visibleDomLayers) {
     popupForDgmDom.style.display = 'none';
   }
 }
-
-
-import { loadedDgms, loadedDoms } from './dgmdom.js';  
-import { activeDgmRasterLayers, activeDgmRasterData } from './dgmdom.js'
-import { activeDomRasterLayers, activeDomRasterData } from './dgmdom.js'
-import { addDgmLayer, addDomLayer } from './dgmdom.js';
-import  {handleDgmPointerMove, handleDomPointerMove } from './dgmdom.js'
-import {  createEmpty,  extend,  containsCoordinate} from 'ol/extent.js';
 export function initMapClick(map) {
   map.on('singleclick', function (evt) {
+    // 👉 Wenn im Zeichnenmodus: abbrechen
+    if (isDrawingActive()) {
+        console.log("Karten-Klick ignoriert, da Zeichenmodus aktiv ist.");
+        return; // Bricht die WMS-Abfrage sofort ab!
+    }
     // --- 1. DGM- und DOM- LOGIK (PRIORISIERT) ---
-    
     // Check: Ist der Kachel-Modus im Layer-Switcher aktiv?
     if (isDgmKachelActive(map)) {
       handleDgmKachelSelection(map, evt); // Deine neue spezialisierte Funktion
@@ -228,7 +236,6 @@ export function initMapClick(map) {
       handleDomKachelSelection(map, evt); // Deine neue spezialisierte Funktion
       return; // Hier abbrechen: Keine Tabellen-Updates oder WMS-Abfragen!
     }
-
     // Prüfen, ob Raster-DGM oder -DOM Layer da sind für Höhenabfrage
     const visibleDgmLayers = activeDgmRasterLayers.filter(l => l.getVisible());
     const visibleDomLayers = activeDomRasterLayers.filter(l => l.getVisible());
@@ -242,8 +249,6 @@ export function initMapClick(map) {
       //const p = document.getElementById('popup1');
       //if (p) p.style.display = 'none';
     }
-
-
     // --- 2. ALLGEMEINE KLICK-VORBEREITUNG ---
     clearHighlightedFeature();
     
@@ -254,9 +259,7 @@ export function initMapClick(map) {
     // Popup schließen, wenn Tabelle nicht aktiv ist
     if (!isTableEnabled()) {
       popupOverlay.setPosition(undefined);
-      
     }
-    
     // --- 3. WMS & VEKTOR ABFRAGEN (FÜR TABELLE / POPUP) ---
     const requestId = ++latestClickRequestId;
     const promises = [];
@@ -273,7 +276,6 @@ export function initMapClick(map) {
           QUERY_LAYERS: layer.getSource().getParams().LAYERS,
           LAYERS: layer.getSource().getParams().LAYERS,
         };
-        
         function requestFeatureInfo(infoFormat) {
           const url = layer.getSource().getFeatureInfoUrl(
             coord, viewResolution, 'EPSG:3857',
@@ -390,28 +392,25 @@ console.log(isTableEnabled & "::" & isTableActive)
   map.on('pointermove', handleCombinedPointerMove);
   
 }
+
 function handleCombinedPointerMove(evt) {
   if (evt.dragging) return;
-
   // 1. Prüfen, ob DGM-Raster aktiv sind
   const visibleDgmLayers = activeDgmRasterLayers.filter(l => l.getVisible());
   if (visibleDgmLayers.length > 0) {
     handleDgmPointerMove(evt); 
     return; // DGM hat Vorrang
   }
-
   // 2. Wenn kein DGM, prüfe DOM-Raster
   const visibleDomLayers = activeDomRasterLayers.filter(l => l.getVisible());
   if (visibleDomLayers.length > 0) {
     handleDomPointerMove(evt);
     return;
   }
-
   // 3. Wenn nichts davon aktiv ist, Status ausblenden
   const heightStatus = document.getElementById('height-status-container');
   if (heightStatus) heightStatus.style.display = 'none';
 }
-
 async function handleClickResult(currentClickResults, coord, map) {
   // Wenn der Profilmodus aktiv ist, darf hier nichts passieren
   if (profileMode) { console.log("Klick-Interaktion ignoriert, da Profilmodus aktiv.");
@@ -501,12 +500,11 @@ for (const layerName of Object.keys(currentClickResults)) {
         //popupOverlay.setPosition(undefined);
         
         // Öffne das Modal-Popup mit den Feature-Daten
-        zeigeDatenImModal(featureData, chosenLayer);
+        showDataInModal(featureData, chosenLayer);
       };
     }
   }, 0);
 }
-
 export function getAllLayers(layerGroup, parentVisible = true, groupTitle = null) {
   let layers = [];
   const currentTitle = layerGroup.get('title') || groupTitle;
@@ -535,7 +533,6 @@ export function getAllLayers(layerGroup, parentVisible = true, groupTitle = null
 
   return layers;
 }
-
 function showFeatureFromSelection(selected, layerName, coord) {
     const isWrappedFeature = selected && selected.properties && selected.feature;
     const featureData = isWrappedFeature ? selected.properties : selected;
@@ -574,10 +571,10 @@ function showFeatureFromSelection(selected, layerName, coord) {
                 //popupOverlay.setPosition(undefined);
                 
                 // 2. Das Daten-Modal mit den Attributen des ausgewählten Objekts öffnen
-                if (typeof zeigeDatenImModal === 'function') {
-                    zeigeDatenImModal(featureData, layerName);
+                if (typeof showDataInModal === 'function') {
+                    showDataInModal(featureData, layerName);
                 } else {
-                    console.error("Die Funktion zeigeDatenImModal wurde nicht gefunden!");
+                    console.error("Die Funktion showDataInModal wurde nicht gefunden!");
                 }
             };
         }
@@ -741,7 +738,6 @@ function parseDeegreeGml(xmlString, layerName) {
     }
     return results;
 }
-
 function parseNibisHTML(html) {
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, 'text/html');
@@ -778,7 +774,6 @@ function parseNibisHTML(html) {
 
   return result; // Gibt jetzt ein Array von Objekten zurück: [ {LONGNAME: 'Haren 1', ...}, {LONGNAME: 'Haren 2', ...} ]
 }
-
 export function parseArcGISXml(xmlString, layerName) {
   const parser = new DOMParser();
   const xmlDoc = parser.parseFromString(xmlString, 'text/xml');
@@ -799,11 +794,9 @@ export function parseArcGISXml(xmlString, layerName) {
 
   return data;
 }
-
 export function getClickResults() {
   return currentClickResults;
 }
-
 // Funktion definieren
 export function closeSearchResults() {
   const box = document.getElementById('feature-select');
@@ -811,14 +804,11 @@ export function closeSearchResults() {
     box.classList.add('hidden');
   }
 }
-
 // Den Listener an den Button binden
 const closeBtn = document.getElementById('close-select-btn');
 if (closeBtn) {
   closeBtn.addEventListener('click', closeSearchResults);
 }
-
-
 export function getVectorFeaturesAtClick(map, evt) {
 
   const results = {};
@@ -874,7 +864,6 @@ export function getVectorFeaturesAtClick(map, evt) {
 
   return results;
 }
-
 export function getVisibleVectorFeatures(map) {
   const extent = map.getView().calculateExtent(map.getSize());
   const results = {};
@@ -947,7 +936,6 @@ export function updateTableFromVisibleLayers(map) {
     updateSelector([]);
   }
 }
-
 //Eventhandler für Layerswitcher Click (nur bestimmte Element, z.B. Gruppe öffnen)
 export function switcherDrawList(layerSwitcher) {
   layerSwitcher.on('drawlist', (evt) => {
@@ -957,7 +945,6 @@ export function switcherDrawList(layerSwitcher) {
   });
 });
 }
-
 export function switcherToggle(layerSwitcher) {
 layerSwitcher.on('drawlist', (evt) => {
   var layer = evt.layer;
@@ -966,9 +953,6 @@ layerSwitcher.on('drawlist', (evt) => {
   });
 });
 }
-
-import { drawSearchPoint } from './ptn.js';
-
 // --------------------Funktion für GPS-Suche--------------------
 export function initSearchEvents(searchPlaceControl, map) { //Zustand searchPlaceControl und die Karte werden übergeben
   if (!searchPlaceControl) return; // Wenn searchPlaceControl nicht aktiv ist wieder verlassen
@@ -1000,16 +984,6 @@ searchPlaceControl.on('select', (e) => { //Eventhandler für searchPlaceControl,
     drawSearchPoint(coord);
 });
 }
-
-// mapEvents.js
-import GeoJSON from 'ol/format/GeoJSON';
-import KML from 'ol/format/KML';
-import shp from 'shpjs';
-import VectorSource from 'ol/source/Vector';
-import VectorLayer from 'ol/layer/Vector';
-
-import {  getOverallDgmMinMax, createGeoTiffStyle } from './dgmdom.js';
-import { dgmGroup } from './layers.js';
 
 let zaehlerGeojson = 1;
 let zaehlerKML = 1;
@@ -1153,8 +1127,6 @@ if (fileEnd === 'tif' || fileEnd === 'tiff') {
   };
   fileInput.click();
 }
-
-
 function addVectorLayerToMap(map, features, sourceName) {
   const vectorSource = new VectorSource({
     features: features
@@ -1215,15 +1187,12 @@ function shouldShowPopup(layer) {
 
   return true;
 }
-
-
 function createDatenLink(url, label) {
   if (url && url.trim() !== '') {
     return `<a href="${url}" style="color: #0078d4; text-decoration: underline;" onclick="window.open('${url}', '_blank'); return false;">${label}</a>`;
   }
   return label;
 }
-
 export function initPopup(map) {
   const container = document.getElementById('popup');
   const content = document.getElementById('popup-content');
@@ -1243,7 +1212,6 @@ export function initPopup(map) {
     return false;
   };
 }
-
 function buildPopupContent(featureOrProps, layerName) {
   if (!featureOrProps) {
     return "<p>Keine Daten</p>";
@@ -1360,7 +1328,6 @@ function buildPopupContent(featureOrProps, layerName) {
   `;
   return html;
 }
-
 document.addEventListener('click', (e) => {
   const box = document.getElementById('feature-select');
   // Ausnahme: Wenn der Klick auf den Tabellen-Schließen-Button ging, tu nichts!
@@ -1378,8 +1345,7 @@ document.addEventListener('click', (e) => {
     box.classList.add('hidden');
   }
 });
-
-function zeigeDatenImModal(daten, layerName) {
+function showDataInModal(daten, layerName) {
   const modal = document.getElementById("daten-modal");
   const content = document.getElementById("daten-modal-content");
   const closeBtn = document.getElementById("close-daten-modal");

@@ -239,8 +239,8 @@ export function initMapClick(map) {
       handleDomHeightQuery(map, evt, visibleDomLayers); // Deine neue spezialisierte Funktion
       // Kein return, damit parallel auch die Tabelle/WMS laden kann
     } else {
-      const p = document.getElementById('popup1');
-      if (p) p.style.display = 'none';
+      //const p = document.getElementById('popup1');
+      //if (p) p.style.display = 'none';
     }
 
 
@@ -498,10 +498,10 @@ for (const layerName of Object.keys(currentClickResults)) {
     if (btnDaten) {
       btnDaten.onclick = () => {
         // Schließe das OpenLayers Karten-Popup
-        popupOverlay.setPosition(undefined);
+        //popupOverlay.setPosition(undefined);
         
         // Öffne das Modal-Popup mit den Feature-Daten
-        zeigteDatenImModal(featureData, chosenLayer);
+        zeigeDatenImModal(featureData, chosenLayer);
       };
     }
   }, 0);
@@ -571,13 +571,13 @@ function showFeatureFromSelection(selected, layerName, coord) {
                 console.log("Datenansicht geöffnet für:", featureData);
                 
                 // 1. Karten-Popup schließen, um Platz zu machen
-                popupOverlay.setPosition(undefined);
+                //popupOverlay.setPosition(undefined);
                 
                 // 2. Das Daten-Modal mit den Attributen des ausgewählten Objekts öffnen
-                if (typeof zeigteDatenImModal === 'function') {
-                    zeigteDatenImModal(featureData, layerName);
+                if (typeof zeigeDatenImModal === 'function') {
+                    zeigeDatenImModal(featureData, layerName);
                 } else {
-                    console.error("Die Funktion zeigteDatenImModal wurde nicht gefunden!");
+                    console.error("Die Funktion zeigeDatenImModal wurde nicht gefunden!");
                 }
             };
         }
@@ -1353,9 +1353,9 @@ function buildPopupContent(featureOrProps, layerName) {
   // 👉 AKTION-BUTTONS NEBENEINANDER (MITHILFE VON FLEXBOX)
   // =====================================================
   html += `
-    <div style="display: flex; gap: 8px; margin-top: 12px;">
-      <button id="open-table-btn" style="font-size: 12px; padding: 2px 4px; cursor: pointer; flex: 1;">Tabelle</button>
-      <button id="open-daten-btn" style="font-size: 12px; padding: 2px 4px; cursor: pointer; flex: 1;">Daten</button>
+    <div style="display: flex; gap: 2px; margin-top: 10px;">
+      <button id="open-table-btn" style="font-size: 10px; padding: 1px 2px; cursor: pointer; flex: 1;">Tabelle</button>
+      <button id="open-daten-btn" style="font-size: 10px; padding: 1px 2px; cursor: pointer; flex: 1;">Daten</button>
     </div>
   `;
   return html;
@@ -1379,15 +1379,36 @@ document.addEventListener('click', (e) => {
   }
 });
 
-function zeigteDatenImModal(daten, layerName) {
+function zeigeDatenImModal(daten, layerName) {
   const modal = document.getElementById("daten-modal");
   const content = document.getElementById("daten-modal-content");
   const closeBtn = document.getElementById("close-daten-modal");
 
   if (!modal || !content) return;
 
-  closeBtn.onclick = () => { modal.style.display = "none"; };
-  modal.onclick = (e) => { if (e.target === modal) modal.style.display = "none"; };
+closeBtn.onclick = (e) => { 
+  e.stopPropagation(); 
+  modal.style.display = "none"; 
+  
+  // 👉 Holt den Fokus zurück zur Auswahlliste, damit sie offen und aktiv bleibt
+  const selectContainer = document.getElementById('feature-select');
+  if (selectContainer) {
+    selectContainer.focus();
+  }
+};
+
+modal.onclick = (e) => { 
+  if (e.target === modal) {
+    e.stopPropagation(); 
+    modal.style.display = "none"; 
+    
+    // 👉 Auch hier beim Klick auf den Hintergrund den Fokus zurückgeben
+    const selectContainer = document.getElementById('feature-select');
+    if (selectContainer) {
+      selectContainer.focus();
+    }
+  }
+};
 
   let tableHtml = `<table style="width: 100%; border-collapse: collapse; text-align: left;">`;
   tableHtml += `<thead>
@@ -1396,14 +1417,13 @@ function zeigteDatenImModal(daten, layerName) {
                     <th style="padding: 6px;">Wert</th>
                   </tr>
                 </thead><tbody>`;
-
-Object.entries(daten).forEach(([key, value]) => {
+  
+  Object.entries(daten).forEach(([key, value]) => {
     const lowerKey = key.toLowerCase();
 
     // =================================================================
     // 🚫 BLACKLIST: DIESE ATTRIBUTE WERDEN RADIKAL AUSGEBLENDET
     // =================================================================
-    // Liste von Wortbestandteilen, die auf Geometrie- oder Systemdaten hinweisen
     const geometryKeywords = [
       'geom', 
       'shape', 
@@ -1412,17 +1432,13 @@ Object.entries(daten).forEach(([key, value]) => {
       'spatial',
       'boundingbox',
       'bbox',
-      'koordinat', // fängt Koordinaten, Koordinatenliste etc. ab
-      'origin_layer' // Dein internes Tabellen-Attribut
+      'koordinat', 
+      'origin_layer'
     ];
 
-    // 1. Prüfen, ob der Schlüssel eines der Geometrie-Wörter enthält
     const isGeometry = geometryKeywords.some(keyword => lowerKey.includes(keyword));
-
-    // 2. Prüfen, ob es sich um ein komplexes JavaScript-Objekt handelt (z.B. OL-Geometry-Instanzen)
     const isComplexObject = typeof value === 'object' && value !== null;
 
-    // Wenn eins von beiden zutrifft: Sofort abbrechen und die Zeile ignorieren!
     if (isGeometry || isComplexObject) {
       return; 
     }
@@ -1445,10 +1461,24 @@ Object.entries(daten).forEach(([key, value]) => {
       }
     }
 
+    // =================================================================
+    // 👉 HIER WURDE ES EINGEFÜGT: Optimiertes CSS für lange Texte & Silbentrennung
+    // =================================================================
     tableHtml += `
       <tr style="border-bottom: 1px solid #eee;">
-        <td style="padding: 6px; font-weight: bold; color: #555; width: 40%; word-break: break-all;">${key}</td>
-        <td style="padding: 6px; color: #111; word-break: break-all;">${displayValue}</td>
+        <td style="padding: 6px; font-weight: bold; color: #555; width: 40%; word-break: break-all; vertical-align: top;">
+          ${key}
+        </td>
+        <td style="
+          padding: 6px; 
+          color: #111; 
+          vertical-align: top;
+          word-break: break-word; 
+          overflow-wrap: break-word; 
+          hyphens: auto;
+        ">
+          ${displayValue}
+        </td>
       </tr>`;
   });
 

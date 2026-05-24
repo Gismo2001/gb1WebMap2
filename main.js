@@ -162,3 +162,47 @@ map.on('moveend', () => {
     //updateTableFromVisibleLayers(map);
   }
 });
+
+import { loadWFSCapabilities, loadWFSLayer } from './js/loadWfs.js';
+
+document.getElementById('load-wfs-btn').addEventListener('click', async function () {
+  const baseUrl = document.getElementById('wfs-url').value.trim();
+  if (!baseUrl) {
+    alert('Bitte WFS URL eingeben');
+    return;
+  }
+  
+  try {
+    const container = document.getElementById('wfs-layer-list');
+    container.innerHTML = '<div style="padding:8px;font-size:12px;color:#666;">Lade Layer...</div>';
+    
+    // 1. Capabilities abfragen
+    const wfsLayers = await loadWFSCapabilities(baseUrl);
+    container.innerHTML = ''; // Lade-Text entfernen
+    
+    if (wfsLayers.length === 0) {
+      container.innerHTML = '<div style="padding:8px;font-size:12px;color:red;">Keine Layer gefunden.</div>';
+      return;
+    }
+
+    // 2. Auswahlliste mit Buttons füllen
+    wfsLayers.forEach(layerInfo => {
+      const btn = document.createElement('button');
+      btn.className = 'wfs-list-btn'; // 💡 Unsere neue CSS-Klasse für einheitlichen Look
+      btn.textContent = layerInfo.title;
+      btn.title = layerInfo.name;
+      
+      btn.onclick = () => {
+        // 👉 Übergebe 'map' als ersten Parameter!
+        loadWFSLayer(map, baseUrl, layerInfo.name);
+        container.innerHTML = ''; // Schließt die Liste nach der Auswahl
+      };
+      container.appendChild(btn);
+    });
+    
+  } catch (err) {
+    console.error(err);
+    document.getElementById('wfs-layer-list').innerHTML = '';
+    alert('Fehler beim Laden der WFS-Capabilities. Unterstützt der Server GeoJSON-Ausgaben?');
+  }
+});

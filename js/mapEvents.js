@@ -223,28 +223,26 @@ export function initMapClick(map) {
     // 👉 Wenn im Zeichnenmodus: abbrechen
     if (isDrawingActive()) {
         console.log("Karten-Klick ignoriert, da Zeichenmodus aktiv ist.");
-        return; // Bricht die WMS-Abfrage sofort ab!
+        return; 
     }
     // --- 1. DGM- und DOM- LOGIK (PRIORISIERT) ---
     // Check: Ist der Kachel-Modus im Layer-Switcher aktiv?
     if (isDgmKachelActive(map)) {
       handleDgmKachelSelection(map, evt); // Deine neue spezialisierte Funktion
-      return; // Hier abbrechen: Keine Tabellen-Updates oder WMS-Abfragen!
+      return; 
     }
     // Check: Ist der Kachel-Modus im Layer-Switcher aktiv?
     if (isDomKachelActive(map)) {
       handleDomKachelSelection(map, evt); // Deine neue spezialisierte Funktion
-      return; // Hier abbrechen: Keine Tabellen-Updates oder WMS-Abfragen!
+      return; 
     }
     // Prüfen, ob Raster-DGM oder -DOM Layer da sind für Höhenabfrage
     const visibleDgmLayers = activeDgmRasterLayers.filter(l => l.getVisible());
     const visibleDomLayers = activeDomRasterLayers.filter(l => l.getVisible());
     if (visibleDgmLayers.length > 0) {
-      handleDgmHeightQuery(map, evt, visibleDgmLayers); // Deine neue spezialisierte Funktion
-      // Kein return, damit parallel auch die Tabelle/WMS laden kann
+      handleDgmHeightQuery(map, evt, visibleDgmLayers); 
     } else if(visibleDomLayers.length > 0) {
-      handleDomHeightQuery(map, evt, visibleDomLayers); // Deine neue spezialisierte Funktion
-      // Kein return, damit parallel auch die Tabelle/WMS laden kann
+      handleDomHeightQuery(map, evt, visibleDomLayers); 
     } else {
       //const p = document.getElementById('popup1');
       //if (p) p.style.display = 'none';
@@ -1253,7 +1251,9 @@ function buildPopupContent(featureOrProps, layerName) {
       'label',
       'typ',
       'nummer',
-      'id'       // 'id' am Ende, da es oft in anderen Wörtern vorkommt (z.B. 'gemeinde_id')
+      'objectid',
+      'id',
+      'ebene'
     ];
 
     // 2. Alle Schlüssel des Daten-Objekts holen
@@ -1270,12 +1270,12 @@ function buildPopupContent(featureOrProps, layerName) {
     }
     // 4. Titel auslesen oder Fallback nutzen
     const title = dynamicKey ? daten[dynamicKey] : 'Keine Bezeichnung';
-    html += `<strong>${title}</strong><br>`;
+    html += `<strong>${dynamicKey ? dynamicKey + ': ' : ''}${title}</strong><br>`;
   }
 
-  // =====================================================
+  
   // DGM / DOM Link
-  // =====================================================
+  
   const kachelUrl = daten.dgm1 || daten.dom1;
   if (kachelUrl) {
     let bbox = null;
@@ -1299,9 +1299,9 @@ function buildPopupContent(featureOrProps, layerName) {
     `;
   }
 
-  // =====================================================
+  
   // Fotos
-  // =====================================================
+  
 
   const fotoLinks = [];
 
@@ -1317,9 +1317,9 @@ function buildPopupContent(featureOrProps, layerName) {
       </div>
     `;
   }
- // =====================================================
+ 
   // 👉 AKTION-BUTTONS NEBENEINANDER (MITHILFE VON FLEXBOX)
-  // =====================================================
+ 
   html += `
     <div style="display: flex; gap: 2px; margin-top: 10px;">
       <button id="open-table-btn" style="font-size: 10px; padding: 1px 2px; cursor: pointer; flex: 1;">Tabelle</button>
@@ -1334,13 +1334,11 @@ document.addEventListener('click', (e) => {
   if (e.target.id === 'close-table-btn' || e.target.closest('#close-table-btn')) {
     return;
   }
-  // Prüfen, ob der Klick auf die Karte ging, um die Box zu öffnen
-  // Falls du eine ID für deinen Karten-Container hast (z.B. 'map')
+  // Prüfen, ob der Klick auf die Karte ging, um die Box zu öffnen, falls ID vorhanden ist
   const isMapClick = e.target.closest('#map'); 
   // Wenn der Klick außerhalb der Box war UND nicht der Klick war, der die Box öffnet
   if (!box.contains(e.target)) {
-    // Falls du sicherstellen willst, dass ein neuer Klick auf ein Feature 
-    // die Box nicht schließt, bevor die neuen Daten geladen sind:
+    // Falls du sicherstellen willst, dass ein neuer Klick auf ein Feature die Box nicht schließt, bevor die neuen Daten geladen sind:
     if (isMapClick) return; 
     box.classList.add('hidden');
   }
@@ -1427,9 +1425,8 @@ modal.onclick = (e) => {
       }
     }
 
-    // =================================================================
-    // 👉 HIER WURDE ES EINGEFÜGT: Optimiertes CSS für lange Texte & Silbentrennung
-    // =================================================================
+    // Optimiertes CSS für lange Texte & Silbentrennung
+    
     tableHtml += `
       <tr style="border-bottom: 1px solid #eee;">
         <td style="padding: 6px; font-weight: bold; color: #555; width: 40%; word-break: break-all; vertical-align: top;">

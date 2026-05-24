@@ -448,9 +448,8 @@ html, body {
   visibility: visible;
 }
 
-
 /* ================================================================= */
-/* --- NEU: SPEZIELLE REGELN FÜR HANDY-QUERFORMAT (LANDSCAPE) ---    */
+/* --- SPEZIELLE REGELN FÜR HANDY-QUERFORMAT (LANDSCAPE) ---         */
 /* ================================================================= */
 @media screen and (max-height: 420px) and (orientation: landscape) {
   
@@ -477,82 +476,86 @@ html, body {
     font-size: 11px !important;
   }
 
+  /* 💡 NEU: Zeichenleiste an die 26px der restlichen UI im Querformat anpassen */
+  #draw-bar {
+    bottom: 10px !important; /* Etwas näher an den Rand im Querformat */
+    left: 10px !important;
+    padding: 2px !important;
+    gap: 2px !important;
+  }
+  
+  .draw-btn, #draw-clear {
+    width: 26px !important;  /* Exakt dieselbe Größe wie die OL-Buttons! */
+    height: 26px !important;
+    font-size: 12px !important;
+    border-radius: 4px !important;
+  }
+
   /* 3. Den Permalink-Button sauber an die neue Position anpassen */
   .ol-permalink-button {
     top: 0.5em !important;
-    left: 15em !important; /* Schiebt ihn rechts neben die horizontale Bar */
+    left: 15em !important; 
   }
 
   /* 4. Das Feature-Select Suchergebnis-Fenster im Querformat begrenzen */
   #feature-select {
     top: 5px !important;
-    max-height: 55vh !important; /* Verhindert das Überlagern des gesamten Bildschirms */
+    max-height: 55vh !important; 
     width: 220px !important;
   }
 
-  /* Das Suchfeld ein Stück nach rechts verschieben, damit die Toolbar links frei atmen kann */
   .ol-search {
-    left: 200px !important; /* Schiebt das Suchfeld rechts neben die Zoom-Buttons und die Toolbar */
+    left: 200px !important; 
     top: 1em !important;
     right: auto !important;
   }
 
-  /* Das Eingabefeld im Querformat kompakt halten */
   .ol-search input {
     width: 180px !important;
     font-size: 14px !important;
   }
 
-  /* Die Autocomplete-Vorschlagsliste der Suche anpassen, damit sie mitwandert */
   .ol-search ul.autocomplete {
     left: 0 !important;
     max-width: 250px !important;
   }
 }
 
-/* ==========================================
-   Optimierte Zeichen-Werkzeugleiste
-   ========================================== */
+/* ================================================================= */
+/* --- STANDARD-STYLES FÜR DIE ZEICHENBAR (DESKTOP & GROSSE SCREEN) -- */
+/* ================================================================= */
 #draw-bar {
   position: absolute !important;
   bottom: 20px !important; 
   left: 20px !important; 
   z-index: 9999 !important; 
   background: white !important; 
-  
-  /* Sehr kompakte Innenabstände */
-  padding: 2px !important; 
-  border-radius: 4px !important; 
-  box-shadow: 0 1px 4px rgba(0,0,0,0.3) !important; 
+  padding: 3px !important; 
+  border-radius: 6px !important; 
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important; 
   border: 1px solid #ddd !important;
-  
-  /* Minimaler Abstand zwischen den Knöpfen */
-  gap: 2px !important; 
+  gap: 3px !important; 
   align-items: center;
 }
 
-/* Wird von JS gesteuert */
 #draw-bar.is-running {
   display: flex !important;
 }
 
-/* Einheitsgröße für alle Buttons im Menü */
+/* Standard-Größe für Desktop (schön griffig) */
 .draw-btn, #draw-clear {
-  width: 25px;
-  height: 25px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  
   background: #f8f9fa;
   border: 1px solid #ccc;
-  border-radius: 6px;
+  border-radius: 5px;
   cursor: pointer;
-  
-  /* Emojis skalieren am besten über line-height und font-size */
-  font-size: 14px; 
+  font-size: 15px; 
   line-height: 1;
-  padding: 0 !important; /* Verhindert Verzerrung durch Browser-Standards */
+  padding: 0 !important; 
   margin: 0;
   transition: all 0.15s ease-in-out;
 }
@@ -568,7 +571,6 @@ html, body {
   border-color: #005a9e !important;
 }
 
-/* Spezielles Styling für den Mülleimer */
 #draw-clear {
   background: #fff0f0;
   border-color: #ffa3a3;
@@ -578,21 +580,133 @@ html, body {
   border-color: #ff8585;
 }
 
-/* ==========================================
-   Mobil-Optimierung (Smartphones bis 480px Breite)
-   ========================================== */
+
+/* ================================================================= */
+/* --- MOBIL-OPTIMIERUNG HOCHFORMAT (SMARTPHONES PORTRAIT) --------- */
+/* ================================================================= */
 @media (max-width: 480px) {
   #draw-bar {
     bottom: 15px !important;
     left: 15px !important;
-    padding: 2px !important;
-    gap: 1px !important; /* Knöpfe rücken fast nahtlos aneinander */
+    padding: 3px !important;
+    gap: 2px !important; 
   }
 
+  /* Im Hochformat etwas größer lassen, da hier vertikal mehr Platz ist 
+     und Daumen-Bedienung Vorrang hat */
   .draw-btn, #draw-clear {
-    width: 30px;  /* Minimal schmaler für kleine Displays */
-    height: 30px;
-    font-size: 12px; /* Emojis leicht verkleinern */
-    border-radius: 2px;
+    width: 34px;  
+    height: 34px;
+    font-size: 16px; 
+    border-radius: 6px;
+  }
+}
+
+
+
+/* ==========================================
+   WFS-Loader Fenster (unten links platziert)
+   ========================================== */
+#wfs-loader {
+  position: absolute !important;
+  /* Haargenau dieselbe Positionierung wie deine Zeichenleiste */
+  bottom: 20px !important; 
+  left: 20px !important; 
+  z-index: 9999 !important; 
+  background: white !important; 
+  
+  /* Optisch perfekt abgestimmt auf die Zeichenbar */
+  padding: 4px 6px !important; 
+  border-radius: 6px !important; 
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important; 
+  border: 1px solid #ddd !important;
+  
+  gap: 4px; 
+  align-items: center;
+}
+
+/* Kompaktes Eingabefeld */
+#wfs-loader input {
+  padding: 5px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  width: 180px;
+  font-size: 12px;
+  height: 28px;
+  box-sizing: border-box;
+}
+
+/* Der "WFS laden"-Button im Windows-Look */
+#load-wfs-btn {
+  height: 28px;
+  padding: 0 10px;
+  background: #f8f9fa;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: bold;
+  color: #333;
+  display: flex;
+  align-items: center;
+  transition: all 0.15s;
+}
+#load-wfs-btn:hover {
+  background: #e2e6ea;
+  border-color: #bbb;
+}
+
+/* Die ausklappende Layer-Liste wächst jetzt nach OBEN statt nach unten */
+#wfs-layer-list {
+  z-index: 10002; 
+  position: absolute; 
+  bottom: 110%; /* 💡 Wichtig: Klappt nach oben auf, da wir unten am Bildschirmrand sind! */
+  left: 0; 
+  width: 100%;
+  max-height: 180px;
+  overflow-y: auto;
+  background: white; 
+  border: 1px solid #ccc; 
+  box-shadow: 0 -4px 12px rgba(0,0,0,0.2); /* Schatten nach oben werfen */
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Dynamische Buttons in der Liste */
+.wfs-list-btn {
+  background: none;
+  border: none;
+  border-bottom: 1px solid #eee;
+  padding: 6px 10px;
+  text-align: left;
+  cursor: pointer;
+  font-size: 12px;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis; /* Schneidet zu lange Layernamen elegant mit "..." ab */
+}
+.wfs-list-btn:hover {
+  background: #f0f7ff;
+  color: #0078d4;
+}
+
+/* ================================================================= */
+/* --- ERGÄNZUNG FÜR HANDY-QUERFORMAT (LANDSCAPE MAP) ------------- */
+/* ================================================================= */
+@media screen and (max-height: 420px) and (orientation: landscape) {
+  #wfs-loader {
+    bottom: 10px !important;
+    left: 10px !important;
+    padding: 2px 4px !important;
+  }
+  #wfs-loader input, #load-wfs-btn {
+    height: 24px;
+    font-size: 11px;
+    padding: 0 6px;
+  }
+  #wfs-loader input {
+    width: 140px; /* Etwas schmaler im Querformat, um Platz zu sparen */
   }
 }

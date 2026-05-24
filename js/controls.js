@@ -33,8 +33,8 @@ import { layerSwitcher } from '../main.js';
 import SearchPhoton from 'ol-ext/control/SearchPhoton';
 
 import Permalink from 'ol-ext/control/Permalink';
-
-import { deactivateDrawing } from './myDraw.js'; // 👈 Import hinzufügen!v
+import WMSCapabilities from 'ol-ext/control/WMSCapabilities';
+import { deactivateDrawing } from './myDraw.js'; 
 
 
 let searchPlaceControl = null; //Erstmal die Ortssuche auf null
@@ -47,12 +47,24 @@ let mainTableBtnInstance = null;
 let printControlInstance = null;
 let printToogleBtnInstance = null;
 
+
+
+
+
+
+
+
+let drawToggleBtnInstance = null; // 💡 Instanz-Variablen für die Steuerung
+let wfsToggleBtnInstance = null;
+
 // Initialisierung (außerhalb der create-Funktion)
 export const profileSource = createProfilSource();
 export const profileLayer = createProfilLayer(profileSource);
 let profileMode = false;
 
 let isDrawActive = false; 
+let isWfsActive = false; // 💡 NEU: Zustand für den WFS-Loader
+
 
 //export const permalinkControl = null; 
 
@@ -385,7 +397,10 @@ export function createSubBarW(map) {
 }
 
 export function createSubBarT(map) {
+  
+  // ==========================================
   // 1. TABELLEN-BUTTON
+  // ==========================================
   const tableToggleBtn = new Toggle({
     html: '<i class="fa fa-table" aria-hidden="true"></i>',
     title: 'Tabelle anzeigen',
@@ -393,32 +408,19 @@ export function createSubBarT(map) {
     onToggle: function (active) {
       isTableActive = active;
       if (active) {
-        //Wenn Tabelle an, Zeichenmodusausschalten
-        if (isDrawActive && typeof drawToggleBtn !== 'undefined') {
-          drawToggleBtn.setActive(false);
-        }
-        // ÄNDERUNG BEIM EINSCHALTEN (Sowohl bei Tabelle als auch bei Zeichnen):
+        // Andere Sub-Buttons ausschalten
+        if (isDrawActive && drawToggleBtnInstance) drawToggleBtnInstance.setActive(false);
+        if (isWfsActive && wfsToggleBtnInstance) wfsToggleBtnInstance.setActive(false);
+
         if (mainTableBtnInstance) {
-        //Button-Element innerhalb der Instanz suchen
           const mainBtnEl = mainTableBtnInstance.element.querySelector('button') || mainTableBtnInstance.element;
           mainBtnEl.classList.add('is-running');
         }
-        //Nur wenn BEIDE Modi (Tabelle & Zeichnen) aus sind Hauptbutton zurücksetzen
-        if (!isTableActive && !isDrawActive && mainTableBtnInstance) {
-          const mainBtnEl = mainTableBtnInstance.element.querySelector('button') || mainTableBtnInstance.element;
-          mainBtnEl.classList.remove('is-running');
-        }
-        if (isTableChildWindowOpen()) {
-          if (typeof tableChildWindow !== 'undefined' && tableChildWindow) {
-            tableChildWindow.close();
-          }
-        }
         updateTableFromVisibleLayers(map);
       } else {
-        console.log("Tabelle abgeschaltet");
-        // Nur wenn der auch Zeichenmodus aus ist, Hauptbutton zurücksetzen
-        if (!isDrawActive && mainTableBtnInstance) {
-          mainTableBtnInstance.element.classList.remove('is-running');
+        if (!isDrawActive && !isWfsActive && mainTableBtnInstance) {
+          const mainBtnEl = mainTableBtnInstance.element.querySelector('button') || mainTableBtnInstance.element;
+          mainBtnEl.classList.remove('is-running');
         }
         closeTable(); 
       }
@@ -426,7 +428,9 @@ export function createSubBarT(map) {
   });
   tableToggleBtnInstance = tableToggleBtn;
   
+  // ==========================================
   // 2. ZEICHEN-BUTTON
+  // ==========================================
   const drawToggleBtn = new Toggle({
     html: '<i class="fa fa-pencil"></i>',
     title: 'Zeichenmodus',
@@ -434,46 +438,101 @@ export function createSubBarT(map) {
     onToggle: function (active) {
       isDrawActive = active;
       const drawBtns = document.getElementById('draw-bar');
-      if (!drawBtns) {
-        console.error("Fehler: Das Element #draw-bar wurde im HTML nicht gefunden!");
-        return;
-      }
+      const wfsContainer = document.getElementById('wfs-loader'); // 💡 WFS-Container holen
+      
       if (active) {
-        console.log("Zeichenmodus aktiv");
-        //Wenn Zeichnen an, Tabelle ausschalten
-        if (isTableActive && tableToggleBtnInstance) {
-          tableToggleBtnInstance.setActive(false);
+        // Andere Sub-Buttons ausschalten
+        if (isTableActive && tableToggleBtnInstance) tableToggleBtnInstance.setActive(false);
+        if (isWfsActive && wfsToggleBtnInstance) wfsToggleBtnInstance.setActive(false);
+
+        // 💡 NEU: WFS-Eingabefenster explizit ausblenden und Liste leeren, falls noch offen
+        if (wfsContainer) {
+          wfsContainer.style.setProperty('display', 'none', 'important');
+          const list = document.getElementById('wfs-layer-list');
+          if (list) list.innerHTML = '';
         }
-        // Sichtbarkeit der Bar erzwingen
-        drawBtns.style.setProperty('display', 'flex', 'important');
-        drawBtns.classList.add('is-running');
+
+        // Zeichenleiste einblenden
+        if (drawBtns) {
+          drawBtns.style.setProperty('display', 'flex', 'important');
+          drawBtns.classList.add('is-running');
+        }
         
-        //beim Einschalten (Sowohl bei Tabelle als auch bei Zeichnen):
         if (mainTableBtnInstance) {
-          // Buttoninstanz suchen
           const mainBtnEl = mainTableBtnInstance.element.querySelector('button') || mainTableBtnInstance.element;
           mainBtnEl.classList.add('is-running');
         }
-        //Beim Ausschalten, sowohl Tabelle als auch Zeichnen-Button):
-        if (!isTableActive && !isDrawActive && mainTableBtnInstance) {
+      } else {
+        // Zeichenleiste ausblenden
+        if (drawBtns) {
+          drawBtns.style.setProperty('display', 'none', 'important');
+          drawBtns.classList.remove('is-running');
+        }
+        deactivateDrawing();
+        
+        if (!isTableActive && !isWfsActive && mainTableBtnInstance) {
           const mainBtnEl = mainTableBtnInstance.element.querySelector('button') || mainTableBtnInstance.element;
           mainBtnEl.classList.remove('is-running');
-        }
-          
-      } else {
-        console.log("Zeichenmodus deaktiviert");
-        
-        // Sichtbarkeit der Bar komplett aufheben
-        drawBtns.style.setProperty('display', 'none', 'important');
-        drawBtns.classList.remove('is-running');
-        deactivateDrawing();
-        if (!isTableActive && mainTableBtnInstance) {
-          mainTableBtnInstance.element.classList.remove('is-running');
         }
       }
     }
   });
-  return new Bar({ toggleOne: false, controls: [tableToggleBtn, drawToggleBtn] });
+  drawToggleBtnInstance = drawToggleBtn;
+
+  // ==========================================
+  // 3. WFS-LOADER-BUTTON
+  // ==========================================
+  const wfsToggleBtn = new Toggle({
+    html: '<i class="fa fa-cloud-download" aria-hidden="true"></i>',
+    title: 'WFS-Dienst laden',
+    className: 'wfs-loader-btn',
+    onToggle: function (active) {
+      isWfsActive = active;
+      const wfsContainer = document.getElementById('wfs-loader');
+      const drawBtns = document.getElementById('draw-bar'); // 💡 Zeichenleiste holen
+
+      if (active) {
+        // Andere Sub-Buttons ausschalten
+        if (isTableActive && tableToggleBtnInstance) tableToggleBtnInstance.setActive(false);
+        if (isDrawActive && drawToggleBtnInstance) drawToggleBtnInstance.setActive(false);
+
+        // 💡 NEU: Zeichenleiste explizit ausblenden, falls sie noch aktiv war
+        if (drawBtns) {
+          drawBtns.style.setProperty('display', 'none', 'important');
+          drawBtns.classList.remove('is-running');
+        }
+        deactivateDrawing();
+
+        // WFS-Eingabefenster anzeigen
+        if (wfsContainer) {
+          wfsContainer.style.setProperty('display', 'flex', 'important');
+        }
+        
+        if (mainTableBtnInstance) {
+          const mainBtnEl = mainTableBtnInstance.element.querySelector('button') || mainTableBtnInstance.element;
+          mainBtnEl.classList.add('is-running');
+        }
+      } else {
+        // WFS-Eingabefenster ausblenden
+        if (wfsContainer) {
+          wfsContainer.style.setProperty('display', 'none', 'important');
+          const list = document.getElementById('wfs-layer-list');
+          if (list) list.innerHTML = '';
+        }
+        
+        if (!isTableActive && !isDrawActive && mainTableBtnInstance) {
+          const mainBtnEl = mainTableBtnInstance.element.querySelector('button') || mainTableBtnInstance.element;
+          mainBtnEl.classList.remove('is-running');
+        }
+      }
+    }
+  });
+  wfsToggleBtnInstance = wfsToggleBtn;
+
+  return new Bar({ 
+    toggleOne: false, 
+    controls: [tableToggleBtn, drawToggleBtn, wfsToggleBtn] 
+  });
 }
 
 export function createDataTable(map) {
@@ -578,13 +637,7 @@ export function initPrintControl(map) {
 }
 
 
-import WMSCapabilities from 'ol-ext/control/WMSCapabilities';
-//import { profileLayer } from './chart.js';
  
-/**
- * Initialisiert das WMS-Capabilities Control
- * @param {ol/Map} map 
- */
 export function initializeWMS(map) {
   var cap = new WMSCapabilities({
     target: document.body, // Oder ein spezielles Div
@@ -654,3 +707,27 @@ export function zeigeNachricht(txt) {
     x.className = x.className.replace("toast show", "toast");   
   }, 2000);
 }
+
+export function initializeWFS(map) {
+  
+  const wfsUrl = prompt("Bitte WFS URL eingeben:");
+  if (!wfsUrl) {
+    alert("Keine URL eingegeben!");
+    return;
+  } else {
+    // Hier könntest du die URL validieren, bevor du fortfährst
+    const vectorLayer = new VectorLayer({     
+      source: new VectorSource({
+        format: new GeoJSON(),
+        url: wfsUrl,  
+        strategy: bboxStrategy
+      }),
+      style: new Style({
+        fill: new Fill({ color: 'rgba(255, 0, 0, 0.5)' }),
+        stroke: new Stroke({ color: 'red', width: 1 })
+      })
+    })
+  };
+    map.addLayer(vectorLayer);    
+  }
+  

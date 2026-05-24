@@ -105,7 +105,6 @@ map.updateSize();
 // permalinkButton aktivieren, 
 initPermalinkButton(map);
 
-
 initDrawing(map);
 
 export const dgmKachelLayer = createDgmKachelLayer();

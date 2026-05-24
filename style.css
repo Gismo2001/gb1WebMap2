@@ -196,11 +196,11 @@ html, body {
 }
 
 /* In deinem style.css */
-.ol-control.main-toolbar .ol-active.TabelleHaupt button {
+.ol-control.main-toolbar .ol-active.Verschiedenes button {
   color: black;
 }
 
-.ol-control.main-toolbar .is-running.TabelleHaupt button {
+.ol-control.main-toolbar .is-running.Verschiedenes button {
   color: black;
   background-color: #2a90fc;  
 }

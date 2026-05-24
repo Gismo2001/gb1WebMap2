@@ -16,8 +16,6 @@ import { createProfilSource, createProfilLayer } from './layers';
 import { dgmGroup, domGroup } from './layers.js';
 import { enableProfileDrawing, disableProfileDrawing } from './chart';
 
-
-
 import { saveAs } from 'file-saver';
 import { jsPDF } from 'jspdf';
 import PrintDialog from 'ol-ext/control/PrintDialog';
@@ -36,6 +34,8 @@ import SearchPhoton from 'ol-ext/control/SearchPhoton';
 
 import Permalink from 'ol-ext/control/Permalink';
 
+import { deactivateDrawing } from './myDraw.js'; // 👈 Import hinzufügen!v
+
 
 let searchPlaceControl = null; //Erstmal die Ortssuche auf null
 export let isTableActive = false;
@@ -52,6 +52,8 @@ export const profileSource = createProfilSource();
 export const profileLayer = createProfilLayer(profileSource);
 let profileMode = false;
 
+let isDrawActive = false; 
+
 //export const permalinkControl = null; 
 
 
@@ -66,29 +68,27 @@ const permalinkControl = new Permalink({
   }
 });
 
-
 // Initialisiert permalinkButton
 export function initPermalinkButton(map) {
-    const permalink = new Permalink({
-       className: 'ol-permalink-button',
-        urlReplace: false, 
-        refreshDelay: 100,
-        localStorage: false, 
-        visible: false,    
-        anchor: false, 
-        onclick: function(url) {
-            navigator.clipboard.writeText(url).then(() => {
-                const btn = document.querySelector('.ol-permalink-button button');
-                console.log ("permalinkButton geclickt");
-                
-                btn.innerHTML = "✅"; 
-                setTimeout(() => { btn.innerHTML = ""; }, 2000);
-            });
-            zeigeNachricht("Link (aus init) erstellt");
-        }
-    });
-    map.addControl(permalink);
-    return permalink;
+  const permalink = new Permalink({
+    className: 'ol-permalink-button',
+    urlReplace: false, 
+    refreshDelay: 100,
+    localStorage: false, 
+    visible: false,    
+    anchor: false, 
+      onclick: function(url) {
+        navigator.clipboard.writeText(url).then(() => {
+          const btn = document.querySelector('.ol-permalink-button button');
+          console.log ("permalinkButton geclickt");
+          btn.innerHTML = "✅"; 
+            setTimeout(() => { btn.innerHTML = ""; }, 2000);
+        });
+        zeigeNachricht("Link (aus init) erstellt");
+    }
+  });
+  map.addControl(permalink);
+  return permalink;
 }
 export function createLayerSwitcher(map) {
   return new LayerSwitcher({
@@ -132,8 +132,8 @@ export function createMainToolbar(map) {
   // --- Toggle-Button Tabelle ---
   const toggleBtn3 = new Toggle({
     html: 'T',
-    title: 'Tabelle Haupt',
-    className: 'TabelleHaupt',
+    title: 'Verschiedenes',
+    className: 'Verschiedenes',
     active: false,
     bar: createSubBarT(map),
   });
@@ -261,7 +261,6 @@ export function createSubBarI(map) {
     controls: [gpsToggleBtn, ptnToogleBtn, fileToogleBtn, permalinkToggleBtn] 
   });
 }
-
 // Hilfsfunktion (falls noch nicht vorhanden), um zu prüfen ob das Popout-Fenster wirklich offen ist
 function isTableChildWindowOpen() {
   // Wenn ein Kind-Fenster aktiv ist, ist die Tabelle ausgelagert
@@ -276,46 +275,6 @@ function isTableChildWindowOpen() {
   return false;
 }
 
-export function createSubBarT(map) {
-  const tableToggleBtn = new Toggle({
-    html: '<i class="fa fa-table" aria-hidden="true"></i>',
-    title: 'Tabelle anzeigen',
-    className: 'tabelle',
-    onToggle: function (active) {
-      // FALL 1: Button wird EINGESCHALTET (active === true)
-      if (active) {
-        isTableActive = true;
-        
-        // --- Optischer Zustand des Hauptbuttons ---
-        if (mainTableBtnInstance) {
-          mainTableBtnInstance.element.classList.add('is-running');
-        }
-
-        // Falls aus irgendeinem Grund noch ein altes Popout-Fenster als "offen" gilt,
-        // schließen wir es jetzt, damit der anstehende Klick den SPLIT im Hauptfenster erzwingt!
-        if (isTableChildWindowOpen()) {
-          if (typeof tableChildWindow !== 'undefined' && tableChildWindow) {
-            tableChildWindow.close(); // Schließen triggert das Zurückholen des Containers
-          }
-        }
-
-        // Jetzt die Daten laden und die Tabelle (im Hauptfenster via Split) rendern
-       
-        updateTableFromVisibleLayers(map);
-
-      // FALL 2: Button wird AUSGESCHALTET (active === false)
-      } else {
-        // closeTable erledigt das Schließen des Splits ODER des Popouts vollautomatisch,
-        // da wir sie so intelligent umgebaut haben!
-        console.log("abgeschaltiet: ", isTableActive)
-        closeTable(); 
-      }
-    },
-  });
-
-  tableToggleBtnInstance = tableToggleBtn;
-  return new Bar({ toggleOne: true, controls: [tableToggleBtn] });
-}
 export function createSubBarW(map) {
   const DgmKachelLayer = createDgmKachelLayer();
   const DomKachelLayer = createDomKachelLayer();
@@ -424,6 +383,133 @@ export function createSubBarW(map) {
     controls: [dgmSubBtn, domSubBtn, profilSubBtn] 
   });
 }
+
+
+
+
+export function createSubBarT(map) {
+  
+  // ==========================================
+  // 1. TABELLEN-BUTTON
+  // ==========================================
+  const tableToggleBtn = new Toggle({
+    html: '<i class="fa fa-table" aria-hidden="true"></i>',
+    title: 'Tabelle anzeigen',
+    className: 'tabelle',
+    onToggle: function (active) {
+      isTableActive = active;
+
+      if (active) {
+        // 👉 NEU: Wenn Tabelle an, Zeichenmodus explizit sauber ausschalten
+        if (isDrawActive && typeof drawToggleBtn !== 'undefined') {
+          drawToggleBtn.setActive(false);
+        }
+
+        // =====================================================================
+// ÄNDERUNG BEIM EINSCHALTEN (Sowohl bei Tabelle als auch bei Zeichnen):
+// =====================================================================
+if (mainTableBtnInstance) {
+  // Wir suchen das eigentliche Button-Element innerhalb der Instanz
+  const mainBtnEl = mainTableBtnInstance.element.querySelector('button') || mainTableBtnInstance.element;
+  mainBtnEl.classList.add('is-running');
+}
+
+// =====================================================================
+// ÄNDERUNG BEIM AUSSCHALTEN (Sowohl bei Tabelle als auch bei Zeichnen):
+// =====================================================================
+// Hier müssen wir prüfen: Nur wenn BEIDE Modi (Tabelle & Zeichnen) aus sind, 
+// nehmen wir das Leuchten vom Hauptbutton weg!
+if (!isTableActive && !isDrawActive && mainTableBtnInstance) {
+  const mainBtnEl = mainTableBtnInstance.element.querySelector('button') || mainTableBtnInstance.element;
+  mainBtnEl.classList.remove('is-running');
+}
+        
+        if (isTableChildWindowOpen()) {
+          if (typeof tableChildWindow !== 'undefined' && tableChildWindow) {
+            tableChildWindow.close();
+          }
+        }
+        updateTableFromVisibleLayers(map);
+
+      } else {
+        console.log("Tabelle abgeschaltet");
+        // Nur wenn AUCH der Zeichenmodus aus ist, nehmen wir die Farbe vom Hauptbutton
+        if (!isDrawActive && mainTableBtnInstance) {
+          mainTableBtnInstance.element.classList.remove('is-running');
+        }
+        closeTable(); 
+      }
+    },
+  });
+  tableToggleBtnInstance = tableToggleBtn;
+  
+  // ==========================================
+  // 2. ZEICHEN-BUTTON
+  // ==========================================
+  const drawToggleBtn = new Toggle({
+    html: '<i class="fa fa-pencil"></i>',
+    title: 'Zeichenmodus',
+    className: 'zeichnen',  
+    onToggle: function (active) {
+      isDrawActive = active;
+      const drawBtns = document.getElementById('draw-bar');
+      
+      if (!drawBtns) {
+        console.error("Fehler: Das Element #draw-bar wurde im HTML nicht gefunden!");
+        return;
+      }
+
+      if (active) {
+        console.log("Zeichenmodus aktiv");
+        
+        // 👉 NEU: Wenn Zeichnen an, Tabelle explizit sauber ausschalten
+        if (isTableActive && tableToggleBtnInstance) {
+          tableToggleBtnInstance.setActive(false);
+        }
+
+        // Sichtbarkeit der Bar erzwingen
+        drawBtns.style.setProperty('display', 'flex', 'important');
+        drawBtns.classList.add('is-running');
+        
+        // =====================================================================
+// ÄNDERUNG BEIM EINSCHALTEN (Sowohl bei Tabelle als auch bei Zeichnen):
+// =====================================================================
+if (mainTableBtnInstance) {
+  // Wir suchen das eigentliche Button-Element innerhalb der Instanz
+  const mainBtnEl = mainTableBtnInstance.element.querySelector('button') || mainTableBtnInstance.element;
+  mainBtnEl.classList.add('is-running');
+}
+
+// =====================================================================
+// ÄNDERUNG BEIM AUSSCHALTEN (Sowohl bei Tabelle als auch bei Zeichnen):
+// =====================================================================
+// Hier müssen wir prüfen: Nur wenn BEIDE Modi (Tabelle & Zeichnen) aus sind, 
+// nehmen wir das Leuchten vom Hauptbutton weg!
+if (!isTableActive && !isDrawActive && mainTableBtnInstance) {
+  const mainBtnEl = mainTableBtnInstance.element.querySelector('button') || mainTableBtnInstance.element;
+  mainBtnEl.classList.remove('is-running');
+}
+          
+      } else {
+        console.log("Zeichenmodus deaktiviert");
+        
+        // Sichtbarkeit der Bar komplett aufheben
+        drawBtns.style.setProperty('display', 'none', 'important');
+        drawBtns.classList.remove('is-running');
+
+        deactivateDrawing();
+
+        if (!isTableActive && mainTableBtnInstance) {
+          mainTableBtnInstance.element.classList.remove('is-running');
+        }
+      }
+    }
+  });
+
+  // 👉 WICHTIG: toggleOne MUSS auf false gesetzt werden, da wir die Logik oben manuell regeln!
+  return new Bar({ toggleOne: false, controls: [tableToggleBtn, drawToggleBtn] });
+}
+
 export function createDataTable(map) {
   const table = new Tabulator('#wms_data_table', {
     height: '100%',

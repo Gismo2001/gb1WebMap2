@@ -384,56 +384,39 @@ export function createSubBarW(map) {
   });
 }
 
-
-
-
 export function createSubBarT(map) {
-  
-  // ==========================================
   // 1. TABELLEN-BUTTON
-  // ==========================================
   const tableToggleBtn = new Toggle({
     html: '<i class="fa fa-table" aria-hidden="true"></i>',
     title: 'Tabelle anzeigen',
     className: 'tabelle',
     onToggle: function (active) {
       isTableActive = active;
-
       if (active) {
-        // 👉 NEU: Wenn Tabelle an, Zeichenmodus explizit sauber ausschalten
+        //Wenn Tabelle an, Zeichenmodusausschalten
         if (isDrawActive && typeof drawToggleBtn !== 'undefined') {
           drawToggleBtn.setActive(false);
         }
-
-        // =====================================================================
-// ÄNDERUNG BEIM EINSCHALTEN (Sowohl bei Tabelle als auch bei Zeichnen):
-// =====================================================================
-if (mainTableBtnInstance) {
-  // Wir suchen das eigentliche Button-Element innerhalb der Instanz
-  const mainBtnEl = mainTableBtnInstance.element.querySelector('button') || mainTableBtnInstance.element;
-  mainBtnEl.classList.add('is-running');
-}
-
-// =====================================================================
-// ÄNDERUNG BEIM AUSSCHALTEN (Sowohl bei Tabelle als auch bei Zeichnen):
-// =====================================================================
-// Hier müssen wir prüfen: Nur wenn BEIDE Modi (Tabelle & Zeichnen) aus sind, 
-// nehmen wir das Leuchten vom Hauptbutton weg!
-if (!isTableActive && !isDrawActive && mainTableBtnInstance) {
-  const mainBtnEl = mainTableBtnInstance.element.querySelector('button') || mainTableBtnInstance.element;
-  mainBtnEl.classList.remove('is-running');
-}
-        
+        // ÄNDERUNG BEIM EINSCHALTEN (Sowohl bei Tabelle als auch bei Zeichnen):
+        if (mainTableBtnInstance) {
+        //Button-Element innerhalb der Instanz suchen
+          const mainBtnEl = mainTableBtnInstance.element.querySelector('button') || mainTableBtnInstance.element;
+          mainBtnEl.classList.add('is-running');
+        }
+        //Nur wenn BEIDE Modi (Tabelle & Zeichnen) aus sind Hauptbutton zurücksetzen
+        if (!isTableActive && !isDrawActive && mainTableBtnInstance) {
+          const mainBtnEl = mainTableBtnInstance.element.querySelector('button') || mainTableBtnInstance.element;
+          mainBtnEl.classList.remove('is-running');
+        }
         if (isTableChildWindowOpen()) {
           if (typeof tableChildWindow !== 'undefined' && tableChildWindow) {
             tableChildWindow.close();
           }
         }
         updateTableFromVisibleLayers(map);
-
       } else {
         console.log("Tabelle abgeschaltet");
-        // Nur wenn AUCH der Zeichenmodus aus ist, nehmen wir die Farbe vom Hauptbutton
+        // Nur wenn der auch Zeichenmodus aus ist, Hauptbutton zurücksetzen
         if (!isDrawActive && mainTableBtnInstance) {
           mainTableBtnInstance.element.classList.remove('is-running');
         }
@@ -443,9 +426,7 @@ if (!isTableActive && !isDrawActive && mainTableBtnInstance) {
   });
   tableToggleBtnInstance = tableToggleBtn;
   
-  // ==========================================
   // 2. ZEICHEN-BUTTON
-  // ==========================================
   const drawToggleBtn = new Toggle({
     html: '<i class="fa fa-pencil"></i>',
     title: 'Zeichenmodus',
@@ -453,42 +434,31 @@ if (!isTableActive && !isDrawActive && mainTableBtnInstance) {
     onToggle: function (active) {
       isDrawActive = active;
       const drawBtns = document.getElementById('draw-bar');
-      
       if (!drawBtns) {
         console.error("Fehler: Das Element #draw-bar wurde im HTML nicht gefunden!");
         return;
       }
-
       if (active) {
         console.log("Zeichenmodus aktiv");
-        
-        // 👉 NEU: Wenn Zeichnen an, Tabelle explizit sauber ausschalten
+        //Wenn Zeichnen an, Tabelle ausschalten
         if (isTableActive && tableToggleBtnInstance) {
           tableToggleBtnInstance.setActive(false);
         }
-
         // Sichtbarkeit der Bar erzwingen
         drawBtns.style.setProperty('display', 'flex', 'important');
         drawBtns.classList.add('is-running');
         
-        // =====================================================================
-// ÄNDERUNG BEIM EINSCHALTEN (Sowohl bei Tabelle als auch bei Zeichnen):
-// =====================================================================
-if (mainTableBtnInstance) {
-  // Wir suchen das eigentliche Button-Element innerhalb der Instanz
-  const mainBtnEl = mainTableBtnInstance.element.querySelector('button') || mainTableBtnInstance.element;
-  mainBtnEl.classList.add('is-running');
-}
-
-// =====================================================================
-// ÄNDERUNG BEIM AUSSCHALTEN (Sowohl bei Tabelle als auch bei Zeichnen):
-// =====================================================================
-// Hier müssen wir prüfen: Nur wenn BEIDE Modi (Tabelle & Zeichnen) aus sind, 
-// nehmen wir das Leuchten vom Hauptbutton weg!
-if (!isTableActive && !isDrawActive && mainTableBtnInstance) {
-  const mainBtnEl = mainTableBtnInstance.element.querySelector('button') || mainTableBtnInstance.element;
-  mainBtnEl.classList.remove('is-running');
-}
+        //beim Einschalten (Sowohl bei Tabelle als auch bei Zeichnen):
+        if (mainTableBtnInstance) {
+          // Buttoninstanz suchen
+          const mainBtnEl = mainTableBtnInstance.element.querySelector('button') || mainTableBtnInstance.element;
+          mainBtnEl.classList.add('is-running');
+        }
+        //Beim Ausschalten, sowohl Tabelle als auch Zeichnen-Button):
+        if (!isTableActive && !isDrawActive && mainTableBtnInstance) {
+          const mainBtnEl = mainTableBtnInstance.element.querySelector('button') || mainTableBtnInstance.element;
+          mainBtnEl.classList.remove('is-running');
+        }
           
       } else {
         console.log("Zeichenmodus deaktiviert");
@@ -496,17 +466,13 @@ if (!isTableActive && !isDrawActive && mainTableBtnInstance) {
         // Sichtbarkeit der Bar komplett aufheben
         drawBtns.style.setProperty('display', 'none', 'important');
         drawBtns.classList.remove('is-running');
-
         deactivateDrawing();
-
         if (!isTableActive && mainTableBtnInstance) {
           mainTableBtnInstance.element.classList.remove('is-running');
         }
       }
     }
   });
-
-  // 👉 WICHTIG: toggleOne MUSS auf false gesetzt werden, da wir die Logik oben manuell regeln!
   return new Bar({ toggleOne: false, controls: [tableToggleBtn, drawToggleBtn] });
 }
 

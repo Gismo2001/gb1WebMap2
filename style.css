@@ -200,7 +200,7 @@ html, body {
   color: black;
 }
 
-.ol-control.main-toolbar .is-running.Verschiedenes button {
+.ol-control.main-toolbar .is-running.TabelleHaupt button {
   color: black;
   background-color: #2a90fc;  
 }
@@ -507,5 +507,92 @@ html, body {
   .ol-search ul.autocomplete {
     left: 0 !important;
     max-width: 250px !important;
+  }
+}
+
+/* ==========================================
+   Optimierte Zeichen-Werkzeugleiste
+   ========================================== */
+#draw-bar {
+  position: absolute !important;
+  bottom: 20px !important; 
+  left: 20px !important; 
+  z-index: 9999 !important; 
+  background: white !important; 
+  
+  /* Sehr kompakte Innenabstände */
+  padding: 2px !important; 
+  border-radius: 4px !important; 
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3) !important; 
+  border: 1px solid #ddd !important;
+  
+  /* Minimaler Abstand zwischen den Knöpfen */
+  gap: 2px !important; 
+  align-items: center;
+}
+
+/* Wird von JS gesteuert */
+#draw-bar.is-running {
+  display: flex !important;
+}
+
+/* Einheitsgröße für alle Buttons im Menü */
+.draw-btn, #draw-clear {
+  width: 25px;
+  height: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  background: #f8f9fa;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  cursor: pointer;
+  
+  /* Emojis skalieren am besten über line-height und font-size */
+  font-size: 14px; 
+  line-height: 1;
+  padding: 0 !important; /* Verhindert Verzerrung durch Browser-Standards */
+  margin: 0;
+  transition: all 0.15s ease-in-out;
+}
+
+.draw-btn:hover { 
+  background: #e2e6ea; 
+  border-color: #bbb;
+}
+
+.draw-btn.active {
+  background: #0078d4 !important;
+  color: white !important;
+  border-color: #005a9e !important;
+}
+
+/* Spezielles Styling für den Mülleimer */
+#draw-clear {
+  background: #fff0f0;
+  border-color: #ffa3a3;
+}
+#draw-clear:hover {
+  background: #ffdede;
+  border-color: #ff8585;
+}
+
+/* ==========================================
+   Mobil-Optimierung (Smartphones bis 480px Breite)
+   ========================================== */
+@media (max-width: 480px) {
+  #draw-bar {
+    bottom: 15px !important;
+    left: 15px !important;
+    padding: 2px !important;
+    gap: 1px !important; /* Knöpfe rücken fast nahtlos aneinander */
+  }
+
+  .draw-btn, #draw-clear {
+    width: 30px;  /* Minimal schmaler für kleine Displays */
+    height: 30px;
+    font-size: 12px; /* Emojis leicht verkleinern */
+    border-radius: 2px;
   }
 }

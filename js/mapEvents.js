@@ -21,6 +21,7 @@ import { handleDgmPointerMove, handleDomPointerMove } from './dgmdom.js'
 import { profileMode } from './chart.js';
 
 import { Style, Circle, Fill, Stroke } from 'ol/style';
+
 import Layer from 'ol/layer/Layer.js';
 
 import { getStyleForArtFSK } from './utils.js';

@@ -5,7 +5,7 @@ import { Style, Stroke, Fill, Circle as CircleStyle } from 'ol/style';
 import { getLength, getArea } from 'ol/sphere';
 import { transform } from 'ol/proj'; // 💡 NEU: Für die Koordinaten-Umrechnung
 import { Select } from 'ol/interaction'; // 💡 WICHTIG: Oben importieren, falls noch nicht geschehen!
-
+import { GeoJSON } from 'ol/format'; // 💡 Stelle sicher, dass GeoJSON oben importiert ist
 
 
 let mapInstance = null;
@@ -72,6 +72,15 @@ function setupDrawUi() {
       updateDrawInteraction(type);
     });
   });
+  // 💡 NEU: Event-Listener für den Export-Button
+  const exportBtn = document.getElementById('draw-export');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', () => {
+      exportDrawFeatures();
+    });
+  }
+
+
 }
 // Wechselt den Zeichenmodus basierend auf dem ausgewählten Typ
 
@@ -214,4 +223,41 @@ export function deactivateDrawing() {
   
   const noneBtn = document.getElementById('draw-none');
   if (noneBtn) noneBtn.classList.add('active');
+}
+
+
+
+export function exportDrawFeatures() {
+  if (!drawSource || drawSource.getFeatures().length === 0) {
+    alert("Es gibt keine gezeichneten Objekte zum Exportieren!");
+    return;
+  }
+
+  // 1. OpenLayers GeoJSON-Formatierer initialisieren
+  const format = new GeoJSON();
+
+  // 2. Features in einen GeoJSON-String umwandeln
+  // 💡 Wichtig: Wir sagen OpenLayers, dass die Daten von EPSG:3857 (Karte) nach EPSG:4326 (Standard-GeoJSON) konvertiert werden sollen
+  const geoJsonString = format.writeFeatures(drawSource.getFeatures(), {
+    featureProjection: 'EPSG:3857',
+    dataProjection: 'EPSG:4326'
+  });
+
+  // 3. Den String in eine Datei umwandeln (Blob) und den Download im Browser triggern
+  const blob = new Blob([geoJsonString], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  
+  const a = document.createElement('a');
+  a.href = url;
+  // Dateiname mit aktuellem Zeitstempel versehen
+  const timestamp = new Date().toISOString().slice(0, 10);
+  a.download = `karte_zeichnungen_${timestamp}.geojson`;
+  
+  // Klick simulieren und aufräumen
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  
+  console.log("GeoJSON-Export erfolgreich angestoßen.");
 }

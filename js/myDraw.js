@@ -1,10 +1,10 @@
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
-import { Draw, Modify, Snap } from 'ol/interaction';
+import { Draw, Modify, Snap, Select, Translate } from 'ol/interaction';
 import { Style, Stroke, Fill, Circle as CircleStyle } from 'ol/style';
 import { getLength, getArea } from 'ol/sphere';
 import { transform } from 'ol/proj'; // 💡 NEU: Für die Koordinaten-Umrechnung
-import { Select } from 'ol/interaction'; // 💡 WICHTIG: Oben importieren, falls noch nicht geschehen!
+
 import { GeoJSON } from 'ol/format'; // 💡 Stelle sicher, dass GeoJSON oben importiert ist
 
 
@@ -16,6 +16,7 @@ let drawInteraction = null;
 let modifyInteraction = null;
 let snapInteraction = null;
 let deleteInteraction = null; // 💡 NEU: Für das gezielte Löschen per Klick
+let translateInteraction = null; // 💡 NEU: Für das Verschieben ganzer Objekte
 
 // Initialisiert die Zeichen-Funktionalität
 export function initDrawing(map) {
@@ -90,6 +91,7 @@ function updateDrawInteraction(type) {
   if (drawInteraction) { mapInstance.removeInteraction(drawInteraction); drawInteraction = null; }
   if (snapInteraction) { mapInstance.removeInteraction(snapInteraction); snapInteraction = null; }
   if (deleteInteraction) { mapInstance.removeInteraction(deleteInteraction); deleteInteraction = null; }
+  if (translateInteraction) { mapInstance.removeInteraction(translateInteraction); translateInteraction = null; } // 💡 NEU
 
   // Fall A: Navigation / Hand-Symbol aktiv
   if (type === 'None') {
@@ -128,7 +130,31 @@ function updateDrawInteraction(type) {
     console.log("Löschmodus aktiv. Klicke auf ein Objekt zum Entfernen.");
     return;
   }
+// 💡 Fall D: NEU - Verschieben-Modus aktiv
+  if (type === 'Translate') {
+    if (modifyInteraction) modifyInteraction.setActive(false); // Normales Modify pausieren
 
+    // Translate-Interaktion erstellen, die NUR auf unseren drawLayer reagiert
+    translateInteraction = new Translate({
+      layers: [drawLayer]
+    });
+
+    // optional: Nach dem Verschieben die Attribute (z.B. Punkt-Koordinaten) neu berechnen!
+    translateInteraction.on('translateend', function (e) {
+      const translatedFeatures = e.features.getArray();
+      translatedFeatures.forEach(feature => {
+        calculateMetrics(feature); // Aktualisiert die UTM/WGS84-Koordinaten bei Punkten!
+      });
+      console.log("Objekt(e) erfolgreich verschoben und Attribute aktualisiert.");
+    });
+
+    mapInstance.addInteraction(translateInteraction);
+    console.log("Verschiebe-Modus aktiv. Ziehe ein Objekt mit gedrückter Maustaste.");
+    return;
+  }
+
+  // Fall C: Normales Zeichnen (Point, Line, Polygon...)
+  // ... dein bestehender Code für Draw und Snap
   // Fall C: Ein normales Zeichenwerkzeug (Point, Line, etc.) wurde gewählt
   if (modifyInteraction) modifyInteraction.setActive(true);
     
@@ -212,10 +238,13 @@ export function deactivateDrawing() {
     if (snapInteraction) mapInstance.removeInteraction(snapInteraction);
     if (deleteInteraction) mapInstance.removeInteraction(deleteInteraction); // 💡 NEU
     if (modifyInteraction) modifyInteraction.setActive(false);
+    if (translateInteraction) mapInstance.removeInteraction(translateInteraction); // 💡 NEU
+    
     
     drawInteraction = null;
     snapInteraction = null;
     deleteInteraction = null; // 💡 NEU
+    translateInteraction = null; // 💡 NEU
   }
 
   const buttons = document.querySelectorAll('.draw-btn');

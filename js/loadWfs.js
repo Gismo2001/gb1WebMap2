@@ -73,9 +73,9 @@ export function loadWFSLayer(map, baseUrl, typeName) {
         color: 'rgba(0, 120, 212, 0.15)'
       }),
       image: new Circle({
-        radius: 6,
+        radius: 8,
         fill: new Fill({
-          color: '#0078d4'
+          color: '#005697'
         }),
         stroke: new Stroke({
           color: '#ffffff',
@@ -88,7 +88,8 @@ export function loadWFSLayer(map, baseUrl, typeName) {
   map.addLayer(layer);
 
   // Sobald Features geladen sind, zoomen
-  const key = vectorSource.on('change', function () {
+ 
+ /*  const key = vectorSource.on('change', function () {
     if (vectorSource.getState() === 'ready') {
       const extent = vectorSource.getExtent();
       if (extent && extent[0] !== Infinity && extent[0] !== -Infinity) {
@@ -100,6 +101,6 @@ export function loadWFSLayer(map, baseUrl, typeName) {
       }
     }
   });
-
+ */
   console.log("WFS geladen mit URN-Fix:", typeName);
 }

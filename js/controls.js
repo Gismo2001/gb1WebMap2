@@ -439,6 +439,8 @@ export function createSubBarT(map) {
       isDrawActive = active;
       const drawBtns = document.getElementById('draw-bar');
       const wfsContainer = document.getElementById('wfs-loader'); // 💡 WFS-Container holen
+      // 💡 Den drawLayer aus der Karte suchen
+      const drawLayer = map.getLayers().getArray().find(l => l.get('name') === 'drawLayer');
       
       if (active) {
         // Andere Sub-Buttons ausschalten
@@ -456,6 +458,12 @@ export function createSubBarT(map) {
         if (drawBtns) {
           drawBtns.style.setProperty('display', 'flex', 'important');
           drawBtns.classList.add('is-running');
+          // 💡drawLayer im Layer-Switcher einschalten
+          if (drawLayer) {
+          drawLayer.set('displayInLayerSwitcher', true);
+          // Dem Switcher signalisieren, dass sich die Layer-Struktur geändert hat
+          map.changed(); 
+          }
         }
         
         if (mainTableBtnInstance) {
@@ -463,10 +471,15 @@ export function createSubBarT(map) {
           mainBtnEl.classList.add('is-running');
         }
       } else {
-        // Zeichenleiste ausblenden
+         // Zeichenleiste ausblenden
         if (drawBtns) {
           drawBtns.style.setProperty('display', 'none', 'important');
           drawBtns.classList.remove('is-running');
+      /*     if (drawLayer) {
+            drawLayer.set('displayInLayerSwitcher', false);
+            // Dem Switcher signalisieren, dass sich die Layer-Struktur geändert hat
+            map.changed(); 
+          } */
         }
         deactivateDrawing();
         
@@ -669,32 +682,61 @@ export function initializeWMS(map) {
 
   map.addControl(cap);
 
-    // Event-Handling wenn ein Layer ausgewählt wurde
-    cap.on('load', (e) => {
-        const layer = e.layer;
-        const rawTitle = (e.options.data && (e.options.data.title || e.options.data.Name)) || "WMS Layer";
-        const permalinkId = rawTitle.toLowerCase().replace(/\s+/g, '_');
+   // Event-Handling wenn ein Layer ausgewählt wurde
+cap.on('load', (e) => {
+    let layer = e.layer;
+    const rawTitle = (e.options.data && (e.options.data.title || e.options.data.Name)) || "WMS Layer";
+    const permalinkId = rawTitle.toLowerCase().replace(/\s+/g, '_');
+    
+    // 💡 PRÜFUNG: Handelt sich es um eine Gruppe mit Sub-Layern?
+    // ol-ext speichert die Kind-Elemente in e.options.data.Layer
+    if (e.options.data && Array.isArray(e.options.data.Layer)) {
+        console.log("Gruppe erkannt:", rawTitle, "mit", e.options.data.Layer.length, "Sub-Layern");
         
-        layer.set('permalink', permalinkId);
-        layer.set('title', rawTitle);
-        layer.set('name', rawTitle); // Falls du 'name' als ID nutzt
+        // Wir sammeln alle echten Layer-Namen (die keine Untergruppen sind)
+        const subLayerNames = [];
         
-        // Layer der Karte hinzufügen
-        map.addLayer(layer);
-
-        // 4. Verzichten auf den sofortigen Aufruf von getLayerByLink,
-        // um den internen ol-ext Fehler komplett zu umgehen.
-        // Stattdessen triggern nur das generelle Update.
-        setTimeout(() => {
-        if (typeof permaFunktionality !== 'undefined' && permaFunktionality) {
-            // changed() reicht völlig aus, damit das Control 
-            // den neuen Layer bemerkt und in die URL schreibt.
-            permaFunktionality.changed();
-          
+        function collectLayerNames(layerArray) {
+            layerArray.forEach(subL => {
+                if (subL.Name) {
+                    subLayerNames.push(subL.Name);
+                }
+                // Falls tiefere Verschachtelungen existieren:
+                if (Array.isArray(subL.Layer)) {
+                    collectLayerNames(subL.Layer);
+                }
+            });
         }
-    }, 250); // Etwas großzügigerer Puffer für die Stabilität
         
-    });
+        collectLayerNames(e.options.data.Layer);
+
+        if (subLayerNames.length > 0) {
+            // Wir aktualisieren die Source des erzeugten Layers, 
+            // damit er alle Sub-Layer explizit per Komma getrennt anfordert!
+            const source = layer.getSource();
+            if (source && typeof source.updateParams === 'function') {
+                source.updateParams({
+                    'LAYERS': subLayerNames.join(',')
+                });
+                console.log("WMS-Parameter aktualisiert auf Sub-Layer:", subLayerNames.join(','));
+            }
+        }
+    }
+
+    layer.set('permalink', permalinkId);
+    layer.set('title', rawTitle);
+    layer.set('name', rawTitle);
+    
+    // Layer der Karte hinzufügen
+    map.addLayer(layer);
+
+    // Puffer für Permalink-Update
+    setTimeout(() => {
+        if (typeof permaFunktionality !== 'undefined' && permaFunktionality) {
+            permaFunktionality.changed();
+        }
+    }, 250);
+});
 }
 
 export function zeigeNachricht(txt) {

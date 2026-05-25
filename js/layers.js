@@ -361,7 +361,7 @@ export function createOsmTileCr() {
       attributions: ['© OpenStreetMap contributors'],
     }),
     opacity: 0.75,
-    visible: false, 
+    visible: true, 
   });
 }
 export function createOsmTileGr() {
@@ -435,12 +435,12 @@ title: 'TopPlus',
     attributions: '© GeoBasis-DE / BKG',
     params: {
       "LAYERS": "web",
-      "TILED": true,
+      "TILED": false,
       "VERSION": "1.3.0"
     },
   }),
   opacity: 1,
-  visible: true,
+  visible: false,
 
 
 })
@@ -878,9 +878,10 @@ export function createLayerStructure() {
   const dop20ni = createDop20niLayer();
   const baseDEGr = createbaseDEGrLayer();
   const baseDECr = createbaseDECrLayer();
+  const topoPlus = createbaseTopPlusLayer();
   const osmGrey = createOsmTileGr();
   const osmColor = createOsmTileCr();
-  const topoPlus = createbaseTopPlusLayer();
+  
 
   //Luftbilder Layer
   const NOH1937 = creategnAtlasNOH1937Layer();

@@ -220,9 +220,17 @@ export function handleDomHeightQuery(map, evt, visibleDomLayers) {
 }
 export function initMapClick(map) {
   map.on('singleclick', function (evt) {
-    // 👉 Wenn im Zeichnenmodus: abbrechen
+    
+    // 1. Wenn im Zeichenmodus: abbrechen
     if (isDrawingActive()) {
         console.log("Karten-Klick ignoriert, da Zeichenmodus aktiv ist.");
+        return; 
+    }
+
+    // 💡 2. NEU: Wenn im Löschmodus (Mülleimer aktiv): ebenfalls abbrechen
+    const deleteBtn = document.getElementById('draw-clear');
+    if (deleteBtn && deleteBtn.classList.contains('active')) {
+        console.log("Karten-Klick ignoriert, da Löschmodus aktiv ist.");
         return; 
     }
     // --- 1. DGM- und DOM- LOGIK (PRIORISIERT) ---
@@ -1407,7 +1415,7 @@ modal.onclick = (e) => {
       return; 
     }
 
-    // =================================================================
+   // =================================================================
     // AB HIER FOLGT DEINE NORMALE LISTEN-GENERIERUNG
     // =================================================================
     let displayValue;
@@ -1420,7 +1428,18 @@ modal.onclick = (e) => {
       if (isUrl) {
         const formalUrl = stringValue.toLowerCase().startsWith('www.') ? `https://${stringValue}` : stringValue;
         displayValue = createDatenLink(formalUrl, "Link öffnen 🌐");
-      } else {
+      } 
+      // 💡 NEU: Bedingung für Zahlen (prüft Nummern und Zahlen-Strings)
+      else if (!isNaN(stringValue) && !isNaN(parseFloat(stringValue))) {
+        const num = parseFloat(stringValue);
+        // Prüfen, ob die Zahl Nachkommastellen besitzt
+        if (num % 1 !== 0) {
+          displayValue = num.toFixed(2); // Auf 2 Nachkommastellen runden
+        } else {
+          displayValue = num; // Ganze Zahl so belassen
+        }
+      } 
+      else {
         displayValue = value;
       }
     }

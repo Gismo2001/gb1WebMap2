@@ -1,9 +1,11 @@
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
-import Draw from 'ol/interaction/Draw';
-import Modify from 'ol/interaction/Modify';
-import Snap from 'ol/interaction/Snap';
+import { Draw, Modify, Snap } from 'ol/interaction';
 import { Style, Stroke, Fill, Circle as CircleStyle } from 'ol/style';
+import { getLength, getArea } from 'ol/sphere';
+import { transform } from 'ol/proj'; // 💡 NEU: Für die Koordinaten-Umrechnung
+import { Select } from 'ol/interaction'; // 💡 WICHTIG: Oben importieren, falls noch nicht geschehen!
+
 
 
 let mapInstance = null;
@@ -13,125 +15,203 @@ let drawLayer = null;
 let drawInteraction = null;
 let modifyInteraction = null;
 let snapInteraction = null;
+let deleteInteraction = null; // 💡 NEU: Für das gezielte Löschen per Klick
 
-
-//Initialisiert die Zeichen-Funktionalität
+// Initialisiert die Zeichen-Funktionalität
 export function initDrawing(map) {
   if (!map) return;
   mapInstance = map;
+  
   // 1. VectorSource und Layer für die Zeichnungen erstellen
   drawSource = new VectorSource();
   drawLayer = new VectorLayer({
     source: drawSource,
-    // Schickes, halbtransparentes Standard-Styling für Zeichnungen
+    name: 'drawLayer',
     style: new Style({
-      fill: new Fill({
-        color: 'rgba(255, 255, 255, 0.3)',
-      }),
-        stroke: new Stroke({
-          color: '#ffcc33',
-          width: 3,
-        }),
-        image: new CircleStyle({
-          radius: 7,
-          fill: new Fill({color: '#ffcc33', }), }),
+      fill: new Fill({ color: 'rgba(255, 255, 255, 0.7)' }),
+      stroke: new Stroke({ color: '#ffcc33', width: 3 }),
+      image: new CircleStyle({
+        radius: 7,
+        fill: new Fill({ color: '#ffcc33' })
+      })
     }),
+    displayInLayerSwitcher: false,
   });
+
   // Layer der Karte hinzufügen
   mapInstance.addLayer(drawLayer);
-  // 2. Modify-Interaktion dauerhaft aktivieren (erlaubt Verschieben von Punkten jederzeit)
+  
+  // 2. Modify-Interaktion dauerhaft aktivieren
   modifyInteraction = new Modify({ source: drawSource });
   mapInstance.addInteraction(modifyInteraction);
+
+  // 💡 NEU: Automatische Neuberechnung nach dem Verschieben/Verändern von Punkten
+  modifyInteraction.on('modifyend', function (event) {
+    const modifiedFeatures = event.features.getArray();
+    modifiedFeatures.forEach(feature => {
+      calculateMetrics(feature);
+    });
+    console.log("Objekt-Attribute nach Modifikation live aktualisiert!");
+  });
 
   // 3. UI-Button Event-Listener binden
   setupDrawUi();
 }
-//Bindet die Klick-Events an die HTML-Leiste
+
+// Bindet die Klick-Events an die HTML-Leiste
 function setupDrawUi() {
-    const buttons = document.querySelectorAll('.draw-btn');
-    
-    buttons.forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            // Aktiven Button-Style umschalten
-            buttons.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            
-
-            const type = btn.getAttribute('data-type');
-            updateDrawInteraction(type);
-        });
+  const buttons = document.querySelectorAll('.draw-btn');
+  
+  buttons.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      // Aktiven Button-Style umschalten
+      buttons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      
+      const type = btn.getAttribute('data-type');
+      updateDrawInteraction(type);
     });
-
-    // Mülleimer-Button zum Leeren der Zeichnungen
-    const clearBtn = document.getElementById('draw-clear');
-    if (clearBtn) {
-        clearBtn.addEventListener('click', () => {
-            if (drawSource && confirm('Möchtest du alle selbst gezeichneten Objekte löschen?')) {
-                drawSource.clear();
-            }
-        });
-    }
+  });
 }
-//Wechselt den Zeichenmodus basierend auf dem ausgewählten Typ
+// Wechselt den Zeichenmodus basierend auf dem ausgewählten Typ
+
+
 function updateDrawInteraction(type) {
   // 1. Vorherige Interaktionen IMMER komplett von der Karte entfernen
-  if (drawInteraction) {
-    mapInstance.removeInteraction(drawInteraction);
-    drawInteraction = null;
-  }
-  if (snapInteraction) {
-    mapInstance.removeInteraction(snapInteraction);
-    snapInteraction = null;
+  if (drawInteraction) { mapInstance.removeInteraction(drawInteraction); drawInteraction = null; }
+  if (snapInteraction) { mapInstance.removeInteraction(snapInteraction); snapInteraction = null; }
+  if (deleteInteraction) { mapInstance.removeInteraction(deleteInteraction); deleteInteraction = null; }
+
+  // Fall A: Navigation / Hand-Symbol aktiv
+  if (type === 'None') {
+    if (modifyInteraction) modifyInteraction.setActive(false);
+    console.log("Zeichenmodus beendet. Navigation aktiv.");
+    return;
   }
 
-  if (type === 'None') {
-    // 👉 WICHTIG: Wenn die Hand aktiv ist, pausierty,
-    if (modifyInteraction) modifyInteraction.setActive(false);
-      console.log("Zeichenmodus beendet. Navigation aktiv.");
-      return;
+  // 💡 Fall B: NEU - Löschmodus aktiv
+  if (type === 'Delete') {
+    if (modifyInteraction) modifyInteraction.setActive(false); // Modify pausieren
+    
+    // Select-Interaktion erstellen, die NUR auf unseren drawLayer reagiert
+    deleteInteraction = new Select({
+      layers: [drawLayer],
+      style: null // Verhindert, dass OpenLayers das Objekt beim Anklicken blau einfärbt
+    });
+
+    // Sobald ein Objekt ausgewählt wird, feuert dieses Event
+    deleteInteraction.on('select', function (e) {
+      const selectedFeatures = e.target.getFeatures();
+      
+      if (selectedFeatures.getLength() > 0) {
+        const featureToDelete = selectedFeatures.item(0);
+        
+        // Objekt aus der Source löschen
+        drawSource.removeFeature(featureToDelete);
+        
+        // Die Auswahl sofort wieder leeren, damit das System bereit für den nächsten Klick ist
+        selectedFeatures.clear();
+        console.log("Objekt erfolgreich gelöscht.");
+      }
+    });
+
+    mapInstance.addInteraction(deleteInteraction);
+    console.log("Löschmodus aktiv. Klicke auf ein Objekt zum Entfernen.");
+    return;
   }
-  // 👉 Wenn wir zeichnen, aktivieren wir das Modify wieder
+
+  // Fall C: Ein normales Zeichenwerkzeug (Point, Line, etc.) wurde gewählt
   if (modifyInteraction) modifyInteraction.setActive(true);
     
-  // 2. Neue Draw-Interaktion erstellen
   drawInteraction = new Draw({
     source: drawSource,
     type: type,
   });
+
+  drawInteraction.on('drawend', function (event) {
+    const feature = event.feature;
+    const currentId = drawSource.getFeatures().length + 1;
+    feature.set('id', currentId);
+    calculateMetrics(feature);
+  });
+
   mapInstance.addInteraction(drawInteraction);
 
-  // 3. Snap-Interaktion hinzufügen (rastet an Ecken ein)
   snapInteraction = new Snap({ source: drawSource });
   mapInstance.addInteraction(snapInteraction);
 }
-//Prüft ob der Nutzer im Zeichenmodus ist
+
+// 💡 NEU: Zentrale Hilfsfunktion zur Berechnung von Länge, Fläche und Typ
+function calculateMetrics(feature) {
+  const geometry = feature.getGeometry();
+  if (!geometry) return;
+  
+  const geomType = geometry.getType();
+
+  if (geomType === 'LineString') {
+    const length = getLength(geometry);
+    feature.set('laenge_m', parseFloat(length.toFixed(2)));
+    feature.set('typ', 'Linie');
+    
+  } else if (geomType === 'Polygon') {
+    const area = getArea(geometry);
+    feature.set('flaeche_qm', parseFloat(area.toFixed(2)));
+    feature.set('typ', 'Fläche');
+
+  } else if (geomType === 'Circle') {
+    const radius = geometry.getRadius();
+    const area = Math.PI * Math.pow(radius, 2);
+    feature.set('radius_m', parseFloat(radius.toFixed(2)));
+    feature.set('flaeche_qm', parseFloat(area.toFixed(2)));
+    feature.set('typ', 'Kreis');
+
+  } 
+  // 💡 NEU: Umfassende Koordinatenberechnung für Punkte
+  else if (geomType === 'Point') {
+    feature.set('typ', 'Punkt');
+    
+    // Die native Koordinate im Kartensystem (EPSG:3857) auslesen
+    const coords3857 = geometry.getCoordinates();
+    feature.set('x_3857', parseFloat(coords3857[0].toFixed(2)));
+    feature.set('y_3857', parseFloat(coords3857[1].toFixed(2)));
+    
+    // Umrechnung in EPSG:4326 (WGS84 - Gradzahlen für GPS/Google Maps)
+    const coords4326 = transform(coords3857, 'EPSG:3857', 'EPSG:4326');
+    feature.set('lon_4326', parseFloat(coords4326[0].toFixed(6))); // 6 Dezimalstellen reichen für cm-Genauigkeit
+    feature.set('lat_4326', parseFloat(coords4326[1].toFixed(6)));
+    
+    // Umrechnung in EPSG:25832 (UTM Zone 32N - Meterkoordinaten für DE/Niedersachsen)
+    const coords25832 = transform(coords3857, 'EPSG:3857', 'EPSG:25832');
+    feature.set('x_25832', parseFloat(coords25832[0].toFixed(2)));
+    feature.set('y_25832', parseFloat(coords25832[1].toFixed(2)));
+  }
+}
+// Prüft ob der Nutzer im Zeichenmodus ist
 export function isDrawingActive() {
-  // Nur wenn die Interaktion existiert UND auf der Karte aktiv geschaltet ist, lieferst du true
   return !!(drawInteraction && drawInteraction.getActive());
 }
-//Gibt die VectorSource zurück, falls man von außen darauf zugreifen will (z.B. für Exporte)
+
+// Gibt die VectorSource zurück
 export function getDrawSource() {
   return drawSource;
 }
 
-/**
- * Setzt den Zeichenmodus komplett zurück (schaltet auf Navigation/Hand)
- */
+// Zeichenmodus zurücksetzen
 export function deactivateDrawing() {
-    if (mapInstance) {
-        // 1. Alle Interaktionen von der Karte werfen
-        if (drawInteraction) mapInstance.removeInteraction(drawInteraction);
-        if (snapInteraction) mapInstance.removeInteraction(snapInteraction);
-        if (modifyInteraction) modifyInteraction.setActive(false);
-        
-        drawInteraction = null;
-        snapInteraction = null;
-    }
-
-    // 2. Optisch die Buttons in der HTML-Leiste zurücksetzen (wieder auf die Hand 'None' setzen)
-    const buttons = document.querySelectorAll('.draw-btn');
-    buttons.forEach(b => b.classList.remove('active'));
+  if (mapInstance) {
+    if (drawInteraction) mapInstance.removeInteraction(drawInteraction);
+    if (snapInteraction) mapInstance.removeInteraction(snapInteraction);
+    if (deleteInteraction) mapInstance.removeInteraction(deleteInteraction); // 💡 NEU
+    if (modifyInteraction) modifyInteraction.setActive(false);
     
-    const noneBtn = document.getElementById('draw-none');
-    if (noneBtn) noneBtn.classList.add('active');
+    drawInteraction = null;
+    snapInteraction = null;
+    deleteInteraction = null; // 💡 NEU
+  }
+
+  const buttons = document.querySelectorAll('.draw-btn');
+  buttons.forEach(b => b.classList.remove('active'));
+  
+  const noneBtn = document.getElementById('draw-none');
+  if (noneBtn) noneBtn.classList.add('active');
 }

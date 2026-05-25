@@ -30,28 +30,19 @@ export function initializeWMS(map) {
         trace: true
     });
 
-   map.addControl(cap);
+    map.addControl(cap);
 
-    // 💡 NEU: Automatische HTTPS-Korrektur für dynamisch hinzugefügte Layer
-    map.getLayers().on('add', function(event) {
-        const layer = event.element;
-        
-        // Prüfen, ob es sich um einen WMS-Layer handelt
-        if (layer && typeof layer.getSource === 'function') {
-            const source = layer.getSource();
-            
-            // Wenn die Source vom Typ TileWMS oder ImageWMS ist
-            if (source && typeof source.getUrl === 'function') {
-                let url = source.getUrl();
-                
-                // Falls die URL mit http:// statt https:// zurückgegeben wurde, korrigieren!
-                if (url && url.startsWith('http://www.umweltkarten-niedersachsen.de')) {
-                    const secureUrl = url.replace('http://', 'https://');
-                    source.setUrl(secureUrl);
-                    console.log(`🔒 WMS-Layer URL automatisch auf HTTPS korrigiert: ${secureUrl}`);
-                }
-            }
-        }
-    });
+    // Event-Handling wenn ein Layer ausgewählt wurde
+cap.on('select', function(e) {
+  
+  // Hier könnte man manuell prüfen, ob die Buttons nun existieren
+  setTimeout(() => {
+    const loadBtn = document.querySelector('.ol-load');
+    if (loadBtn) {
+        loadBtn.style.display = 'block';
+        loadBtn.style.visibility = 'visible';
+    }
+  }, 100);
+});
 }
 

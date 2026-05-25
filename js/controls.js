@@ -692,6 +692,7 @@ export function initializeWMS(map) {
       layer.set('name', rawTitle); // Falls du 'name' als ID nutzt
       // Layer der Karte hinzufügen
       map.addLayer(layer);
+      console.log('externer WMS-Layer hinzugefügt:', layer);
       setTimeout(() => {
         if (typeof permaFunktionality !== 'undefined' && permaFunktionality) {
           permaFunktionality.changed();

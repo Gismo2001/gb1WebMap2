@@ -675,7 +675,9 @@ export function createGewWmsFgLayer() {
   opacity: 1,
 });
 }
+
 export function createWmsWrrlFgLayer() {
+  
   return new TileLayer({
   source: new TileWMS({
     url:  'https://www.umweltkarten-niedersachsen.de/arcgis/services/WRRL_wms/MapServer/WMSServer',
@@ -692,6 +694,7 @@ export function createWmsWrrlFgLayer() {
   visible: true,
   opacity: 1,
 });
+
 }
 export function createwmsUesgLayer() {
   return new TileLayer({
@@ -909,6 +912,7 @@ export function createLayerStructure() {
   //WMS-Layer
   const gewWms = createGewWmsFgLayer();
   const fgWrrlWms = createWmsWrrlFgLayer();
+  console.log('interner wms-layer hinzugefügt', fgWrrlWms);
   const uesgWms = createwmsUesgLayer();
   const nsgWms = createwmsNsgLayer();
   const lsgWms = createwmsLsgLayer() ;

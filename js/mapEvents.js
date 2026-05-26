@@ -27,6 +27,7 @@ import Layer from 'ol/layer/Layer.js';
 import { getStyleForArtFSK } from './utils.js';
 
 import {  createEmpty,  extend,  containsCoordinate} from 'ol/extent.js';
+import { istZeichenleisteAktiv } from './myDraw.js';
 
 
 import GeoJSON from 'ol/format/GeoJSON';
@@ -34,6 +35,9 @@ import KML from 'ol/format/KML';
 import shp from 'shpjs';
 import VectorSource from 'ol/source/Vector';
 import VectorLayer from 'ol/layer/Vector';
+
+import { drawSource, drawLayer, calculateMetrics } from './myDraw.js'; 
+
 
 import {  getOverallDgmMinMax, createGeoTiffStyle } from './dgmdom.js';
 import { dgmGroup } from './layers.js';
@@ -992,9 +996,12 @@ searchPlaceControl.on('select', (e) => { //Eventhandler für searchPlaceControl,
 });
 }
 
+
+
 let zaehlerGeojson = 1;
 let zaehlerKML = 1;
 let fileInput;
+
 export function fileToggleInput(map) {
   if (!fileInput) {
     fileInput = document.createElement('input');
@@ -1013,74 +1020,71 @@ export function fileToggleInput(map) {
       const fileName = file.name.replace(/\.[^/.]+$/, "");
       const fileEnd = file.name.split('.').pop().toLowerCase();
 
-if (fileEnd === 'tif' || fileEnd === 'tiff') {
-    const blobUrl = URL.createObjectURL(file);
-    const sourceName = `Lokal_DGM_${fileName}`;
+      // ==========================================
+      // 1. RASTER-DATEN (GeoTIFF) -> Unverändert
+      // ==========================================
+      if (fileEnd === 'tif' || fileEnd === 'tiff') {
+        const blobUrl = URL.createObjectURL(file);
+        const sourceName = `Lokal_DGM_${fileName}`;
 
-    const tiffSource = new GeoTIFFSource({
-    sources: [{ 
-        url: blobUrl,
-        nodata: -9999 
-    }],
-    projection: 'EPSG:25832',
-    // Zwingt OL, die Rohwerte als Float32 zu behalten:
-    normalize: false, 
-    // Verhindert, dass OL die Daten für die Anzeige in RGBA umwandelt:
-    convertToRGB: false, 
-    sourceOptions: { 
-        allowFullFile: true 
-    }
-});
-
-    tiffSource.getView().then((viewConfig) => {
-        const extent3857 = transformExtent(viewConfig.extent, 'EPSG:25832', 'EPSG:3857');
-        
-        const tiffLayer = new WebGLTileLayer({
-            source: tiffSource,
-            title: sourceName,
-            name: sourceName, // Damit layer.get('name') für dgmdom.js existiert!
-            style: createGeoTiffStyle(13, 32), 
-            opacity: 1
+        const tiffSource = new GeoTIFFSource({
+          sources: [{ 
+              url: blobUrl,
+              nodata: -9999 
+          }],
+          projection: 'EPSG:25832',
+          normalize: false, 
+          convertToRGB: false, 
+          sourceOptions: { 
+              allowFullFile: true 
+          }
         });
 
-        tiffLayer.bbox = extent3857;
-        // Das Objekt für die globale Verwaltung erstellen
-        const localDgmData = { 
-          bbox: extent3857, 
-          min: 13,   // Hier deine ermittelten Werte nutzen
-          max: 32, 
-          layer: tiffLayer 
-        };
-        // In die Gruppen/Arrays (wie bisher)
-        if (dgmGroup) dgmGroup.getLayers().push(tiffLayer);
-        activeDgmRasterData.push(localDgmData);
-        activeDgmRasterLayers.push(tiffLayer);
-        const overall = getOverallDgmMinMax();
-        activeDgmRasterData.forEach(d => {
-          d.layer.setStyle(createGeoTiffStyle(overall.min, overall.max));
+        tiffSource.getView().then((viewConfig) => {
+            const extent3857 = transformExtent(viewConfig.extent, 'EPSG:25832', 'EPSG:3857');
+            
+            const tiffLayer = new WebGLTileLayer({
+                source: tiffSource,
+                title: sourceName,
+                name: sourceName, 
+                style: createGeoTiffStyle(13, 32), 
+                opacity: 1
+            });
+
+            tiffLayer.bbox = extent3857;
+            const localDgmData = { 
+              bbox: extent3857, 
+              min: 13,   
+              max: 32, 
+              layer: tiffLayer 
+            };
+            
+            if (dgmGroup) dgmGroup.getLayers().push(tiffLayer);
+            activeDgmRasterData.push(localDgmData);
+            activeDgmRasterLayers.push(tiffLayer);
+            const overall = getOverallDgmMinMax();
+            activeDgmRasterData.forEach(d => {
+              d.layer.setStyle(createGeoTiffStyle(overall.min, overall.max));
+            });
+
+            map.getView().fit(extent3857, { duration: 1000 });
+            tiffLayer.getSource().refresh();
+            
+            if (typeof layerSwitcher !== 'undefined') layerSwitcher.render();
         });
-
-        // Zoom
-        map.getView().fit(extent3857, { duration: 1000 });
-
-        // Force Refresh: Manchmal braucht WebGL nach dem Laden einen Trigger
-        tiffLayer.getSource().refresh();
-        
-        if (typeof layerSwitcher !== 'undefined') layerSwitcher.render();
-    });
-}  
-//Shapefile-Logik (ZIP)
+      }  
+      // ==========================================
+      // 2. SHAPEFILE-LOGIK (ZIP) -> Unverändert (lädt immer rot/schreibgeschützt)
+      // ==========================================
       else if (fileEnd === 'zip') {
         const reader = new FileReader();
         reader.onload = async (e) => {
           try {
             const buffer = e.target.result;
-            // shpjs macht aus dem Buffer ein GeoJSON-Objekt
             const geojson = await shp(buffer);
             const sourceName = `shapefile:${zaehlerGeojson}_${fileName}`;
             zaehlerGeojson++;
 
-            // Da shp() ein GeoJSON liefert, nutzen wir den GeoJSON-Format-Reader
             const features = new GeoJSON().readFeatures(geojson, {
               featureProjection: 'EPSG:3857'
             });
@@ -1091,9 +1095,11 @@ if (fileEnd === 'tif' || fileEnd === 'tiff') {
             alert(`Fehler beim Laden des Shapefiles: ${file.name}`);
           }
         };
-        reader.readAsArrayBuffer(file); // ZIP muss binär gelesen werden!
+        reader.readAsArrayBuffer(file); 
       } 
-      // 👉 Bestehende Text-Logik (KML, GeoJSON)
+      // ==========================================
+      // 3. TEXT-LOGIK (KML, GeoJSON) -> MIT NEUER WEICHE
+      // ==========================================
       else {
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -1109,7 +1115,6 @@ if (fileEnd === 'tif' || fileEnd === 'tiff') {
             if (fileName === 'exp_allgm_fsk') {
               format = new GeoJSON();
               sourceName = `fsk`;
-              
             } else  {
               format = new GeoJSON();
               sourceName = `GeoJson:${zaehlerGeojson}_${fileName}`;
@@ -1121,7 +1126,29 @@ if (fileEnd === 'tif' || fileEnd === 'tiff') {
             const features = format.readFeatures(content, {
               featureProjection: 'EPSG:3857'
             });
-            addVectorLayerToMap(map, features, sourceName);
+
+            // 💡 DIE NEUE WEICHE: Nur GeoJSON/JSON bei aktiver Zeichenleiste abfangen
+            const istGeoJson = (fileEnd === 'geojson' || fileEnd === 'json');
+            
+            if (istGeoJson && istZeichenleisteAktiv()) {
+              // Pfad 1: Bearbeitungsmodus aktivieren (Gelb & Editierbar)
+              features.forEach((feature, index) => {
+                if (!feature.get('id')) {
+                  feature.set('id', `imported_${Date.now()}_${index}`);
+                }
+                calculateMetrics(feature); // Berechnet direkt alle Geometrie-Attribute
+              });
+
+              drawSource.addFeatures(features);
+              map.getView().fit(drawSource.getExtent(), { duration: 1000, padding: [50, 50, 50, 50] });
+              console.log(`"${file.name}" direkt in den Bearbeitungsmodus (drawSource) geladen.`);
+            } 
+            else {
+              // Pfad 2: Normalzustand (Rot & Schreibgeschützt als separater Layer)
+              addVectorLayerToMap(map, features, sourceName);
+              console.log(`"${file.name}" als normalen Vektor-Layer hinzugefügt.`);
+            }
+
           } catch (err) {
             console.error("Fehler beim Parsen:", err);
             alert(`Fehler beim Laden von ${file.name}`);

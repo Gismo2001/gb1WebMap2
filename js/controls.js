@@ -36,6 +36,10 @@ import Permalink from 'ol-ext/control/Permalink';
 import WMSCapabilities from 'ol-ext/control/WMSCapabilities';
 import { deactivateDrawing } from './myDraw.js'; 
 
+import VectorLayer from 'ol/layer/Vector';
+
+import { drawSource,drawLayer } from './myDraw.js'; // 💡 Import der drawSource für die Reanimation des Layers
+
 
 let searchPlaceControl = null; //Erstmal die Ortssuche auf null
 export let isTableActive = false;
@@ -273,6 +277,7 @@ export function createSubBarI(map) {
     controls: [gpsToggleBtn, ptnToogleBtn, fileToogleBtn, permalinkToggleBtn] 
   });
 }
+
 // Hilfsfunktion (falls noch nicht vorhanden), um zu prüfen ob das Popout-Fenster wirklich offen ist
 function isTableChildWindowOpen() {
   // Wenn ein Kind-Fenster aktiv ist, ist die Tabelle ausgelagert
@@ -460,11 +465,30 @@ export function createSubBarT(map) {
           drawBtns.classList.add('is-running');
           // 💡drawLayer im Layer-Switcher einschalten
           if (drawLayer) {
+          // Fall A: Layer existiert auf der Karte, nur einschalten
           drawLayer.set('displayInLayerSwitcher', true);
-          // Dem Switcher signalisieren, dass sich die Layer-Struktur geändert hat
-          map.changed(); 
-          }
+          drawLayer.setVisible(true);
+        } else {
+          // Fall B: 💡 Der Layer wurde vom Switcher gelöscht.
+          // Wir bauen ihn hier einfach live neu und binden ihn an deine drawSource!
+          
+          // Stelle sicher, dass VectorLayer oben in controls.js aus 'ol/layer/Vector' importiert ist.
+          // Falls nicht, kannst du es auch so schreiben:
+          // import VectorLayer from 'ol/layer/Vector';
+          
+          const recreatedDrawLayer = new VectorLayer({ // oder 'new VectorLayer({' falls importiert
+            source: drawSource, // Deine drawSource aus myDraw.js (die ist ja bekannt)
+            title: 'drawLayer',
+            name: 'drawLayer',
+            displayInLayerSwitcher: true,
+            visible: true
+          });
+          
+          map.addLayer(recreatedDrawLayer);
+          console.log("drawLayer wurde erfolgreich reanimiert und an die drawSource gekoppelt!");
         }
+        }
+        
         
         if (mainTableBtnInstance) {
           const mainBtnEl = mainTableBtnInstance.element.querySelector('button') || mainTableBtnInstance.element;

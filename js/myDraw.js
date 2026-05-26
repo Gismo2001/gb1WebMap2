@@ -9,8 +9,8 @@ import { GeoJSON } from 'ol/format'; // 💡 Stelle sicher, dass GeoJSON oben im
 
 
 let mapInstance = null;
-let drawSource = null;
-let drawLayer = null;
+export let drawSource = null;
+export let drawLayer = null;
 
 let drawInteraction = null;
 let modifyInteraction = null;
@@ -177,7 +177,7 @@ function updateDrawInteraction(type) {
 }
 
 // 💡 NEU: Zentrale Hilfsfunktion zur Berechnung von Länge, Fläche und Typ
-function calculateMetrics(feature) {
+export function calculateMetrics(feature) {
   const geometry = feature.getGeometry();
   if (!geometry) return;
   
@@ -289,4 +289,14 @@ export function exportDrawFeatures() {
   URL.revokeObjectURL(url);
   
   console.log("GeoJSON-Export erfolgreich angestoßen.");
+}
+
+// Füge das in deine myDraw.js ein und exportiere es:
+export function istZeichenleisteAktiv() {
+  const drawBar = document.getElementById('draw-bar'); // 💡 Passe die ID an deine HTML-Zeichenleiste an
+  
+  if (!drawBar) return false;
+  
+  // Prüft, ob die Leiste im CSS NICHT auf "none" steht und NICHT die Klasse "hidden" hat
+  return drawBar.style.display !== 'none' && !drawBar.classList.contains('hidden');
 }

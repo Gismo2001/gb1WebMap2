@@ -82,14 +82,12 @@ function setupDrawUi() {
   }
 }
 // Wechselt den Zeichenmodus basierend auf dem ausgewählten Typ
-
-
 function updateDrawInteraction(type) {
   // 1. Vorherige Interaktionen IMMER komplett von der Karte entfernen
   if (drawInteraction) { mapInstance.removeInteraction(drawInteraction); drawInteraction = null; }
   if (snapInteraction) { mapInstance.removeInteraction(snapInteraction); snapInteraction = null; }
   if (deleteInteraction) { mapInstance.removeInteraction(deleteInteraction); deleteInteraction = null; }
-  if (translateInteraction) { mapInstance.removeInteraction(translateInteraction); translateInteraction = null; } // 💡 NEU
+  if (translateInteraction) { mapInstance.removeInteraction(translateInteraction); translateInteraction = null; } 
 
   // Fall A: Navigation / Hand-Symbol aktiv
   if (type === 'None') {
@@ -98,27 +96,21 @@ function updateDrawInteraction(type) {
     return;
   }
 
-  // 💡 Fall B: NEU - Löschmodus aktiv
+  // Fall B: Löschmodus aktiv
   if (type === 'Delete') {
     if (modifyInteraction) modifyInteraction.setActive(false); // Modify pausieren
     
-    // Select-Interaktion erstellen, die NUR auf unseren drawLayer reagiert
     deleteInteraction = new Select({
       layers: [drawLayer],
-      style: null // Verhindert, dass OpenLayers das Objekt beim Anklicken blau einfärbt
+      style: null 
     });
 
-    // Sobald ein Objekt ausgewählt wird, feuert dieses Event
     deleteInteraction.on('select', function (e) {
       const selectedFeatures = e.target.getFeatures();
       
       if (selectedFeatures.getLength() > 0) {
         const featureToDelete = selectedFeatures.item(0);
-        
-        // Objekt aus der Source löschen
         drawSource.removeFeature(featureToDelete);
-        
-        // Die Auswahl sofort wieder leeren, damit das System bereit für den nächsten Klick ist
         selectedFeatures.clear();
         console.log("Objekt erfolgreich gelöscht.");
       }
@@ -128,34 +120,32 @@ function updateDrawInteraction(type) {
     console.log("Löschmodus aktiv. Klicke auf ein Objekt zum Entfernen.");
     return;
   }
-// 💡 Fall D: NEU - Verschieben-Modus aktiv
+
+  // Fall D: Verschieben-Modus aktiv
   if (type === 'Translate') {
     if (modifyInteraction) modifyInteraction.setActive(false); // Normales Modify pausieren
-
-    // Translate-Interaktion erstellen, die NUR auf unseren drawLayer reagiert
+    
     translateInteraction = new Translate({
       layers: [drawLayer]
     });
 
-    // optional: Nach dem Verschieben die Attribute (z.B. Punkt-Koordinaten) neu berechnen!
     translateInteraction.on('translateend', function (e) {
       const translatedFeatures = e.features.getArray();
       translatedFeatures.forEach(feature => {
-        calculateMetrics(feature); // Aktualisiert die UTM/WGS84-Koordinaten bei Punkten!
+        calculateMetrics(feature); 
       });
       console.log("Objekt(e) erfolgreich verschoben und Attribute aktualisiert.");
     });
-
     mapInstance.addInteraction(translateInteraction);
     console.log("Verschiebe-Modus aktiv. Ziehe ein Objekt mit gedrückter Maustaste.");
     return;
   }
 
+  // ==========================================
   // Fall C: Normales Zeichnen (Point, Line, Polygon...)
-  // ... dein bestehender Code für Draw und Snap
-  // Fall C: Ein normales Zeichenwerkzeug (Point, Line, etc.) wurde gewählt
+  // ==========================================
   if (modifyInteraction) modifyInteraction.setActive(true);
-    
+  
   drawInteraction = new Draw({
     source: drawSource,
     type: type,
@@ -163,17 +153,28 @@ function updateDrawInteraction(type) {
 
   drawInteraction.on('drawend', function (event) {
     const feature = event.feature;
-    const currentId = drawSource.getFeatures().length + 1;
-    feature.set('id', currentId);
+    
+    // 💡 1. Eine absolut eindeutige ID generieren (Kombination aus Zeitstempel & Zufall)
+    const eindeutigeId = `draw_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    
+    // 💡 2. Für OpenLayers intern setzen (wichtig für interne Suchen)
+    feature.setId(eindeutigeId);
+    
+    // 💡 3. In die Attribute schreiben (wichtig für deinen GeoJSON-Export!)
+    feature.set('id', eindeutigeId);
+    feature.set('erstellt_am', new Date().toISOString().slice(0, 10));
+    feature.set('zeichnentyp', type); // Speichert z.B. 'Polygon' oder 'Point' im Datensatz
+
+    // 4. Metriken berechnen (Fläche, UTM-Koordinaten etc.)
     calculateMetrics(feature);
+    
+    console.log(`Neues Objekt gezeichnet. ID vergeben: ${eindeutigeId}`);
   });
 
   mapInstance.addInteraction(drawInteraction);
-
   snapInteraction = new Snap({ source: drawSource });
   mapInstance.addInteraction(snapInteraction);
 }
-
 // 💡 NEU: Zentrale Hilfsfunktion zur Berechnung von Länge, Fläche und Typ
 export function calculateMetrics(feature) {
   const geometry = feature.getGeometry();
@@ -223,12 +224,10 @@ export function calculateMetrics(feature) {
 export function isDrawingActive() {
   return !!(drawInteraction && drawInteraction.getActive());
 }
-
 // Gibt die VectorSource zurück
 export function getDrawSource() {
   return drawSource;
 }
-
 // Zeichenmodus zurücksetzen
 export function deactivateDrawing() {
   if (mapInstance) {

@@ -1254,13 +1254,11 @@ function buildPopupContent(featureOrProps, layerName) {
   // OL-Feature ODER normales Objekt
   // =====================================================
   const isOlFeature = typeof featureOrProps.getProperties === 'function';
-  
   const daten = isOlFeature ? featureOrProps.getProperties(): featureOrProps;
   let html = "";
 
-  // =====================================================
+  
   // Überschrift
-  // =====================================================
   const normalizedLayerName = layerName.toLowerCase();
   if (normalizedLayerName === 'fsk') {
     const ueberschrift = daten.Eig1 ? `Eigentümer: ${daten.Eig1}` : 'Keine Bezeichnung';
@@ -1278,17 +1276,17 @@ function buildPopupContent(featureOrProps, layerName) {
     if (daten.tile_id) {
       html += `<strong>Kachel: ${daten.tile_id}</strong><br>`;
     }
-} else {
+  } else {
     // 1. Priorisierte Suchbegriffe (Wortbestandteile) definieren
     const preferredKeys = [
       'name',
       'bezeich', // deckt bezeich, bezeichnung, bezeichnung_neu etc. ab
       'titel',
       'label',
-      'typ',
-      'nummer',
-      'objectid',
       'id',
+      'objectid',
+      'nummer',
+      'typ',
       'ebene'
     ];
 

@@ -73,15 +73,13 @@ function setupDrawUi() {
       updateDrawInteraction(type);
     });
   });
-  // 💡 NEU: Event-Listener für den Export-Button
+  //Event-Listener für den Export-Button
   const exportBtn = document.getElementById('draw-export');
   if (exportBtn) {
     exportBtn.addEventListener('click', () => {
       exportDrawFeatures();
     });
   }
-
-
 }
 // Wechselt den Zeichenmodus basierend auf dem ausgewählten Typ
 
@@ -255,41 +253,54 @@ export function deactivateDrawing() {
 }
 
 
-
 export function exportDrawFeatures() {
   if (!drawSource || drawSource.getFeatures().length === 0) {
     alert("Es gibt keine gezeichneten Objekte zum Exportieren!");
     return;
   }
 
-  // 1. OpenLayers GeoJSON-Formatierer initialisieren
   const format = new GeoJSON();
-
-  // 2. Features in einen GeoJSON-String umwandeln
-  // 💡 Wichtig: Wir sagen OpenLayers, dass die Daten von EPSG:3857 (Karte) nach EPSG:4326 (Standard-GeoJSON) konvertiert werden sollen
   const geoJsonString = format.writeFeatures(drawSource.getFeatures(), {
     featureProjection: 'EPSG:3857',
     dataProjection: 'EPSG:4326'
   });
 
-  // 3. Den String in eine Datei umwandeln (Blob) und den Download im Browser triggern
-  const blob = new Blob([geoJsonString], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  
-  const a = document.createElement('a');
-  a.href = url;
-  // Dateiname mit aktuellem Zeitstempel versehen
   const timestamp = new Date().toISOString().slice(0, 10);
-  a.download = `karte_zeichnungen_${timestamp}.geojson`;
   
-  // Klick simulieren und aufräumen
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  
-  console.log("GeoJSON-Export erfolgreich angestoßen.");
+  // Konfiguration für den Windows-Dialog
+  const options = {
+    suggestedName: `karte_zeichnungen_${timestamp}.geojson`,
+    types: [{
+      description: 'GeoJSON-Datei',
+      accept: { 'application/json': ['.geojson', '.json'] }
+    }]
+  };
+
+  // 💡 Die "FileReader"-Entsprechung mit .then() statt async/await:
+  window.showSaveFilePicker(options)
+    .then((fileHandle) => {
+      // 1. Datei-Zugriff erfolgreich geöffnet, jetzt "Writer" erstellen
+      return fileHandle.createWritable();
+    })
+    .then((writer) => {
+      // 2. Hier haben wir unseren "Writer" (Pendant zum Reader)
+      // Wir schreiben den String hinein und schließen den Stream danach
+      writer.write(geoJsonString)
+        .then(() => writer.close())
+        .then(() => {
+          console.log("Datei erfolgreich über Windows-Dialog geschrieben!");
+        });
+    })
+    .catch((err) => {
+      // Fehlerbehandlung (z.B. wenn der Nutzer "Abbrechen" klickt)
+      if (err.name === 'AbortError') {
+        console.log("Nutzer hat den Speichern-Dialog abgebrochen.");
+      } else {
+        console.error("Fehler beim Schreibvorgang:", err);
+      }
+    });
 }
+
 
 // Füge das in deine myDraw.js ein und exportiere es:
 export function istZeichenleisteAktiv() {

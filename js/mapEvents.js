@@ -287,6 +287,7 @@ export function initMapClick(map) {
         const baseParams = {
           QUERY_LAYERS: layer.getSource().getParams().LAYERS,
           LAYERS: layer.getSource().getParams().LAYERS,
+          FEATURE_COUNT: 10 // 💡 NEU: Fordert bis zu 10 überlagernde Objekte vom WMS an!
         };
         function requestFeatureInfo(infoFormat) {
           const url = layer.getSource().getFeatureInfoUrl(
@@ -350,52 +351,42 @@ export function initMapClick(map) {
 
       if (isTableEnabled()) {
         const firstLayerData = currentClickResults[layerNames[0]];
-        const firstItem =  firstLayerData.data[0];
-        const clickedFeatureData =  firstItem.properties || firstItem;
+        // 💡 Alle gefundenen Features dieses Layers sauber mappen (nicht nur das nullte!)
+        const allFeaturesOfLayer = firstLayerData.data.map(item => item.properties || item);
+        const firstItem = firstLayerData.data[0];
+        const clickedFeatureData = firstItem.properties || firstItem;
+        
         const selector = getTableDocument().getElementById('layer-selector');
         const currentSelectedLayer = selector ? selector.value : "unknown";
         
         if (typeof table !== 'undefined' && table && currentSelectedLayer === layerNames[0]) {
-          
           const idKey =
-  clickedFeatureData.OBJECTID
-    ? 'OBJECTID'
-    : clickedFeatureData.ID_con
-    ? 'ID_con'
-    : clickedFeatureData.ID
-    ? 'ID'
-    : clickedFeatureData.objectid
-    ? 'objectid'
-    : clickedFeatureData.id
-    ? 'id'
-    : null;
+            clickedFeatureData.OBJECTID ? 'OBJECTID' :
+            clickedFeatureData.ID_con ? 'ID_con' :
+            clickedFeatureData.ID ? 'ID' :
+            clickedFeatureData.objectid ? 'objectid' :
+            clickedFeatureData.id ? 'id' : null;
 
-    if (!idKey) {
-  console.warn('Kein ID-Key gefunden');
-  return;
-}
-
-const featureId =
-clickedFeatureData[idKey];
-const rows = table.searchRows(idKey, "=", featureId);
-   if (rows.length > 0) {
-    const targetRow = rows[0];  
-    table.deselectRow();
-    targetRow.select();
-    table.scrollToRow(targetRow, "center", false);
-    highlightFeatureForRow(clickedFeatureData);
-    return; 
-  } 
-}
-updateSelector(layerNames);
-console.log(isTableEnabled & "::" & isTableActive)
- showTableDebounced(  
-  firstLayerData.data.map(    
-    item => item.properties || item  
-  )
+          if (idKey) {
+            const featureId = clickedFeatureData[idKey];
+            const rows = table.searchRows(idKey, "=", featureId);
+            if (rows.length > 0) {
+              const targetRow = rows[0];  
+              table.deselectRow();
+              targetRow.select();
+              table.scrollToRow(targetRow, "center", false);
+              highlightFeatureForRow(clickedFeatureData);
+              return; 
+            } 
+          }
+        }
         
-);
-       
+        updateSelector(layerNames);
+        
+        // 💡 JETZT ÜBERGEBEN WIR DIE KOMPLETTE LISTE AN DIE TABELLE:
+        // Dadurch tauchen sowohl der Kanal als auch die Schleuse als Zeilen in deiner Tabelle auf!
+        showTableDebounced(allFeaturesOfLayer);
+        
       } else {
         handleClickResult(currentClickResults, coord, map);
       }
@@ -1525,7 +1516,7 @@ modal.onclick = (e) => {
       'georeference',
       'gml',
       'wkt',
-      'wkb',
+      'wkb',      
     ];
 
     const isGeometry = geometryKeywords.some(keyword => lowerKey.includes(keyword));

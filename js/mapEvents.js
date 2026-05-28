@@ -5,7 +5,8 @@ import { isTableEnabled, isTableActive } from './controls.js';
 import GeoTIFF from 'ol/source/GeoTIFF';
 import GeoTIFFSource from 'ol/source/GeoTIFF';
 import WebGLTileLayer from 'ol/layer/WebGLTile';
-import { transformExtent } from 'ol/proj';
+
+import { toLonLat, transform, fromLonLat, transformExtent } from 'ol/proj';
 
 import { EXCLUDED_LAYERS } from './config.js';
 
@@ -401,7 +402,97 @@ console.log(isTableEnabled & "::" & isTableActive)
     });
   });
   map.on('pointermove', handleCombinedPointerMove);
+ 
+// 💡 Rechtsklick-Event auf der Karte registrieren
+map.getViewport().addEventListener('contextmenu', function (event) {
+  event.preventDefault(); // Standard-Browser-Menü blockieren
+
+  // 1. Koordinaten berechnen
+  const pixel = map.getEventPixel(event);
+  const koordinaten = map.getCoordinateFromPixel(pixel);
+
+  // 2. Altes Kontextmenü entfernen, falls noch eins offen ist
+  const altesMenue = document.getElementById('custom-context-menu');
+  if (altesMenue) altesMenue.remove();
+
+  // 3. Das neue Menü-Element (Container) erstellen
+  const menu = document.createElement('div');
+  menu.id = 'custom-context-menu';
   
+  // Positioniere das Menü exakt an der Mausposition (Nutze event.clientX/Y)
+  menu.style.position = 'fixed';
+  menu.style.left = `${event.clientX}px`;
+  menu.style.top = `${event.clientY}px`;
+  menu.style.zIndex = '10000'; // Sicherstellen, dass es über der Karte liegt
+
+  // 4. Menüpunkt: "Koordinaten anzeigen"
+  const itemKoordinaten = document.createElement('div');
+  itemKoordinaten.className = 'context-menu-item';
+  itemKoordinaten.innerHTML = '<i class="fa fa-map-marker" aria-hidden="true"></i> Koordinaten anzeigen';
+  
+  // Klick-Logik für den Menüpunkt
+  itemKoordinaten.addEventListener('click', () => {
+    // Hier deine Aktion: z.B. ein schönes Popup öffnen oder in die Zwischenablage kopieren
+    alert(`Koordinaten:\nX: ${koordinaten[0].toFixed(2)}\nY: ${koordinaten[1].toFixed(2)}`);
+    menu.remove(); // Nach Klick Menü schließen
+  });
+  menu.appendChild(itemKoordinaten);
+
+  // 💡 HIER KANNST DU SPÄTER WEITERE PUNKTE ANHÄNGEN:
+  const itemNavigate = document.createElement('div');
+  itemNavigate.className = 'context-menu-item';
+  itemNavigate.innerHTML = '<i class="fa fa-location-arrow"></i> Google Maps Navigation';
+  itemNavigate.addEventListener('click', () => { 
+    // --- Google Maps Navigation ---
+    // 💡 Wir nutzen die 'koordinaten'-Variable (EPSG:3857) von weiter oben
+    // Stelle sicher, dass 'transform' oben aus 'ol/proj' importiert ist!
+    var coord4326 = transform(koordinaten, 'EPSG:3857', 'EPSG:4326');
+    var lat = coord4326[1];
+    var lon = coord4326[0];
+    
+    // 💡 Offizielle Google Maps URL für die Navigation zu einer Koordinate:
+    var url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
+    
+    window.open(url, '_blank');
+
+    menu.remove(); // 💡 Menü nach dem Klick schließen!
+  }); // 💡 Hier war eine schließende Klammer zu viel/falsch
+  menu.appendChild(itemNavigate);
+  
+  // 💡 HIER DER NÄCHSTE PUNKT: Google Street View
+  const itemStreetView = document.createElement('div');
+  itemStreetView.className = 'context-menu-item';
+  itemStreetView.innerHTML = '<i class="fa fa-street-view"></i> Street View öffnen';
+  itemStreetView.addEventListener('click', () => { 
+    // Wir nutzen wieder die transformierten WGS84-Koordinaten
+    var coord4326 = transform(koordinaten, 'EPSG:3857', 'EPSG:4326');
+    var lat = coord4326[1];
+    var lon = coord4326[0];
+    
+    // 💡 Offizielle Google URL, um Street View direkt an einer Koordinate zu starten:
+    var url = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lon}`;
+    
+    window.open(url, '_blank');
+    menu.remove(); // Menü nach dem Klick schließen
+  });
+  menu.appendChild(itemStreetView);
+  // 5. Das Menü an den Body der Seite anfügen
+  document.body.appendChild(menu);
+
+  // 6. Automatisches Schließen, wenn man irgendwo anders hinklickt
+  const schliesseMenue = (e) => {
+    if (!menu.contains(e.target)) {
+      menu.remove();
+      document.removeEventListener('click', schliesseMenue);
+      document.removeEventListener('contextmenu', schliesseMenue);
+    }
+  };
+  // Lauscht auf Links- oder erneuten Rechtsklick außerhalb des Menüs
+  setTimeout(() => {
+    document.addEventListener('click', schliesseMenue);
+    document.addEventListener('contextmenu', schliesseMenue);
+  }, 10);
+});
 }
 
 function handleCombinedPointerMove(evt) {
@@ -522,13 +613,12 @@ export function getAllLayers(layerGroup, parentVisible = true, groupTitle = null
 
   layerGroup.getLayers().forEach((layer) => {
     const isVisible = parentVisible && layer.getVisible();
-
     const name = (layer.get('name') || '').toLowerCase();
     const title = (layer.get('title') || '').toLowerCase();
 
-    // 👉 Ausschluss prüfen
-    if (EXCLUDED_LAYERS.includes(name) || EXCLUDED_LAYERS.includes(title)) {
-      return;
+    // 💡 Beide Prüfungen in einem einzigen if vereint:
+    if (!isVisible || EXCLUDED_LAYERS.includes(name) || EXCLUDED_LAYERS.includes(title)) {
+      return; // Überspringen
     }
 
     if (layer.getLayers) {
@@ -1431,7 +1521,11 @@ modal.onclick = (e) => {
       'boundingbox',
       'bbox',
       'koordinat', 
-      'origin_layer'
+      'origin_layer',
+      'georeference',
+      'gml',
+      'wkt',
+      'wkb',
     ];
 
     const isGeometry = geometryKeywords.some(keyword => lowerKey.includes(keyword));

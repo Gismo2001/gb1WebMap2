@@ -70,7 +70,7 @@ html, body {
 
   .ol-search input {
     width: 60vw;  
-    font-size: 16px;
+    font-size: 12px;
   }
 
   .ol-search ul.autocomplete {
@@ -512,7 +512,7 @@ html, body {
 
   .ol-search input {
     width: 180px !important;
-    font-size: 14px !important;
+    font-size: 12px !important;
   }
 
   .ol-search ul.autocomplete {
@@ -709,4 +709,35 @@ html, body {
   #wfs-loader input {
     width: 140px; /* Etwas schmaler im Querformat, um Platz zu sparen */
   }
+}
+
+#custom-context-menu {
+  background-color: #ffffff;
+  border: 1px solid #cccccc;
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+  border-radius: 1px;
+  padding: 1px 0;
+  min-width: 160px;
+  font-family: Arial, sans-serif;
+  font-size: 12px;
+}
+
+.context-menu-item {
+  padding: 4px 4px;
+  cursor: pointer;
+  color: #333333;
+  display: flex;
+  align-items: center;
+  gap: 8px; /* Abstand zwischen Icon und Text */
+}
+
+.context-menu-item i {
+  color: #555555;
+  width: 14px;
+  text-align: center;
+}
+
+.context-menu-item:hover {
+  background-color: #f0f0f0;
+  color: #000000;
 }

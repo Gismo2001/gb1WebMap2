@@ -462,7 +462,7 @@ export function createExpBwSleLayer() {
     permalink: 'sle',
     style: SleStyle,
     opacity: 0.7,
-    visible: false,
+    visible: true,
   });
 }
 export function createExpBwWehLayer() {

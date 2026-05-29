@@ -1514,6 +1514,7 @@ modal.onclick = (e) => {
       'koordinat', 
       'origin_layer',
       'georeference',
+      'position',
       'gml',
       'wkt',
       'wkb',      

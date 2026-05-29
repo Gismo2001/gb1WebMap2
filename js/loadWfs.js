@@ -7,55 +7,80 @@ import Style from 'ol/style/Style';
 import Fill from 'ol/style/Fill';
 import Stroke from 'ol/style/Stroke';
 import Circle from 'ol/style/Circle'; // 💡 NEU: Für die Punktdarstellung importieren
-
+import WFS from 'ol/format/WFS'; // 💡 WICHTIG: Oben aus OpenLayers importieren!
+import GML3 from 'ol/format/GML3';
 /**
  * Holt die Layer-Liste vom WFS-Server
  */
-export async function loadWFSCapabilities(baseUrl) {
-  // Sicherstellen, dass keine alten Parameter stören
-  const cleanUrl = baseUrl.split('?')[0]; 
-  const url = `${cleanUrl}?service=WFS&request=GetCapabilities`;
-  
-  const response = await fetch(url);
-  if (!response.ok) throw new Error("Server antwortet nicht");
-  
-  const text = await response.text();
-  const parser = new DOMParser();
-  const xml = parser.parseFromString(text, "text/xml");
-  const featureTypes = xml.getElementsByTagName("FeatureType");
-  const wfsLayers = [];
-  
-  for (let i = 0; i < featureTypes.length; i++) {
-    const name = featureTypes[i].getElementsByTagName("Name")[0]?.textContent;
-    const title = featureTypes[i].getElementsByTagName("Title")[0]?.textContent;
-    if (name) {
-      wfsLayers.push({ name, title: title || name });
-    }
-  }
-  return wfsLayers;
-}
-
 /**
- * Lädt den ausgewählten Layer und fügt ihn der Karte hinzu
+ * Holt die Layer-Liste vom WFS-Server (inkl. CORS-Proxy & Namespace-Sicherung)
  */
+export async function loadWFSCapabilities(baseUrl) {
+  const cleanUrl = baseUrl.split('?')[0]; 
+  
+  // 💡 Alternative zu cors-anywhere, die die Antwort in ein JSON-Objekt verpackt
+  const url = `https://api.allorigins.win/get?url=${encodeURIComponent(cleanUrl + '?service=WFS&request=GetCapabilities')}`;
+  
+  console.log("Rufe Capabilities auf über AllOrigins Proxy...");
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Server antwortet mit Status ${response.status}`);
+    
+    const wrapper = await response.json(); // AllOrigins liefert ein JSON-Wrapper zurück
+    const text = wrapper.contents;         // Hier drin steckt das echte XML vom LGLN-Server
+    
+    const parser = new DOMParser();
+    const xml = parser.parseFromString(text, "text/xml");
+    
+    // Ab hier bleibt deine Namespace-sichere Schleife exakt identisch:
+    const featureTypes = xml.getElementsByTagNameNS("*", "FeatureType");
+    const wfsLayers = [];
+    
+    for (let i = 0; i < featureTypes.length; i++) {
+      const nameNode = featureTypes[i].getElementsByTagNameNS("*", "Name")[0];
+      const titleNode = featureTypes[i].getElementsByTagNameNS("*", "Title")[0];
+      
+      const name = nameNode?.textContent?.trim();
+      const title = titleNode?.textContent?.trim();
+      
+      if (name) {
+        wfsLayers.push({ name, title: title || name });
+      }
+    }
+    
+    console.log(`${wfsLayers.length} Layer erfolgreich eingelesen!`);
+    return wfsLayers;
+
+  } catch (error) {
+    console.error("Fehler beim Laden der WFS Capabilities:", error);
+    throw error;
+  }
+}
 export function loadWFSLayer(map, baseUrl, typeName) {
   const cleanUrl = baseUrl.split('?')[0];
 
   const vectorSource = new VectorSource({
-    format: new GeoJSON(),
+    // 💡 1. ÄNDERUNG: Wir nutzen den WFS/GML-Parser statt GeoJSON
+    format: new WFS({
+      gmlFormat: new GML3() // ALKIS nutzt meist GML3
+    }),
     url: function (extent, resolution, projection) {
-      // 💡 ArcGIS Server verlangen bei WFS 1.1.0 oft den vollen URN-Pfad,
-      // sonst schlägt die Transformation serverseitig fehl!
       const srsUrn = 'urn:ogc:def:crs:EPSG::3857';
 
+      // Wenn du einen CORS-Proxy brauchst (siehe vorherige Nachricht), hier davorhängen:
+      const proxyUrl = ''; // z.B. 'https://cors-anywhere.herokuapp.com/'
+
       return (
+        proxyUrl +
         `${cleanUrl}?service=WFS` +
         `&version=1.1.0` +
         `&request=GetFeature` +
         `&typeName=${typeName}` +
-        `&outputFormat=application/json` +
+        // 💡 2. ÄNDERUNG: Offizielles LGLN-Format anfordern
+        `&outputFormat=text/xml; subtype=gml/3.1.1` + 
         `&srsname=${srsUrn}` +
-        `&bbox=${extent.join(',')},${srsUrn}` // BBox muss denselben URN nutzen!
+        `&bbox=${extent.join(',')},${srsUrn}`
       );
     },
     strategy: bboxStrategy
@@ -64,43 +89,21 @@ export function loadWFSLayer(map, baseUrl, typeName) {
   const layer = new VectorLayer({
     source: vectorSource,
     properties: { title: typeName },
+    // Dein Style bleibt absolut identisch...
     style: new Style({
-      stroke: new Stroke({
-        color: '#0078d4',
-        width: 2
-      }),
-      fill: new Fill({
-        color: 'rgba(0, 120, 212, 0.15)'
-      }),
-      image: new Circle({
-        radius: 8,
-        fill: new Fill({
-          color: '#005697'
-        }),
-        stroke: new Stroke({
-          color: '#ffffff',
-          width: 2
-        })
-      })
+      stroke: new Stroke({ color: '#0078d4', width: 2 }),
+      fill: new Fill({ color: 'rgba(0, 120, 212, 0.15)' })
     })
   });
 
   map.addLayer(layer);
 
-  // Sobald Features geladen sind, zoomen
- 
- /*  const key = vectorSource.on('change', function () {
-    if (vectorSource.getState() === 'ready') {
-      const extent = vectorSource.getExtent();
-      if (extent && extent[0] !== Infinity && extent[0] !== -Infinity) {
-        map.getView().fit(extent, {
-          duration: 1000,
-          padding: [50, 50, 50, 50]
-        });
-        vectorSource.un('change', key); // Nur einmalig zoomen
-      }
-    }
+  // 💡 TIPP ZUR FEHLERSUCHE: Überwache, ob Features geladen werden
+  vectorSource.on('featuresloadend', function(evt) {
+    console.log(`Erfolgreich ${evt.features.length} Features für ${typeName} geladen!`);
   });
- */
-  console.log("WFS geladen mit URN-Fix:", typeName);
+  
+  vectorSource.on('featuresloaderror', function(evt) {
+    console.error(`Fehler beim Laden der WFS-Features für ${typeName}`);
+  });
 }

@@ -258,7 +258,7 @@ export function showTable(data) {
       table = new Tabulator(tableElement, {
         data: uniqueData,
         height: "100%",
-        layout: "fitData",
+        layout: "fitDataStretch",
         persistenceID: "wms_table_" + normalizedName,
         movableColumns: true,
         placeholder: "Keine Objekte im Sichtbereich.",
@@ -782,12 +782,22 @@ export function detachTableWindow() { // Kein Parameter mehr nötig!
     }
 
     tableContainer.style.display = 'flex'; 
+    tableContainer.style.width = '100%';
+    tableContainer.style.minWidth = '0';
     tableContainer.style.height = '100vh'; 
 
     // Tabulator im neuen Fenster die Breite neu berechnen lassen
     setTimeout(() => {
         tableInstance.redraw(true);
-    }, 50);
+        requestAnimationFrame(() => {
+          tableInstance.redraw(true);
+          tableInstance.getColumns().forEach((col) => {
+            if (typeof col.getWidth === 'function' && col.getWidth()) {
+              col.setWidth(col.getWidth());
+            }
+          });
+        });
+    }, 100);
 
     const childSelector = tableChildWindow.document.getElementById('layer-selector');
     if (childSelector) {
@@ -848,6 +858,7 @@ function returnFromPopout() {
         tableContainer.style.display = 'flex';
         tableContainer.style.pointerEvents = 'auto';
         tableContainer.style.width = '100%';
+        tableContainer.style.minWidth = '0';
         tableContainer.style.flexBasis = '';
 
         tableChildWindow = null;

@@ -422,3 +422,26 @@ export {
     
 };
 
+
+/**
+ * Wandelt Dezimalgrad in das Format "Grad° Minuten' Sekunden'' Richtung" um
+ * @param {number} value - Die Dezimal-Koordinate (Lat oder Lon)
+ * @param {string} isLatOrLon - Entweder 'LAT' oder 'LON' für die Himmelsrichtung
+ */
+export function convertToDMS(value, isLatOrLon) {
+  const absValue = Math.abs(value);
+  const degrees = Math.floor(absValue);
+  const minutesNotTruncated = (absValue - degrees) * 60;
+  const minutes = Math.floor(minutesNotTruncated);
+  const seconds = Math.round((minutesNotTruncated - minutes) * 60);
+
+  // Himmelsrichtung bestimmen (Niedersachsen liegt immer im Norden und Osten)
+  let direction = "";
+  if (isLatOrLon === 'LAT') {
+    direction = value >= 0 ? "N" : "S";
+  } else {
+    direction = value >= 0 ? "E" : "W"; // "E" für East / Ost
+  }
+
+  return `${degrees}° ${minutes}' ${seconds}'' ${direction}`;
+}

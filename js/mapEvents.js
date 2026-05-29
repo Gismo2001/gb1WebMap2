@@ -47,6 +47,8 @@ import { drawSearchPoint } from './ptn.js';
 
 import { initDrawing, isDrawingActive } from './myDraw.js';
 
+import { convertToDMS } from './utils.js';
+
 
 let currentClickResults = {};
 let latestClickRequestId = 0;
@@ -416,19 +418,81 @@ map.getViewport().addEventListener('contextmenu', function (event) {
   menu.style.top = `${event.clientY}px`;
   menu.style.zIndex = '10000'; // Sicherstellen, dass es über der Karte liegt
 
-  // 4. Menüpunkt: "Koordinaten anzeigen"
+// --- 4. Menüpunkt: "Koordinaten anzeigen" (Mit Untermenü) ---
   const itemKoordinaten = document.createElement('div');
-  itemKoordinaten.className = 'context-menu-item';
-  itemKoordinaten.innerHTML = '<i class="fa fa-map-marker" aria-hidden="true"></i> Koordinaten anzeigen';
+  itemKoordinaten.className = 'context-menu-item has-submenu'; // 💡 Klasse für CSS-Hover
+  itemKoordinaten.innerHTML = `
+    <span><i class="fa fa-map-marker" aria-hidden="true"></i> Koordinaten anzeigen</span>
+    <i class="fa fa-chevron-right submenu-arrow"></i>
+  `;
   
-  // Klick-Logik für den Menüpunkt
-  itemKoordinaten.addEventListener('click', () => {
-    // Hier deine Aktion: z.B. ein schönes Popup öffnen oder in die Zwischenablage kopieren
-    alert(`Koordinaten:\nX: ${koordinaten[0].toFixed(2)}\nY: ${koordinaten[1].toFixed(2)}`);
-    menu.remove(); // Nach Klick Menü schließen
+  // Das Untermenü-Gefäß erstellen
+  const submenu = document.createElement('div');
+  submenu.className = 'context-submenu';
+
+  
+ // Die gewünschten EPSG-Systeme definieren (Jetzt inklusive DMS-Format)
+  const epsgSysteme = [
+    { code: 'EPSG:25832', label: 'ETRS89 / UTM 32N (25832)', digits: 2, type: 'standard' },
+    { code: 'EPSG:32632', label: 'WGS84 / UTM 32N (32632)', digits: 2, type: 'standard' },
+    { code: 'EPSG:4326',  label: 'WGS84 / Lat, Lon (Dezimalgrad)', digits: 5, type: 'standard', order: 'YX' },
+    { code: 'EPSG:4326',  label: 'WGS84 / Grad, Min, Sek (DMS)', type: 'DMS' }, // 💡 NEU: Das gewünschte Format
+    { code: 'EPSG:3857',  label: 'Web Mercator (3857)', digits: 2, type: 'standard' }
+  ];
+
+  epsgSysteme.forEach(sys => {
+    const subItem = document.createElement('div');
+    subItem.className = 'submenu-item';
+    subItem.innerText = sys.label;
+
+    subItem.addEventListener('click', (e) => {
+      e.stopPropagation();
+
+      // Koordinate transformieren
+      const transformierteKoordinaten = transform(koordinaten, 'EPSG:3857', sys.code);
+      let textToCopy = "";
+
+      // 💡 Hier prüfen wir, welches Format verlangt wird
+      if (sys.type === 'DMS') {
+        const lon = transformierteKoordinaten[0]; // X = Längengrad
+        const lat = transformierteKoordinaten[1]; // Y = Breitengrad
+        
+        const dmsLat = convertToDMS(lat, 'LAT');
+        const dmsLon = convertToDMS(lon, 'LON');
+        
+        // Formatiert das Ergebnis exakt als: 52° 58' 23'' N, 7° 36' 16'' E
+        textToCopy = `${dmsLat}, ${dmsLon}`;
+      } else {
+        // Klassische Dezimal- oder Metrische Ausgabe
+        if (sys.order === 'YX') {
+          textToCopy = `${transformierteKoordinaten[1].toFixed(sys.digits)}, ${transformierteKoordinaten[0].toFixed(sys.digits)}`;
+        } else {
+          textToCopy = `${transformierteKoordinaten[0].toFixed(sys.digits)}, ${transformierteKoordinaten[1].toFixed(sys.digits)}`;
+        }
+      }
+
+      // In die Zwischenablage kopieren
+      navigator.clipboard.writeText(textToCopy).then(() => {
+        subItem.innerHTML = `<i class="fa fa-check" style="color: green;"></i> Kopiert!`;
+        setTimeout(() => {
+          menu.remove();
+        }, 800);
+      }).catch(err => {
+        console.error("Fehler beim Kopieren: ", err);
+        alert(`Koordinaten: ${textToCopy}`);
+        menu.remove();
+      });
+    });
+
+    submenu.appendChild(subItem);
   });
+  // Untermenü an den Hauptpunkt hängen
+  itemKoordinaten.appendChild(submenu);
   menu.appendChild(itemKoordinaten);
 
+  
+  
+  
   // 💡 HIER KANNST DU SPÄTER WEITERE PUNKTE ANHÄNGEN:
   const itemNavigate = document.createElement('div');
   itemNavigate.className = 'context-menu-item';
@@ -1581,3 +1645,4 @@ modal.onclick = (e) => {
   content.innerHTML = tableHtml;
   modal.style.display = "flex";
 }
+

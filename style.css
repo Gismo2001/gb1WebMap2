@@ -741,3 +741,52 @@ html, body {
   background-color: #f0f0f0;
   color: #000000;
 }
+
+/* Erweitere deine bestehenden Kontextmenü-Styles um diese Regeln: */
+
+.context-menu-item.has-submenu {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative; /* Wichtig für die absolute Position des Untermenüs */
+}
+
+.submenu-arrow {
+  font-size: 10px;
+  color: #888888;
+  margin-left: 10px;
+}
+
+/* Das versteckte Untermenü */
+.context-submenu {
+  display: none; /* Standardmäßig unsichtbar */
+  position: absolute;
+  top: -5px;     /* Leicht nach oben versetzt für perfekten Abschluss */
+  left: 100%;    /* Setzt das Untermenü exakt rechts neben das Hauptmenü */
+  background-color: #ffffff;
+  border: 1px solid #cccccc;
+  box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  padding: 5px 0;
+  min-width: 220px;
+  z-index: 10001;
+}
+
+/* 💡 Der Zaubertrick: Wenn der Hauptpunkt gehovert wird, zeige das Untermenü */
+.context-menu-item.has-submenu:hover .context-submenu {
+  display: block;
+}
+
+/* Styling für die Unterpunkte */
+.submenu-item {
+  padding: 8px 15px;
+  cursor: pointer;
+  color: #333333;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.submenu-item:hover {
+  background-color: #f0f0f0;
+  color: #000000;
+}

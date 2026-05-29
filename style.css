@@ -760,3 +760,25 @@ div.ol-ctx-menu-container li.ol-ctx-menu-submenu > .ol-ctx-menu-container {
   color: #0b5fff !important;
 }
 
+/* 💡 Erlaubt dem OpenLayers-Viewport, dass das Menü über den Kartenrand hinausragen darf */
+.ol-viewport {
+  overflow: visible !important;
+}
+
+/* 💡 Zwingt das Hauptmenü, ausbrechende Inhalte (das Untermenü) anzuzeigen */
+div.ol-ctx-menu-container {
+  overflow: visible !important;
+  background: #ffffff !important;
+  color: #1f2937 !important;
+  border: 1px solid #dbe4ef !important;
+  padding: 2px !important;
+  font-family: inherit !important;
+  min-width: 120px !important;
+  z-index: 10000 !important;
+}
+
+/* Dein restliches Untermenü-Styling für die Breite */
+div.ol-ctx-menu-container li.ol-ctx-menu-submenu > .ol-ctx-menu-container {
+  border: 1px solid #dbe4ef !important;
+  min-width: 270px !important; /* Genug Platz für DMS */
+}

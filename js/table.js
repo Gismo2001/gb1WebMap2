@@ -16,6 +16,8 @@ export let table = null;
 let resizeObserver = null;
 let tableReady = false;
 let showTableTimeout;
+let lastTableData = [];
+let lastLayerName = 'unknown';
 
 
 import Style from 'ol/style/Style';
@@ -151,6 +153,7 @@ export function showTable(data) {
   // 👉 2. Layer & Daten bestimmen (KORREKTUR: Suche im tableDoc!)
   const selector = tableDoc.getElementById('layer-selector');
   const layerName = selector ? selector.value : "unknown";
+  lastLayerName = layerName;
   const normalizedName = layerName.toLowerCase();
   let idKey;
 
@@ -228,6 +231,8 @@ export function showTable(data) {
         return t && t[idKey] === val;
       });
     });
+
+  lastTableData = uniqueData;
   
   // =================================================================
   // 6. Tabellen-Logik: Absolut krisensicheres Instanz-Management
@@ -266,7 +271,12 @@ export function showTable(data) {
           columns: true,
           scroll: true,
         },
-        persistenceMode: "local", 
+        persistenceMode: "local",
+        resizableColumns: true,
+        columnDefaults: {
+          resizable: true,
+          headerSort: true,
+        },
         autoColumnsDefinitions: function(definitions) {
           definitions.forEach((column) => {
             column.formatter = function(cell) {
@@ -521,14 +531,15 @@ export function closeTable() {
 
   mapRef.updateSize();
 
-  if (tableChildWindow && !tableChildWindow.closed) {
-    tableChildWindow._closingFromApp = true;
+  const childWindow = tableChildWindow;
+  if (childWindow && !childWindow.closed) {
+    childWindow._closingFromApp = true;
     // Zuerst die Tabelle zurück in das Hauptfenster bringen,
     // damit sie nach Schließen des Popouts wieder verfügbar ist.
     returnFromPopout();
-    tableChildWindow.close();
-    tableChildWindow = null;
+    childWindow.close();
   }
+  tableChildWindow = null;
 
   deactivateTableToggle();
 }
@@ -778,6 +789,15 @@ export function detachTableWindow() { // Kein Parameter mehr nötig!
         tableInstance.redraw(true);
     }, 50);
 
+    const childSelector = tableChildWindow.document.getElementById('layer-selector');
+    if (childSelector) {
+      childSelector.addEventListener('change', () => {
+        if (typeof window.opener !== 'undefined' && window.opener && typeof window.opener.refreshTableFromSelector === 'function') {
+          window.opener.refreshTableFromSelector();
+        }
+      });
+    }
+
     const childCloseBtn = tableChildWindow.document.getElementById('close-table-btn');
     if (childCloseBtn) {
       childCloseBtn.addEventListener('click', () => {
@@ -825,13 +845,23 @@ function returnFromPopout() {
 
         // CSS wieder auf die Split-Größe zurücksetzen
         tableContainer.style.height = '50vh';
-        tableContainer.style.display = 'none';
-        tableContainer.style.pointerEvents = 'none';
-        tableContainer.style.width = '';
+        tableContainer.style.display = 'flex';
+        tableContainer.style.pointerEvents = 'auto';
+        tableContainer.style.width = '100%';
         tableContainer.style.flexBasis = '';
 
         tableChildWindow = null;
-        
+
+        if (typeof mapRef?.updateSize === 'function') {
+          mapRef.updateSize();
+        }
+
+        if (lastTableData.length > 0) {
+          setTimeout(() => {
+            showTable(lastTableData);
+          }, 0);
+        }
+
         console.log("Tabelle erfolgreich zurückgeholt.");
     }
 }

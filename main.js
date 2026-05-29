@@ -65,6 +65,15 @@ let activeTableInstance = null;
 let activeDgmRasterData = [];  
 let activeDomRasterData = [];  
 
+function refreshTableFromSelector() {
+  const clickResults = getClickResults();
+  const vectorResults = getVisibleVectorFeatures(map);
+  const combinedResults = { ...clickResults, ...vectorResults };
+  switchLayerData(combinedResults);
+}
+
+window.refreshTableFromSelector = refreshTableFromSelector;
+
 
 //Variable für die Split-Instanz, damit sie global zugänglich ist
 let splitInstance = null;
@@ -126,16 +135,10 @@ container.addEventListener('click', async function (event) {
   }
 });
   
-getTableDocument().getElementById('layer-selector').addEventListener('change', () => {
-  // 1. Hole WMS Klick-Daten
-  const clickResults = getClickResults();
-  // 2. Hole aktuelle Vektor-Daten (Bauw. L/P etc.)
-  const vectorResults = getVisibleVectorFeatures(map); // map muss hier verfügbar sein
-  // 3. Kombiniere beide
-  const combinedResults = { ...clickResults, ...vectorResults };
-  // 4. Update Tabelle
-  switchLayerData(combinedResults);
-});
+const mainSelector = document.getElementById('layer-selector');
+if (mainSelector) {
+  mainSelector.addEventListener('change', refreshTableFromSelector);
+}
 
 initTable(map);
 initPtn(map); 

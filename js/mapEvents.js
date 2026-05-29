@@ -48,6 +48,8 @@ import { drawSearchPoint } from './ptn.js';
 import { initDrawing, isDrawingActive } from './myDraw.js';
 
 import { convertToDMS } from './utils.js';
+import ContextMenu from 'ol-contextmenu';
+
 
 
 let currentClickResults = {};
@@ -396,157 +398,111 @@ export function initMapClick(map) {
   });
   map.on('pointermove', handleCombinedPointerMove);
  
-// 💡 Rechtsklick-Event auf der Karte registrieren
-map.getViewport().addEventListener('contextmenu', function (event) {
-  event.preventDefault(); // Standard-Browser-Menü blockieren
+// 💡 1. Overlay-Container einmalig für die Karte erstellen (falls noch nicht vorhanden)
+let contextMenuOverlay = map.getOverlayById('context-menu-overlay');
 
-  // 1. Koordinaten berechnen
-  const pixel = map.getEventPixel(event);
-  const koordinaten = map.getCoordinateFromPixel(pixel);
+if (!contextMenuOverlay) {
+  // Das HTML-Element für das Overlay erzeugen
+  const menuElement = document.createElement('div');
+  menuElement.id = 'custom-context-menu';
+  menuElement.style.position = 'absolute'; // Wichtig für Overlays!
+  menuElement.style.zIndex = '10000';
+  menuElement.style.overflow = 'visible';   // 💡 NEU: Erlaubt dem Untermenü, rechts herauszuragen!
 
-  // 2. Altes Kontextmenü entfernen, falls noch eins offen ist
-  const altesMenue = document.getElementById('custom-context-menu');
-  if (altesMenue) altesMenue.remove();
+  // Das OpenLayers Overlay-Objekt erstellen
+  contextMenuOverlay = new Overlay({
+    id: 'context-menu-overlay',
+    element: menuElement,
+    positioning: 'top-left', // Ecke, die an der Koordinate verankert wird
+     width: 180,
+    stopEvent: true          // Verhindert, dass Klicks im Menü auf die Karte durchgehen
+  });
 
-  // 3. Das neue Menü-Element (Container) erstellen
-  const menu = document.createElement('div');
-  menu.id = 'custom-context-menu';
-  
-  // Positioniere das Menü exakt an der Mausposition (Nutze event.clientX/Y)
-  menu.style.position = 'fixed';
-  menu.style.left = `${event.clientX}px`;
-  menu.style.top = `${event.clientY}px`;
-  menu.style.zIndex = '10000'; // Sicherstellen, dass es über der Karte liegt
+  map.addOverlay(contextMenuOverlay);
+}
 
-// --- 4. Menüpunkt: "Koordinaten anzeigen" (Mit Untermenü) ---
-  const itemKoordinaten = document.createElement('div');
-  itemKoordinaten.className = 'context-menu-item has-submenu'; // 💡 Klasse für CSS-Hover
-  itemKoordinaten.innerHTML = `
-    <span><i class="fa fa-map-marker" aria-hidden="true"></i> Koordinaten anzeigen</span>
-    <i class="fa fa-chevron-right submenu-arrow"></i>
-  `;
-  
-  // Das Untermenü-Gefäß erstellen
-  const submenu = document.createElement('div');
-  submenu.className = 'context-submenu';
+// 1. Instanz des Kontextmenüs erstellen
+const contextMenu = new ContextMenu({
+  width: 190,
+  defaultItems: false // Wir wollen keine Standard-Einträge, nur unsere eigenen
+});
 
-  
- // Die gewünschten EPSG-Systeme definieren (Jetzt inklusive DMS-Format)
+map.addControl(contextMenu);
+
+// 2. Event-Listener: Was passiert, wenn das Menü GEÖFFNET wird?
+contextMenu.on('open', function (evt) {
+  // Das Plugin liefert die exakte Karten-Koordinate im Event mit!
+  const koordinaten = evt.coordinate;
+
+  // Wir leeren das Menü bei jedem Öffnen, um es dynamisch für den Klickpunkt zu füllen
+  contextMenu.clear();
+
+  // --- UNTERMENÜ FÜR KOORDINATEN BAUEN ---
   const epsgSysteme = [
     { code: 'EPSG:25832', label: 'ETRS89 / UTM 32N (25832)', digits: 2, type: 'standard' },
     { code: 'EPSG:32632', label: 'WGS84 / UTM 32N (32632)', digits: 2, type: 'standard' },
-    { code: 'EPSG:4326',  label: 'WGS84 / Lat, Lon (Dezimalgrad)', digits: 5, type: 'standard', order: 'YX' },
-    { code: 'EPSG:4326',  label: 'WGS84 / Grad, Min, Sek (DMS)', type: 'DMS' }, // 💡 NEU: Das gewünschte Format
+    { code: 'EPSG:4326',  label: 'WGS84 / Lat, Lon (Dezimal)', digits: 5, type: 'standard', order: 'YX' },
+    { code: 'EPSG:4326',  label: 'WGS84 / Grad, Min, Sek (DMS)', type: 'DMS' },
     { code: 'EPSG:3857',  label: 'Web Mercator (3857)', digits: 2, type: 'standard' }
   ];
 
-  epsgSysteme.forEach(sys => {
-    const subItem = document.createElement('div');
-    subItem.className = 'submenu-item';
-    subItem.innerText = sys.label;
+  // Hier mappen wir deine Systeme in das Format, das 'ol-contextmenu' für Submenus erwartet
+  const submenuItems = epsgSysteme.map(sys => {
+    return {
+      text: sys.label,
+      classname: 'submenu-item-style',
+      callback: function () {
+        // Logik für die Transformation und Zwischenablage (identisch zu vorher)
+        const transformierteKoordinaten = transform(koordinaten, 'EPSG:3857', sys.code);
+        let textToCopy = "";
 
-    subItem.addEventListener('click', (e) => {
-      e.stopPropagation();
-
-      // Koordinate transformieren
-      const transformierteKoordinaten = transform(koordinaten, 'EPSG:3857', sys.code);
-      let textToCopy = "";
-
-      // 💡 Hier prüfen wir, welches Format verlangt wird
-      if (sys.type === 'DMS') {
-        const lon = transformierteKoordinaten[0]; // X = Längengrad
-        const lat = transformierteKoordinaten[1]; // Y = Breitengrad
-        
-        const dmsLat = convertToDMS(lat, 'LAT');
-        const dmsLon = convertToDMS(lon, 'LON');
-        
-        // Formatiert das Ergebnis exakt als: 52° 58' 23'' N, 7° 36' 16'' E
-        textToCopy = `${dmsLat}, ${dmsLon}`;
-      } else {
-        // Klassische Dezimal- oder Metrische Ausgabe
-        if (sys.order === 'YX') {
-          textToCopy = `${transformierteKoordinaten[1].toFixed(sys.digits)}, ${transformierteKoordinaten[0].toFixed(sys.digits)}`;
+        if (sys.type === 'DMS') {
+          const lon = transformierteKoordinaten[0];
+          const lat = transformierteKoordinaten[1];
+          textToCopy = `${convertToDMS(lat, 'LAT')}, ${convertToDMS(lon, 'LON')}`;
         } else {
-          textToCopy = `${transformierteKoordinaten[0].toFixed(sys.digits)}, ${transformierteKoordinaten[1].toFixed(sys.digits)}`;
+          if (sys.order === 'YX') {
+            textToCopy = `${transformierteKoordinaten[1].toFixed(sys.digits)}, ${transformierteKoordinaten[0].toFixed(sys.digits)}`;
+          } else {
+            textToCopy = `${transformierteKoordinaten[0].toFixed(sys.digits)}, ${transformierteKoordinaten[1].toFixed(sys.digits)}`;
+          }
         }
+
+        navigator.clipboard.writeText(textToCopy).then(() => {
+          // Kleiner Trick: Da wir im Plugin sind, nutzen wir ein kurzes Konsolen-Feedback 
+          // oder du lässt hier einen eleganten Toast auflaufen.
+          console.log("Kopiert:", textToCopy);
+        }).catch(err => alert(`Koordinaten: ${textToCopy}`));
       }
-
-      // In die Zwischenablage kopieren
-      navigator.clipboard.writeText(textToCopy).then(() => {
-        subItem.innerHTML = `<i class="fa fa-check" style="color: green;"></i> Kopiert!`;
-        setTimeout(() => {
-          menu.remove();
-        }, 800);
-      }).catch(err => {
-        console.error("Fehler beim Kopieren: ", err);
-        alert(`Koordinaten: ${textToCopy}`);
-        menu.remove();
-      });
-    });
-
-    submenu.appendChild(subItem);
+    };
   });
-  // Untermenü an den Hauptpunkt hängen
-  itemKoordinaten.appendChild(submenu);
-  menu.appendChild(itemKoordinaten);
 
-  
-  
-  
-  // 💡 HIER KANNST DU SPÄTER WEITERE PUNKTE ANHÄNGEN:
-  const itemNavigate = document.createElement('div');
-  itemNavigate.className = 'context-menu-item';
-  itemNavigate.innerHTML = '<i class="fa fa-location-arrow"></i> Google Maps Navigation';
-  itemNavigate.addEventListener('click', () => { 
-    // --- Google Maps Navigation ---
-    // 💡 Wir nutzen die 'koordinaten'-Variable (EPSG:3857) von weiter oben
-    // Stelle sicher, dass 'transform' oben aus 'ol/proj' importiert ist!
-    var coord4326 = transform(koordinaten, 'EPSG:3857', 'EPSG:4326');
-    var lat = coord4326[1];
-    var lon = coord4326[0];
-    
-    // 💡 Offizielle Google Maps URL für die Navigation zu einer Koordinate:
-    var url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
-    
-    window.open(url, '_blank');
-
-    menu.remove(); // 💡 Menü nach dem Klick schließen!
-  }); // 💡 Hier war eine schließende Klammer zu viel/falsch
-  menu.appendChild(itemNavigate);
-  
-  // 💡 HIER DER NÄCHSTE PUNKT: Google Street View
-  const itemStreetView = document.createElement('div');
-  itemStreetView.className = 'context-menu-item';
-  itemStreetView.innerHTML = '<i class="fa fa-street-view"></i> Street View öffnen';
-  itemStreetView.addEventListener('click', () => { 
-    // Wir nutzen wieder die transformierten WGS84-Koordinaten
-    var coord4326 = transform(koordinaten, 'EPSG:3857', 'EPSG:4326');
-    var lat = coord4326[1];
-    var lon = coord4326[0];
-    
-    // 💡 Offizielle Google URL, um Street View direkt an einer Koordinate zu starten:
-    var url = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lon}`;
-    
-    window.open(url, '_blank');
-    menu.remove(); // Menü nach dem Klick schließen
-  });
-  menu.appendChild(itemStreetView);
-  // 5. Das Menü an den Body der Seite anfügen
-  document.body.appendChild(menu);
-
-  // 6. Automatisches Schließen, wenn man irgendwo anders hinklickt
-  const schliesseMenue = (e) => {
-    if (!menu.contains(e.target)) {
-      menu.remove();
-      document.removeEventListener('click', schliesseMenue);
-      document.removeEventListener('contextmenu', schliesseMenue);
+  // 3. HAUPTMENÜ-PUNKTE HINZUFÜGEN
+  contextMenu.extend([
+    {
+      text: 'Koordinaten anzeigen',
+      classname: 'main-menu-item-style',
+      icon: 'fa fa-map-marker', // Deine FontAwesome-Icons funktionieren direkt!
+      items: submenuItems       // 💡 HIER geschieht die Magie: Das Array wird zum echten Untermenü!
+    },
+    '-', // Ein horizontaler Trennstrich (Separator)
+    {
+      text: 'Google Maps Navigation',
+      icon: 'fa fa-location-arrow',
+      callback: function () {
+        const coord4326 = transform(koordinaten, 'EPSG:3857', 'EPSG:4326');
+        window.open(`https://www.google.com/maps/dir/?api=1&destination=${coord4326[1]},${coord4326[0]}`, '_blank');
+      }
+    },
+    {
+      text: 'Street View öffnen',
+      icon: 'fa fa-street-view',
+      callback: function () {
+        const coord4326 = transform(koordinaten, 'EPSG:3857', 'EPSG:4326');
+        window.open(`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${coord4326[1]},${coord4326[0]}`, '_blank');
+      }
     }
-  };
-  // Lauscht auf Links- oder erneuten Rechtsklick außerhalb des Menüs
-  setTimeout(() => {
-    document.addEventListener('click', schliesseMenue);
-    document.addEventListener('contextmenu', schliesseMenue);
-  }, 10);
+  ]);
 });
 }
 

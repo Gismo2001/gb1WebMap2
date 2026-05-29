@@ -4,6 +4,7 @@ import 'ol/ol.css';
 import 'ol-ext/dist/ol-ext.css'; 
 import 'tabulator-tables/dist/css/tabulator.min.css';
 
+
 import { createMap } from './js/map.js';
 import { createLayerStructure } from './js/layers.js';
 

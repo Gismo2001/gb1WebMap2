@@ -418,8 +418,6 @@ export {
     Km500scalStyle,
     getStyleForArtFSK,
     getLayerByName,
-
-    
 };
 
 
@@ -445,3 +443,4 @@ export function convertToDMS(value, isLatOrLon) {
 
   return `${degrees}° ${minutes}' ${seconds}'' ${direction}`;
 }
+

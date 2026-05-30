@@ -645,6 +645,7 @@ export function getAllLayers(layerGroup, parentVisible = true, groupTitle = null
 
   return layers;
 }
+
 function showFeatureFromSelection(selected, layerName, coord) {
     const isWrappedFeature = selected && selected.properties && selected.feature;
     const featureData = isWrappedFeature ? selected.properties : selected;
@@ -976,6 +977,7 @@ export function getVectorFeaturesAtClick(map, evt) {
 
   return results;
 }
+
 export function getVisibleVectorFeatures(map) {
   const extent = map.getView().calculateExtent(map.getSize());
   const results = {};
@@ -998,8 +1000,6 @@ export function getVisibleVectorFeatures(map) {
     if (!isInAllowedGroup && !isFSKLayer) return;
 
     // Ab hier läuft die gewohnte Logik für die gültigen Layer
-    //console.log("Verarbeite Layer:", name);
-    
     const source = typeof layer.getSource === 'function' ? layer.getSource() : null;
     if (!source || typeof source.getFeaturesInExtent !== 'function') return;
 
@@ -1014,6 +1014,7 @@ export function getVisibleVectorFeatures(map) {
   });
   return results;
 }
+
 export function updateTableFromVisibleLayers(map) {
   
   if (!isTableEnabled()) return;
@@ -1048,23 +1049,43 @@ export function updateTableFromVisibleLayers(map) {
     updateSelector([]);
   }
 }
-//Eventhandler für Layerswitcher Click (nur bestimmte Element, z.B. Gruppe öffnen)
+//Eventhandler für Layerswitcher Click 
 export function switcherDrawList(layerSwitcher) {
   layerSwitcher.on('drawlist', (evt) => {
   var layer = evt.layer;
   evt.li.querySelector('label').addEventListener('click', () => {
-    //console.log(layer.get('title') +' Sichtbarkeit: '+ layer.getVisible());
+    console.log('Layerswitcher Click')
   });
 });
 }
+
 export function switcherToggle(layerSwitcher) {
-layerSwitcher.on('drawlist', (evt) => {
-  var layer = evt.layer;
-  evt.li.querySelector('label').addEventListener('click', () => {
-    console.log(layer.get('title') +' Toggle: '+ layer.getVisible());
+  layerSwitcher.on('drawlist', (evt) => {
+    var clickedLayer = evt.layer;
+    
+    evt.li.querySelector('label').addEventListener('click', () => {
+      setTimeout(() => {
+        console.log(`--- Sichtbarkeits-Check ausgelöst durch Klick auf: ${clickedLayer.get('title')} ---`);
+        
+        const map = layerSwitcher.getMap(); 
+        if (!map) return;
+
+        // 💡 1. Hol dir die flache Liste aller aktiven/erlaubten Layer
+        // Wir übergeben map.getLayerGroup(), damit ab der obersten Ebene gesucht wird
+        const aktiveLayerListe = getAllLayers(map.getLayerGroup());
+
+        // 💡 2. Einfach die Liste durchlaufen und ausgeben
+        aktiveLayerListe.forEach((obj) => {
+          const title = obj.layer.get('title') || 'Unbenannter Layer';
+          console.log(`🗺️ [Layer] ${title} (Gruppe: ${obj.groupTitle}) --> Sichtbar: ${obj.visible}`);
+        });
+
+      }, 50); 
+    });
   });
-});
 }
+
+
 // --------------------Funktion für GPS-Suche--------------------
 export function initSearchEvents(searchPlaceControl, map) { //Zustand searchPlaceControl und die Karte werden übergeben
   if (!searchPlaceControl) return; // Wenn searchPlaceControl nicht aktiv ist wieder verlassen

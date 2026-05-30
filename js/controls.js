@@ -116,7 +116,7 @@ export function createLayerSwitcher(map) {
     tipLabel: 'Legende',
     onchangeCheck: function () {
       if (isTableEnabled()) {
-        //console.log ('layerswitcher event');
+        console.log ('layerswitcher event');
         updateTableFromVisibleLayers(map);
       }
     },

@@ -912,7 +912,6 @@ export function createLayerStructure() {
   //WMS-Layer
   const gewWms = createGewWmsFgLayer();
   const fgWrrlWms = createWmsWrrlFgLayer();
-  console.log('interner wms-layer hinzugefügt', fgWrrlWms);
   const uesgWms = createwmsUesgLayer();
   const nsgWms = createwmsNsgLayer();
   const lsgWms = createwmsLsgLayer() ;

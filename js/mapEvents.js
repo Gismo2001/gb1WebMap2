@@ -998,8 +998,11 @@ export function getVisibleVectorFeatures(map) {
     // ODER wenn sein Name "fsk" ist
     const isFSKLayer = (name === 'fsk');
 
+    // 💡 NEU: Prüfen, ob es ein vom Nutzer hochgeladener GeoJSON-Layer ist
+    const isUploadedGeoJSON = layer.get('isUserGeoJSON') === true;
+
     // Wenn beides NICHT zutrifft, wird der Layer übersprungen
-    if (!isInAllowedGroup && !isFSKLayer) return;
+    if (!isInAllowedGroup && !isFSKLayer && !isUploadedGeoJSON) return;
 
     // Ab hier läuft die gewohnte Logik für die gültigen Layer
     const source = typeof layer.getSource === 'function' ? layer.getSource() : null;
@@ -1144,9 +1147,8 @@ export function fileToggleInput(map) {
       const fileName = file.name.replace(/\.[^/.]+$/, "");
       const fileEnd = file.name.split('.').pop().toLowerCase();
 
-      // ==========================================
+      
       // 1. RASTER-DATEN (GeoTIFF) -> Unverändert
-      // ==========================================
       if (fileEnd === 'tif' || fileEnd === 'tiff') {
         const blobUrl = URL.createObjectURL(file);
         const sourceName = `Lokal_DGM_${fileName}`;
@@ -1197,9 +1199,8 @@ export function fileToggleInput(map) {
             if (typeof layerSwitcher !== 'undefined') layerSwitcher.render();
         });
       }  
-      // ==========================================
+      
       // 2. SHAPEFILE-LOGIK (ZIP) -> Unverändert (lädt immer rot/schreibgeschützt)
-      // ==========================================
       else if (fileEnd === 'zip') {
         const reader = new FileReader();
         reader.onload = async (e) => {
@@ -1221,9 +1222,7 @@ export function fileToggleInput(map) {
         };
         reader.readAsArrayBuffer(file); 
       } 
-      // ==========================================
       // 3. TEXT-LOGIK (KML, GeoJSON) -> MIT NEUER WEICHE
-      // ==========================================
       else {
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -1301,6 +1300,7 @@ function addVectorLayerToMap(map, features, sourceName) {
     source: vectorSource,
     title: sourceName,
     name: sourceName,
+    isUserGeoJSON: true, // 💡 DAS FLAG: Hieran erkennen wir den Layer gleich!
     style: style
   });
 

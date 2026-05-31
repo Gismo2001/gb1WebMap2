@@ -266,6 +266,8 @@ export function exportDrawFeatures() {
 
   const timestamp = new Date().toISOString().slice(0, 10);
   
+  if ('showSaveFilePicker' in window) {
+
   // Konfiguration für den Windows-Dialog
   const options = {
     suggestedName: `karte_zeichnungen_${timestamp}.geojson`,
@@ -298,6 +300,29 @@ export function exportDrawFeatures() {
         console.error("Fehler beim Schreibvorgang:", err);
       }
     });
+
+     
+  } else {
+   // Blob-Download als Fallback
+   const timestamp = new Date().toISOString().slice(0,10);
+
+  const blob = new Blob(
+    [geoJsonString],
+    { type: 'application/json' }
+  );
+
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `karte_zeichnungen_${timestamp}.geojson`;
+
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+
+  URL.revokeObjectURL(url);
+  }
 }
 
 

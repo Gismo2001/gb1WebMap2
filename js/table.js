@@ -234,10 +234,8 @@ export function showTable(data) {
 
   lastTableData = uniqueData;
   
-  // =================================================================
-  // 6. Tabellen-Logik: Absolut krisensicheres Instanz-Management
-  // =================================================================
   
+  // 6. Tabellen-Logik: Absolut krisensicheres Instanz-Management
   // Wir prüfen, ob im Gedächtnis bereits eine Tabulator-Instanz existiert
   if (table) {
 

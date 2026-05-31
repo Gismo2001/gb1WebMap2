@@ -57,6 +57,8 @@ import { initPermalinkButton  } from './js/controls.js';
 
 import { initDrawing } from './js/myDraw.js'; // 💡 Hierher verschieben!
 
+
+
 window.$ = window.jQuery = $;
 window.Chart = Chart;
 
@@ -167,46 +169,58 @@ map.on('moveend', () => {
   }
 });
 
-import { loadWFSCapabilities, loadWFSLayer } from './js/loadWfs.js';
+
+// 💡 Import erweitern!
+import { loadWFSCapabilities, loadWFSLayer, loadArcGISCapabilities, loadArcGISLayer } from './js/loadWfs.js';
 
 document.getElementById('load-wfs-btn').addEventListener('click', async function () {
   const baseUrl = document.getElementById('wfs-url').value.trim();
-  if (!baseUrl) {
-    alert('Bitte WFS URL eingeben');
-    return;
-  }
-  
+  if (!baseUrl) return;
+
+  const container = document.getElementById('wfs-layer-list');
+  container.innerHTML = '<div style="padding:8px;font-size:12px;color:#666;">Lade Layer...</div>';
+
   try {
-    const container = document.getElementById('wfs-layer-list');
-    container.innerHTML = '<div style="padding:8px;font-size:12px;color:#666;">Lade Layer...</div>';
-    
-    // 1. Capabilities abfragen
-    const wfsLayers = await loadWFSCapabilities(baseUrl);
+    let layers = [];
+    const isArcGIS = baseUrl.includes('/FeatureServer');
+
+    // 1. Unterscheidung beim Abfragen der Capabilities
+    if (isArcGIS) {
+      layers = await loadArcGISCapabilities(baseUrl);
+    } else {
+      layers = await loadWFSCapabilities(baseUrl);
+    }
+
     container.innerHTML = ''; // Lade-Text entfernen
-    
-    if (wfsLayers.length === 0) {
+
+    if (layers.length === 0) {
       container.innerHTML = '<div style="padding:8px;font-size:12px;color:red;">Keine Layer gefunden.</div>';
       return;
     }
 
-    // 2. Auswahlliste mit Buttons füllen
-    wfsLayers.forEach(layerInfo => {
+    // 2. Einheitliche Auswahlliste mit Buttons füllen
+    layers.forEach(layerInfo => {
       const btn = document.createElement('button');
-      btn.className = 'wfs-list-btn'; // 💡 Unsere neue CSS-Klasse für einheitlichen Look
+      btn.className = 'wfs-list-btn'; // Nutzt dein bestehendes Styling!
       btn.textContent = layerInfo.title;
       btn.title = layerInfo.name;
       
       btn.onclick = () => {
-        // 👉 Übergebe 'map' als ersten Parameter!
-        loadWFSLayer(map, baseUrl, layerInfo.name);
-        container.innerHTML = ''; // Schließt die Liste nach der Auswahl
+        if (isArcGIS) {
+          // 👉 Übergibt die ArcGIS Layer-ID (z.B. 0, 1)
+          loadArcGISLayer(map, baseUrl, layerInfo.id, layerInfo.name);
+        } else {
+          // 👉 Übergibt den WFS Layer-Namen
+          loadWFSLayer(map, baseUrl, layerInfo.name);
+        }
+        container.innerHTML = ''; // Schließt die Liste nach Auswahl
       };
       container.appendChild(btn);
     });
     
   } catch (err) {
     console.error(err);
-    document.getElementById('wfs-layer-list').innerHTML = '';
-    alert('Fehler beim Laden der WFS-Capabilities. Unterstützt der Server GeoJSON-Ausgaben?');
+    container.innerHTML = '';
+    alert('Fehler beim Laden der Capabilities. Bitte Server-Adresse und CORS-Berechtigungen prüfen.');
   }
 });

@@ -71,15 +71,15 @@
     <!-- FILE INPUT -->
     <input type="file" id="geojsonInput" accept=".geojson,.json" style="display: none;" multiple>
   </div> <!-- ENDE main-layout -->
-  <div id="daten-modal" style="display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center;">
-  <div style="background-color: #fff; padding: 10px; border-radius: 1px; width: 500px; max-height: 80vh; display: flex; flex-direction: column; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #ddd; padding-bottom: 10px;">
-      <h3 style="margin: 0; font-size: 14px;">Objektdaten</h3>
-      <button id="close-daten-modal" style="cursor: pointer; background: none; border: none; font-size: 16px; font-weight: bold;">&times;</button>
+ <div id="daten-modal" class="modal-overlay">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h3>Objektdaten</h3>
+      <button id="close-daten-modal">&times;</button>
     </div>
-    <div id="daten-modal-content" style="overflow-y: auto; flex-grow: 1; font-size: 12px;"></div>
+    <div id="daten-modal-content"></div>
   </div>
-  </div>
+</div>
   <div id="draw-bar" style="display: none !important;">
   <button id="draw-none" class="draw-btn active" data-type="None" title="Navigation (Ausschalten)">🖐️</button>
   <button id="draw-point" class="draw-btn" data-type="Point" title="Punkt zeichnen">📍</button>

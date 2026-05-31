@@ -782,3 +782,89 @@ div.ol-ctx-menu-container li.ol-ctx-menu-submenu > .ol-ctx-menu-container {
   border: 1px solid #dbe4ef !important;
   min-width: 270px !important; /* Genug Platz für DMS */
 }
+
+
+/* Globale Definition für die Modal-Tabelle */
+.modal-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+.modal-table th, .modal-table td {
+  padding: 6px;
+  vertical-align: top;
+}
+.modal-table th {
+  background-color: #f2f2f2;
+  border-bottom: 2px solid #ddd;
+}
+.modal-table tr {
+  border-bottom: 1px solid #eee;
+}
+.modal-table td.attr-key {
+  font-weight: bold;
+  color: #555;
+  word-break: break-all;
+}
+.modal-table td.attr-val {
+  color: #111;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+/* Das dunkle Overlay im Hintergrund */
+.modal-overlay {
+  display: none; /* Wird per JS auf 'flex' gesetzt */
+  position: fixed;
+  z-index: 9999;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  align-items: center;
+  justify-content: center;
+}
+
+/* Das eigentliche weiße Fenster */
+.modal-container {
+  background-color: #fff;
+  padding: 10px;
+  border-radius: 1px;
+  width: 500px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+/* Der obere Bereich mit Titel und Schließen-Button */
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 10px;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.modal-header button {
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+/* Der Bereich für deine generierte Tabelle */
+#daten-modal-content {
+  overflow-y: auto;
+  flex-grow: 1;
+  font-size: 12px;
+}

@@ -1509,18 +1509,18 @@ function showDataInModal(daten, layerName) {
 
   if (!modal || !content) return;
 
-closeBtn.onclick = (e) => { 
-  e.stopPropagation(); 
-  modal.style.display = "none"; 
+  closeBtn.onclick = (e) => { 
+    e.stopPropagation(); 
+    modal.style.display = "none"; 
   
-  // 👉 Holt den Fokus zurück zur Auswahlliste, damit sie offen und aktiv bleibt
-  const selectContainer = document.getElementById('feature-select');
-  if (selectContainer) {
-    selectContainer.focus();
-  }
-};
+    // 👉 Holt den Fokus zurück zur Auswahlliste, damit sie offen und aktiv bleibt
+    const selectContainer = document.getElementById('feature-select');
+    if (selectContainer) {
+      selectContainer.focus();
+    }
+  };
 
-modal.onclick = (e) => { 
+  modal.onclick = (e) => { 
   if (e.target === modal) {
     e.stopPropagation(); 
     modal.style.display = "none"; 
@@ -1529,17 +1529,13 @@ modal.onclick = (e) => {
     const selectContainer = document.getElementById('feature-select');
     if (selectContainer) {
       selectContainer.focus();
+      }
     }
-  }
-};
+  };
 
   let tableHtml = `<table style="width: 100%; border-collapse: collapse; text-align: left;">`;
-  tableHtml += `<thead>
-                  <tr style="background-color: #f2f2f2; border-bottom: 2px solid #ddd;">
-                    <th style="padding: 6px;">Attribut</th>
-                    <th style="padding: 6px;">Wert</th>
-                  </tr>
-                </thead><tbody>`;
+  
+  tableHtml += `<thead><tr><th style="width: 30%;">Attribut</th> <th style="width: 70%;">Wert</th></tr></thead><tbody>`;
   
   Object.entries(daten).forEach(([key, value]) => {
     const lowerKey = key.toLowerCase();
@@ -1601,28 +1597,9 @@ modal.onclick = (e) => {
     }
 
     // Optimiertes CSS für lange Texte & Silbentrennung
-    
-    tableHtml += `
-      <tr style="border-bottom: 1px solid #eee;">
-        <td style="padding: 6px; font-weight: bold; color: #555; width: 40%; word-break: break-all; vertical-align: top;">
-          ${key}
-        </td>
-        <td style="
-          padding: 6px; 
-          color: #111; 
-          vertical-align: top;
-          word-break: break-word; 
-          overflow-wrap: break-word; 
-          hyphens: auto;
-        ">
-          ${displayValue}
-        </td>
-      </tr>`;
-  });
-
-  tableHtml += `</tbody></table>`;
-  
-  content.innerHTML = tableHtml;
-  modal.style.display = "flex";
+    tableHtml += `<tr> <td class="attr-key">${key}</td> <td class="attr-val">${displayValue}</td> </tr>`; });
+    tableHtml += `</tbody></table>`;
+    content.innerHTML = tableHtml;
+    modal.style.display = "flex";
 }
 

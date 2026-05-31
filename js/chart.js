@@ -75,7 +75,6 @@ function generateElevationProfile(coords) {
   }
 }
 
-// Nutzt deine activeDgmRasterLayers aus dgmdom.js
 function getHeightAtCoordinate(coord) {
     if (!currentMap) return null;
     const pixel = currentMap.getPixelFromCoordinate(coord);
@@ -85,13 +84,28 @@ function getHeightAtCoordinate(coord) {
         if (!layer.getVisible()) continue;
         if (layer.bbox && containsCoordinate(layer.bbox, coord)) {
             const data = layer.getData(pixel);
-            if (data && !Number.isNaN(data[0]) && data[0] !== -9999) {
-                return data[0];
+            
+            // 💡 PRÜFUNG ERWEITERN:
+            if (data && !Number.isNaN(data[0])) {
+                const value = data[0];
+                
+                // 🚫 Wenn der Wert -9999 ist ODER exakt 0 (Lücke im Canvas), ignorieren wir ihn
+                if (value === -9999 || value === 0) {
+                    continue; 
+                }
+                
+                // Falls es sich um RGBA-Pixel handelt: Wenn der Pixel vollkommen transparent ist, ist es eine Lücke
+                if (data.length >= 4 && data[3] === 0) {
+                    continue;
+                }
+
+                return value; // Ein echter Höhenwert!
             }
         }
     }
     return null;
 }
+
 function updateDgmInteraction() {
   const kachelnVisible = dgmKachelLayer.getVisible();
   if (kachelnVisible) {

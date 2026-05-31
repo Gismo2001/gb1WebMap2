@@ -71,8 +71,6 @@
     <!-- FILE INPUT -->
     <input type="file" id="geojsonInput" accept=".geojson,.json" style="display: none;" multiple>
   </div> <!-- ENDE main-layout -->
-  <script type="module" src="/main.js"></script>
-
   <div id="daten-modal" style="display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center;">
   <div style="background-color: #fff; padding: 10px; border-radius: 1px; width: 500px; max-height: 80vh; display: flex; flex-direction: column; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #ddd; padding-bottom: 10px;">
@@ -82,7 +80,7 @@
     <div id="daten-modal-content" style="overflow-y: auto; flex-grow: 1; font-size: 12px;"></div>
   </div>
   </div>
- <div id="draw-bar" style="display: none !important;">
+  <div id="draw-bar" style="display: none !important;">
   <button id="draw-none" class="draw-btn active" data-type="None" title="Navigation (Ausschalten)">🖐️</button>
   <button id="draw-point" class="draw-btn" data-type="Point" title="Punkt zeichnen">📍</button>
   <button id="draw-line" class="draw-btn" data-type="LineString" title="Linie zeichnen">📏</button>
@@ -91,12 +89,13 @@
   <button id="draw-translate" class="draw-btn" data-type="Translate" title="Ganze Objekte verschieben">🖐️↕️</button>
   <button id="draw-export" title="Zeichnungen als GeoJSON exportieren">💾</button>
   <button id="draw-clear" class="draw-btn" data-type="Delete" title="Einzelne Objekte durch Anklicken löschen">🗑️</button>
-</div>
-<div id="wfs-loader" style="display: none !important;">
+  </div>
+  <div id="wfs-loader" style="display: none !important;">
   <input type="text" id="wfs-url" placeholder="WFS Basis-URL eingeben (ohne ?)" />
   <button id="load-wfs-btn">WFS laden</button>
   <div id="wfs-layer-list"></div>
-</div>
+  </div>
+  <script type="module" src="/main.js"></script>
 </body>
 
 

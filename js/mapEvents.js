@@ -664,7 +664,7 @@ function showFeatureFromSelection(selected, layerName, coord) {
     // 3. Tabellen-Button & Daten-Button Logik
     setTimeout(() => {
         // Tabellen-Button
-        const btn = document.getElementById('open-table-btn');
+       /*  const btn = document.getElementById('open-table-btn');
         if (btn) {
             btn.onclick = () => {
                 updateSelector([layerName]);
@@ -673,7 +673,7 @@ function showFeatureFromSelection(selected, layerName, coord) {
             };
             console.log("tabelle angezeigt durch opentabelbutton");
         }
-
+ */
         // 👉 DATEN-BUTTON (Erweiterung für die Auswahlliste)
         const datenBtn = document.getElementById('open-daten-btn');
         if (datenBtn) {
@@ -693,6 +693,8 @@ function showFeatureFromSelection(selected, layerName, coord) {
         }
     }, 0);
 }
+
+// Diese Funktion zeigt die Auswahlmöglichkeit, wenn mehrere Features gefunden wurden
 async function askUserToChoose(currentClickResults, coord, map) {
     const container = document.getElementById('feature-select');
     const list = document.getElementById('feature-select-li');
@@ -1372,9 +1374,8 @@ function buildPopupContent(featureOrProps, layerName) {
   if (!featureOrProps) {
     return "<p>Keine Daten</p>";
   }
-  // =====================================================
+  
   // OL-Feature ODER normales Objekt
-  // =====================================================
   const isOlFeature = typeof featureOrProps.getProperties === 'function';
   const daten = isOlFeature ? featureOrProps.getProperties(): featureOrProps;
   let html = "";
@@ -1428,10 +1429,7 @@ function buildPopupContent(featureOrProps, layerName) {
     const title = dynamicKey ? daten[dynamicKey] : 'Keine Bezeichnung';
     html += `<strong>${dynamicKey ? dynamicKey + ': ' : ''}${title}</strong><br>`;
   }
-
-  
   // DGM / DOM Link
-  
   const kachelUrl = daten.dgm1 || daten.dom1;
   if (kachelUrl) {
     let bbox = null;
@@ -1455,17 +1453,12 @@ function buildPopupContent(featureOrProps, layerName) {
     `;
   }
 
-  
   // Fotos
-  
-
   const fotoLinks = [];
-
   if (daten.foto1) fotoLinks.push(`<a href="${daten.foto1}" target="_blank" class="popup-link">Foto 1</a>` );
   if (daten.foto2) fotoLinks.push(`<a href="${daten.foto2}" target="_blank" class="popup-link">Foto 2</a>` );
   if (daten.foto3) fotoLinks.push(`<a href="${daten.foto3}" target="_blank" class="popup-link">Foto 3</a>` );
   if (daten.foto4) fotoLinks.push(`<a href="${daten.foto4}" target="_blank" class="popup-link">Foto 4</a>` );
-
   if (fotoLinks.length > 0) {
     html += `
       <div style="margin-top:8px;">
@@ -1475,13 +1468,23 @@ function buildPopupContent(featureOrProps, layerName) {
   }
  
   // 👉 AKTION-BUTTONS NEBENEINANDER (MITHILFE VON FLEXBOX)
- 
+  /* 
   html += `
     <div style="display: flex; gap: 2px; margin-top: 10px;">
       <button id="open-table-btn" style="font-size: 10px; padding: 1px 2px; cursor: pointer; flex: 1;">Tabelle</button>
       <button id="open-daten-btn" style="font-size: 10px; padding: 1px 2px; cursor: pointer; flex: 1;">Daten</button>
     </div>
   `;
+ */
+  
+  // 👉 AKTION-BUTTONS NEBENEINANDER (MITHILFE VON FLEXBOX)
+  html += `
+    <div style="display: flex; gap: 2px; margin-top: 10px;">
+      <button id="open-daten-btn" style="font-size: 10px; padding: 1px 2px; cursor: pointer; flex: 1;">Daten</button>
+    </div>
+  `;
+
+
   return html;
 }
 document.addEventListener('click', (e) => {

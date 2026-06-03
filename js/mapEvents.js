@@ -230,7 +230,8 @@ export function handleDomHeightQuery(map, evt, visibleDomLayers) {
 }
 export function initMapClick(map) {
   map.on('singleclick', function (evt) {
-    
+    var test = isDrawingActive();
+    console.log(test);
     // 1. Wenn im Zeichenmodus: abbrechen
     if (isDrawingActive()) {
         console.log("Karten-Klick ignoriert, da Zeichenmodus aktiv ist.");

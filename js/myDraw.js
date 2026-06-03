@@ -4,6 +4,8 @@ import { Draw, Modify, Snap, Select, Translate } from 'ol/interaction';
 import { Style, Stroke, Fill, Circle as CircleStyle } from 'ol/style';
 import { getLength, getArea } from 'ol/sphere';
 import { transform } from 'ol/proj'; // 💡 NEU: Für die Koordinaten-Umrechnung
+import { selectStyle } from './controls.js'; // 💡 NEU: Für die Auswahl-Interaktion
+
 
 import { GeoJSON } from 'ol/format'; // 💡 Stelle sicher, dass GeoJSON oben importiert ist
 
@@ -17,6 +19,7 @@ let modifyInteraction = null;
 let snapInteraction = null;
 let deleteInteraction = null; // 💡 NEU: Für das gezielte Löschen per Klick
 let translateInteraction = null; // 💡 NEU: Für das Verschieben ganzer Objekte
+let selectInteraction = null; // 💡 NEU: Für die Auswahl von Objekten (z.B. zum Löschen oder Verschieben)
 
 // Initialisiert die Zeichen-Funktionalität
 export function initDrawing(map) {
@@ -121,25 +124,44 @@ function updateDrawInteraction(type) {
     return;
   }
 
-  // Fall D: Verschieben-Modus aktiv
-  if (type === 'Translate') {
-    if (modifyInteraction) modifyInteraction.setActive(false); // Normales Modify pausieren
-    
-    translateInteraction = new Translate({
-      layers: [drawLayer]
-    });
+  
 
-    translateInteraction.on('translateend', function (e) {
-      const translatedFeatures = e.features.getArray();
-      translatedFeatures.forEach(feature => {
-        calculateMetrics(feature); 
-      });
-      console.log("Objekt(e) erfolgreich verschoben und Attribute aktualisiert.");
-    });
-    mapInstance.addInteraction(translateInteraction);
-    console.log("Verschiebe-Modus aktiv. Ziehe ein Objekt mit gedrückter Maustaste.");
-    return;
+// In deinem Fall D ("Translate") in myDraw.js baust du das so um:
+if (type === 'Translate') {
+  if (modifyInteraction) modifyInteraction.setActive(false);
+  if (drawInteraction) drawInteraction.setActive(false);
+
+  // 1. Select-Modus starten, falls noch nicht aktiv
+  if (!selectInteraction) {
+    initSelectMode(mapInstance, drawLayer);
+  } else {
+    selectInteraction.setActive(true);
   }
+
+  // 2. Translate an die Features des Select-Modus koppeln!
+  translateInteraction = new Translate({
+    // 💡 HIER DER TRICK: Statt 'layers: [drawLayer]' nutzen wir die Features der Auswahl!
+    features: selectInteraction.getFeatures() 
+  });
+
+  // Metriken nach dem Verschieben für ALLE bewegten Objekte updaten
+  translateInteraction.on('translateend', function (e) {
+    const translatedFeatures = e.features.getArray();
+    translatedFeatures.forEach(feature => {
+      calculateMetrics(feature); 
+    });
+    // Tabelle live aktualisieren, falls offen
+    if (typeof updateTableFromVisibleLayers === 'function') {
+      updateTableFromVisibleLayers(mapInstance);
+    }
+    console.log(`${translatedFeatures.length} Objekt(e) erfolgreich verschoben.`);
+  });
+
+  mapInstance.addInteraction(translateInteraction);
+  return;
+  
+}
+
 
   // ==========================================
   // Fall C: Normales Zeichnen (Point, Line, Polygon...)
@@ -220,9 +242,13 @@ export function calculateMetrics(feature) {
     feature.set('y_25832', parseFloat(coords25832[1].toFixed(2)));
   }
 }
-// Prüft ob der Nutzer im Zeichenmodus ist
+
+// Prüft ob der Nutzer im Zeichen- ODER Verschiebe-Modus ist
 export function isDrawingActive() {
-  return !!(drawInteraction && drawInteraction.getActive());
+  const drawActive = !!(drawInteraction && drawInteraction.getActive());
+  const translateActive = !!(translateInteraction && translateInteraction.getActive());
+  
+  return drawActive || translateActive;
 }
 // Gibt die VectorSource zurück
 export function getDrawSource() {
@@ -235,13 +261,15 @@ export function deactivateDrawing() {
     if (snapInteraction) mapInstance.removeInteraction(snapInteraction);
     if (deleteInteraction) mapInstance.removeInteraction(deleteInteraction); // 💡 NEU
     if (modifyInteraction) modifyInteraction.setActive(false);
-    if (translateInteraction) mapInstance.removeInteraction(translateInteraction); // 💡 NEU
+    if (translateInteraction) { translateInteraction.setActive(false); mapInstance.removeInteraction(translateInteraction);   }
+    if (selectInteraction) { selectInteraction.getFeatures().clear();   mapInstance.removeInteraction(selectInteraction);  }
     
     
     drawInteraction = null;
     snapInteraction = null;
     deleteInteraction = null; // 💡 NEU
     translateInteraction = null; // 💡 NEU
+    selectInteraction = null;
   }
 
   const buttons = document.querySelectorAll('.draw-btn');
@@ -334,4 +362,44 @@ export function istZeichenleisteAktiv() {
   
   // Prüft, ob die Leiste im CSS NICHT auf "none" steht und NICHT die Klasse "hidden" hat
   return drawBar.style.display !== 'none' && !drawBar.classList.contains('hidden');
+}
+
+export function deleteSelectedFeatures() {
+  if (selectInteraction) {
+    // Hole das Array aller aktuell ausgewählten Features
+    const selectedFeatures = selectInteraction.getFeatures().getArray();
+    
+    if (selectedFeatures.length === 0) {
+      alert("Bitte wähle zuerst Objekte mit STRG + Klick aus!");
+      return;
+    }
+
+    if (confirm(`Möchtest du die ${selectedFeatures.length} ausgewählten Objekte wirklich löschen?`)) {
+      // In umgekehrter Reihenfolge löschen, da sich das Array beim Löschen verändert
+      for (let i = selectedFeatures.length - 1; i >= 0; i--) {
+        drawSource.removeFeature(selectedFeatures[i]);
+      }
+      
+      // Auswahl-Array wieder leeren
+      selectInteraction.getFeatures().clear();
+      
+      // Tabelle aktualisieren
+      updateTableFromVisibleLayers(mapInstance);
+    }
+  }
+}
+
+
+import { click, platformModifierKeyOnly } from 'ol/events/condition';
+function initSelectMode(mapInstance, drawLayer) {
+  selectInteraction = new Select({
+    layers: [drawLayer], // Nur Objekte auf dem drawLayer auswählbar
+    style: selectStyle,  // 💡 Der optische Style für ausgewählte Objekte
+    // multi: true,      // Erlaubt das Auswählen mehrerer überlappender Objekte per Klick
+    
+    // 💡 Das Geheimnis für STRG + Klick:
+    toggleCondition: platformModifierKeyOnly 
+  });
+
+  mapInstance.addInteraction(selectInteraction);
 }

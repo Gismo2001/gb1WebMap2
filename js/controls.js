@@ -24,7 +24,7 @@ import CanvasTitle from 'ol-ext/control/CanvasTitle';
 import CanvasScaleLine from 'ol-ext/control/CanvasScaleLine';
 
 import { fileToggleInput } from './mapEvents.js';
-import { Style, Text } from 'ol/style';
+
 
 import { isDgmActive, setDgmActive, disableDgmInteraction  } from './dgmdom.js';
 import { isDomActive, setDomActive, disableDomInteraction  } from './dgmdom.js';
@@ -52,12 +52,6 @@ let printControlInstance = null;
 let printToogleBtnInstance = null;
 
 
-
-
-
-
-
-
 let drawToggleBtnInstance = null; // 💡 Instanz-Variablen für die Steuerung
 let wfsToggleBtnInstance = null;
 
@@ -72,6 +66,20 @@ let isWfsActive = false; // 💡 NEU: Zustand für den WFS-Loader
 
 //export const permalinkControl = null; 
 
+import { Style, Stroke, Fill, Circle as CircleStyle, Text } from 'ol/style';
+export const selectStyle = new Style({
+  stroke: new Stroke({
+    color: '#00ffff', // Cyan/Hellblau leuchtend
+    width: 4
+  }),
+  fill: new Fill({
+    color: 'rgba(0, 255, 255, 0.2)' // Leicht transparent gefüllt
+  }),
+  image: new CircleStyle({
+    radius: 7,
+    fill: new Fill({ color: '#00ffff' })
+  })
+});
 
 // --- Control definieren ---
 const permalinkControl = new Permalink({
@@ -402,10 +410,7 @@ export function createSubBarW(map) {
 }
 
 export function createSubBarT(map) {
-  
-  // ==========================================
   // 1. TABELLEN-BUTTON
-  // ==========================================
   const tableToggleBtn = new Toggle({
     html: '<i class="fa fa-table" aria-hidden="true"></i>',
     title: 'Tabelle anzeigen',
@@ -433,9 +438,7 @@ export function createSubBarT(map) {
   });
   tableToggleBtnInstance = tableToggleBtn;
   
-  // ==========================================
   // 2. ZEICHEN-BUTTON
-  // ==========================================
   const drawToggleBtn = new Toggle({
     html: '<i class="fa fa-pencil"></i>',
     title: 'Zeichenmodus',
@@ -446,7 +449,6 @@ export function createSubBarT(map) {
       const wfsContainer = document.getElementById('wfs-loader'); // 💡 WFS-Container holen
       // 💡 Den drawLayer aus der Karte suchen
       const drawLayer = map.getLayers().getArray().find(l => l.get('name') === 'drawLayer');
-      
       if (active) {
         // Andere Sub-Buttons ausschalten
         if (isTableActive && tableToggleBtnInstance) tableToggleBtnInstance.setActive(false);
@@ -465,60 +467,66 @@ export function createSubBarT(map) {
           drawBtns.classList.add('is-running');
           // 💡drawLayer im Layer-Switcher einschalten
           if (drawLayer) {
-          // Fall A: Layer existiert auf der Karte, nur einschalten
-          drawLayer.set('displayInLayerSwitcher', true);
-          drawLayer.setVisible(true);
-        } else {
-          // Fall B: 💡 Der Layer wurde vom Switcher gelöscht.
-          // Wir bauen ihn hier einfach live neu und binden ihn an deine drawSource!
-          
-          // Stelle sicher, dass VectorLayer oben in controls.js aus 'ol/layer/Vector' importiert ist.
-          // Falls nicht, kannst du es auch so schreiben:
-          // import VectorLayer from 'ol/layer/Vector';
-          
-          const recreatedDrawLayer = new VectorLayer({ // oder 'new VectorLayer({' falls importiert
-            source: drawSource, // Deine drawSource aus myDraw.js (die ist ja bekannt)
-            title: 'drawLayer',
-            name: 'drawLayer',
-            displayInLayerSwitcher: true,
-            visible: true
-          });
-          
-          map.addLayer(recreatedDrawLayer);
-          console.log("drawLayer wurde erfolgreich reanimiert und an die drawSource gekoppelt!");
+            // Fall A: Layer existiert auf der Karte, nur einschalten
+            drawLayer.set('displayInLayerSwitcher', true);
+            drawLayer.setVisible(true);
+          } else {
+            // Fall B: 💡 Der Layer wurde vom Switcher gelöscht.
+            // Wir bauen ihn hier einfach live neu und binden ihn an deine drawSource!
+            const recreatedDrawLayer = new VectorLayer({ 
+              source: drawSource, // Deine drawSource aus myDraw.js (die ist ja bekannt)
+              title: 'drawLayer',
+              name: 'drawLayer',
+              displayInLayerSwitcher: true,
+              visible: true
+            });
+            map.addLayer(recreatedDrawLayer);
+            console.log("drawLayer wurde erfolgreich reanimiert und an die drawSource gekoppelt!");
+          }
         }
-        }
-        
-        
         if (mainTableBtnInstance) {
           const mainBtnEl = mainTableBtnInstance.element.querySelector('button') || mainTableBtnInstance.element;
           mainBtnEl.classList.add('is-running');
         }
       } else {
-         // Zeichenleiste ausblenden
-        if (drawBtns) {
+        // Zeichenleiste ausblenden
+        if (drawBtns) { 
           drawBtns.style.setProperty('display', 'none', 'important');
           drawBtns.classList.remove('is-running');
-      /*     if (drawLayer) {
+          if (drawLayer) {
+            // 💡 HIER DIE QUELLE LEEREN:
+            // Falls 'drawSource' global/allgemein verfügbar ist:
+            if (typeof drawSource !== 'undefined' && drawSource) {
+              drawSource.clear(); 
+              console.log("drawSource erfolgreich geleert.");
+            // 💡 ALTERNATIVE (falls drawSource nicht direkt im Scope ist, holen wir sie aus dem Layer):
+            } else {
+              const source = drawLayer.getSource();
+              if (source && typeof source.clear === 'function') {
+                source.clear();
+                console.log("Source über drawLayer erfolgreich geleert.");
+              }
+            }
             drawLayer.set('displayInLayerSwitcher', false);
-            // Dem Switcher signalisieren, dass sich die Layer-Struktur geändert hat
+            drawLayer.setVisible(false); // 👈 Schaltet die Darstellung auf der Karte ab
+            
+            // map.removeLayer(drawLayer); // ❌ DIESE ZEILE ENTFERNEN
             map.changed(); 
-          } */
+          }
         }
         deactivateDrawing();
-        
         if (!isTableActive && !isWfsActive && mainTableBtnInstance) {
           const mainBtnEl = mainTableBtnInstance.element.querySelector('button') || mainTableBtnInstance.element;
           mainBtnEl.classList.remove('is-running');
         }
       }
+    // Ende ontoggle
     }
+  // Ende drawToggleBtn
   });
   drawToggleBtnInstance = drawToggleBtn;
 
-  // ==========================================
   // 3. WFS-LOADER-BUTTON
-  // ==========================================
   const wfsToggleBtn = new Toggle({
     html: '<i class="fa fa-cloud-download" aria-hidden="true"></i>',
     title: 'WFS-Dienst laden',
@@ -758,4 +766,6 @@ export function initializeWFS(map) {
   };
     map.addLayer(vectorLayer);    
   }
+  
+
   

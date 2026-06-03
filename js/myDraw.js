@@ -9,6 +9,8 @@ import { selectStyle } from './controls.js'; // 💡 NEU: Für die Auswahl-Inter
 
 import { GeoJSON } from 'ol/format'; // 💡 Stelle sicher, dass GeoJSON oben importiert ist
 
+import { click, platformModifierKeyOnly } from 'ol/events/condition';
+
 
 let mapInstance = null;
 export let drawSource = null;
@@ -20,6 +22,7 @@ let snapInteraction = null;
 let deleteInteraction = null; // 💡 NEU: Für das gezielte Löschen per Klick
 let translateInteraction = null; // 💡 NEU: Für das Verschieben ganzer Objekte
 let selectInteraction = null; // 💡 NEU: Für die Auswahl von Objekten (z.B. zum Löschen oder Verschieben)
+
 
 // Initialisiert die Zeichen-Funktionalität
 export function initDrawing(map) {
@@ -99,33 +102,71 @@ function updateDrawInteraction(type) {
     return;
   }
 
-  // Fall B: Löschmodus aktiv
+  
+// Fall B: Löschmodus aktiv
   if (type === 'Delete') {
-    if (modifyInteraction) modifyInteraction.setActive(false); // Modify pausieren
+    if (modifyInteraction) modifyInteraction.setActive(false);
+    if (drawInteraction) drawInteraction.setActive(false);
+    if (translateInteraction) translateInteraction.setActive(false);
     
-    deleteInteraction = new Select({
-      layers: [drawLayer],
-      style: null 
+    // 1. Wir erstellen einen auffälligen Style für die zu löschenden Objekte
+    const deleteSelectionStyle = new Style({
+      stroke: new Stroke({ color: '#ff0000', width: 4 }), // Roter Rand
+      fill: new Fill({ color: 'rgba(255, 0, 0, 0.3)' }),   // Rot transparent
+      image: new CircleStyle({
+        radius: 7,
+        fill: new Fill({ color: '#ff0000' })
+      })
     });
 
-    deleteInteraction.on('select', function (e) {
-      const selectedFeatures = e.target.getFeatures();
-      
-      if (selectedFeatures.getLength() > 0) {
-        const featureToDelete = selectedFeatures.item(0);
-        drawSource.removeFeature(featureToDelete);
-        selectedFeatures.clear();
-        console.log("Objekt erfolgreich gelöscht.");
-      }
+    // 2. Select-Interaktion initialisieren (OHNE sofortiges Löschen)
+    deleteInteraction = new Select({
+      layers: [drawLayer],
+      style: deleteSelectionStyle, // Objekte leuchten rot, wenn ausgewählt
+      toggleCondition: platformModifierKeyOnly // STRG + Klick erlaubt Mehrfachauswahl
     });
 
     mapInstance.addInteraction(deleteInteraction);
-    console.log("Löschmodus aktiv. Klicke auf ein Objekt zum Entfernen.");
+    console.log("Löschmodus aktiv: Wähle Objekte aus (STRG+Klick für mehrere). Drücke 'Entf' zum Löschen.");
+
+    // 3. Tastatur-Event abfangen: Erst beim Drücken von "Entf" / "Backspace" wird gelöscht!
+    const handleKeyDown = function (e) {
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        const selectedFeatures = deleteInteraction.getFeatures().getArray();
+        
+        if (selectedFeatures.length > 0) {
+          if (confirm(`Möchtest du die ${selectedFeatures.length} ausgewählten Objekte wirklich löschen?`)) {
+            
+            // Features sicher rückwärts aus der Source löschen
+            for (let i = selectedFeatures.length - 1; i >= 0; i--) {
+              const feat = selectedFeatures[i];
+              if (drawSource.getFeatures().includes(feat)) {
+                drawSource.removeFeature(feat);
+              }
+            }
+            
+            // Auswahl leeren
+            deleteInteraction.getFeatures().clear();
+            console.log("Objekt(e) erfolgreich gelöscht.");
+
+            // Tabelle live aktualisieren
+            if (typeof updateTableFromVisibleLayers === 'function') {
+              updateTableFromVisibleLayers(mapInstance);
+            }
+          }
+        }
+      }
+    };
+
+    // Event-Listener an das Dokument hängen
+    document.addEventListener('keydown', handleKeyDown);
+
+    // 💡 WICHTIG: Speicher die Funktion auf der Interaktion, damit wir sie beim 
+    // Verlassen des Modus (deactivateDrawing) wieder sauber entfernen können!
+    deleteInteraction.set('keyListenerCleanup', handleKeyDown);
+
     return;
   }
-
-  
-
 // In deinem Fall D ("Translate") in myDraw.js baust du das so um:
 if (type === 'Translate') {
   if (modifyInteraction) modifyInteraction.setActive(false);
@@ -259,15 +300,25 @@ export function deactivateDrawing() {
   if (mapInstance) {
     if (drawInteraction) mapInstance.removeInteraction(drawInteraction);
     if (snapInteraction) mapInstance.removeInteraction(snapInteraction);
-    if (deleteInteraction) mapInstance.removeInteraction(deleteInteraction); // 💡 NEU
+    
     if (modifyInteraction) modifyInteraction.setActive(false);
     if (translateInteraction) { translateInteraction.setActive(false); mapInstance.removeInteraction(translateInteraction);   }
     if (selectInteraction) { selectInteraction.getFeatures().clear();   mapInstance.removeInteraction(selectInteraction);  }
     
+    if (deleteInteraction) {
+    // Den Tastatur-Listener sauber entfernen
+    const cleanupModifier = deleteInteraction.get('keyListenerCleanup');
+    if (cleanupModifier) {
+      document.removeEventListener('keydown', cleanupModifier);
+    }
     
+    deleteInteraction.getFeatures().clear();
+    mapInstance.removeInteraction(deleteInteraction);
+    deleteInteraction = null;
+  }
     drawInteraction = null;
     snapInteraction = null;
-    deleteInteraction = null; // 💡 NEU
+    
     translateInteraction = null; // 💡 NEU
     selectInteraction = null;
   }
@@ -390,7 +441,7 @@ export function deleteSelectedFeatures() {
 }
 
 
-import { click, platformModifierKeyOnly } from 'ol/events/condition';
+
 function initSelectMode(mapInstance, drawLayer) {
   selectInteraction = new Select({
     layers: [drawLayer], // Nur Objekte auf dem drawLayer auswählbar

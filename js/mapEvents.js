@@ -230,18 +230,18 @@ export function handleDomHeightQuery(map, evt, visibleDomLayers) {
 }
 export function initMapClick(map) {
   map.on('singleclick', function (evt) {
-    var test = isDrawingActive();
-    console.log(test);
+    //var test = isDrawingActive();
+    //console.log(test);
     // 1. Wenn im Zeichenmodus: abbrechen
     if (isDrawingActive()) {
-        console.log("Karten-Klick ignoriert, da Zeichenmodus aktiv ist.");
+        //console.log("Karten-Klick ignoriert, da Zeichenmodus aktiv ist.");
         return; 
     }
 
     // 💡 2. NEU: Wenn im Löschmodus (Mülleimer aktiv): ebenfalls abbrechen
     const deleteBtn = document.getElementById('draw-clear');
     if (deleteBtn && deleteBtn.classList.contains('active')) {
-        console.log("Karten-Klick ignoriert, da Löschmodus aktiv ist.");
+        //console.log("Karten-Klick ignoriert, da Löschmodus aktiv ist.");
         return; 
     }
     // --- 1. DGM- und DOM- LOGIK (PRIORISIERT) ---

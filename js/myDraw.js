@@ -102,71 +102,53 @@ function updateDrawInteraction(type) {
     return;
   }
 
-  
 // Fall B: Löschmodus aktiv
-  if (type === 'Delete') {
-    if (modifyInteraction) modifyInteraction.setActive(false);
-    if (drawInteraction) drawInteraction.setActive(false);
-    if (translateInteraction) translateInteraction.setActive(false);
-    
-    // 1. Wir erstellen einen auffälligen Style für die zu löschenden Objekte
-    const deleteSelectionStyle = new Style({
-      stroke: new Stroke({ color: '#ff0000', width: 4 }), // Roter Rand
-      fill: new Fill({ color: 'rgba(255, 0, 0, 0.3)' }),   // Rot transparent
-      image: new CircleStyle({
-        radius: 7,
-        fill: new Fill({ color: '#ff0000' })
-      })
-    });
+if (type === 'Delete') {
+  if (modifyInteraction) modifyInteraction.setActive(false);
+  if (drawInteraction) drawInteraction.setActive(false);
+  if (translateInteraction) translateInteraction.setActive(false);
 
-    // 2. Select-Interaktion initialisieren (OHNE sofortiges Löschen)
-    deleteInteraction = new Select({
-      layers: [drawLayer],
-      style: deleteSelectionStyle, // Objekte leuchten rot, wenn ausgewählt
-      toggleCondition: platformModifierKeyOnly // STRG + Klick erlaubt Mehrfachauswahl
-    });
+  const deleteSelectionStyle = new Style({
+    stroke: new Stroke({ color: '#ff0000', width: 4 }),
+    fill: new Fill({ color: 'rgba(255, 0, 0, 0.3)' }),
+    image: new CircleStyle({
+      radius: 7,
+      fill: new Fill({ color: '#ff0000' })
+    })
+  });
 
-    mapInstance.addInteraction(deleteInteraction);
-    console.log("Löschmodus aktiv: Wähle Objekte aus (STRG+Klick für mehrere). Drücke 'Entf' zum Löschen.");
+  // Prüfen, ob es ein mobiles Gerät ist (Touch-Unterstützung)
+  const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
-    // 3. Tastatur-Event abfangen: Erst beim Drücken von "Entf" / "Backspace" wird gelöscht!
-    const handleKeyDown = function (e) {
-      if (e.key === 'Delete' || e.key === 'Backspace') {
-        const selectedFeatures = deleteInteraction.getFeatures().getArray();
-        
-        if (selectedFeatures.length > 0) {
-          if (confirm(`Möchtest du die ${selectedFeatures.length} ausgewählten Objekte wirklich löschen?`)) {
-            
-            // Features sicher rückwärts aus der Source löschen
-            for (let i = selectedFeatures.length - 1; i >= 0; i--) {
-              const feat = selectedFeatures[i];
-              if (drawSource.getFeatures().includes(feat)) {
-                drawSource.removeFeature(feat);
-              }
-            }
-            
-            // Auswahl leeren
-            deleteInteraction.getFeatures().clear();
-            console.log("Objekt(e) erfolgreich gelöscht.");
+  deleteInteraction = new Select({
+    layers: [drawLayer],
+    style: deleteSelectionStyle,
+    // 💡 HIER DIE WEICHE:
+    // Am PC: Strg+Klick zum Auswählen mehrerer Objekte.
+    // Am Handy: Jeder normale Touch fügt hinzu oder entfernt (toggelt).
+    toggleCondition: isMobile ? click : platformModifierKeyOnly
+  });
 
-            // Tabelle live aktualisieren
-            if (typeof updateTableFromVisibleLayers === 'function') {
-              updateTableFromVisibleLayers(mapInstance);
-            }
-          }
-        }
-      }
-    };
+  // Jedes Mal, wenn sich die Auswahl ändert (Mobil oder PC), prüfen wir den Löschbutton
+  deleteInteraction.on('select', function () {
+    toggleMobileDeleteButton();
+  });
 
-    // Event-Listener an das Dokument hängen
-    document.addEventListener('keydown', handleKeyDown);
+  mapInstance.addInteraction(deleteInteraction);
+  
+  // PC-Tastatur-Support bleibt unverändert erhalten
+  const handleKeyDown = function (e) {
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+      executeDeleteAction();
+    }
+  };
+  document.addEventListener('keydown', handleKeyDown);
+  deleteInteraction.set('keyListenerCleanup', handleKeyDown);
 
-    // 💡 WICHTIG: Speicher die Funktion auf der Interaktion, damit wir sie beim 
-    // Verlassen des Modus (deactivateDrawing) wieder sauber entfernen können!
-    deleteInteraction.set('keyListenerCleanup', handleKeyDown);
-
-    return;
-  }
+  // Initial prüfen, falls noch Alt-Auswahlen da sind
+  toggleMobileDeleteButton();
+  return;
+}  
 // In deinem Fall D ("Translate") in myDraw.js baust du das so um:
 if (type === 'Translate') {
   if (modifyInteraction) modifyInteraction.setActive(false);
@@ -230,8 +212,7 @@ if (type === 'Translate') {
 
     // 4. Metriken berechnen (Fläche, UTM-Koordinaten etc.)
     calculateMetrics(feature);
-    
-    console.log(`Neues Objekt gezeichnet. ID vergeben: ${eindeutigeId}`);
+    //console.log(`Neues Objekt gezeichnet. ID vergeben: ${eindeutigeId}`);
   });
 
   mapInstance.addInteraction(drawInteraction);
@@ -315,6 +296,12 @@ export function deactivateDrawing() {
     deleteInteraction.getFeatures().clear();
     mapInstance.removeInteraction(deleteInteraction);
     deleteInteraction = null;
+
+    // 💡 NEU: Den mobilen Löschbutton beim Beenden restlos entfernen
+    const mobileBtn = document.getElementById('mobile-delete-btn');
+    if (mobileBtn) {
+      mobileBtn.remove();
+    }
   }
     drawInteraction = null;
     snapInteraction = null;
@@ -425,7 +412,7 @@ export function deleteSelectedFeatures() {
       return;
     }
 
-    if (confirm(`Möchtest du die ${selectedFeatures.length} ausgewählten Objekte wirklich löschen?`)) {
+    
       // In umgekehrter Reihenfolge löschen, da sich das Array beim Löschen verändert
       for (let i = selectedFeatures.length - 1; i >= 0; i--) {
         drawSource.removeFeature(selectedFeatures[i]);
@@ -436,7 +423,7 @@ export function deleteSelectedFeatures() {
       
       // Tabelle aktualisieren
       updateTableFromVisibleLayers(mapInstance);
-    }
+    
   }
 }
 
@@ -453,4 +440,79 @@ function initSelectMode(mapInstance, drawLayer) {
   });
 
   mapInstance.addInteraction(selectInteraction);
+}
+
+// Führt das eigentliche Löschen aus (wird von PC-Taste UND Handy-Button genutzt)
+function executeDeleteAction() {
+  if (!deleteInteraction) return;
+  
+  const selectedFeatures = deleteInteraction.getFeatures().getArray();
+  if (selectedFeatures.length === 0) return;
+
+  if (confirm(`Möchtest du die ${selectedFeatures.length} ausgewählten Objekte wirklich löschen?`)) {
+    // Rückwärts löschen wegen Array-Verschiebung
+    for (let i = selectedFeatures.length - 1; i >= 0; i--) {
+      const feat = selectedFeatures[i];
+      if (drawSource.getFeatures().includes(feat)) {
+        drawSource.removeFeature(feat);
+      }
+    }
+    
+    deleteInteraction.getFeatures().clear();
+    toggleMobileDeleteButton(); // Button wieder ausblenden
+    console.log("Objekt(e) erfolgreich gelöscht.");
+
+    if (typeof updateTableFromVisibleLayers === 'function') {
+      updateTableFromVisibleLayers(mapInstance);
+    }
+  }
+}
+
+// Blendet den Handy-Löschbutton ein/aus, je nachdem ob etwas ausgewählt ist
+function toggleMobileDeleteButton() {
+  let btn = document.getElementById('mobile-delete-btn');
+  
+  if (!deleteInteraction) {
+    if (btn) btn.style.display = 'none';
+    return;
+  }
+
+  const selectedCount = deleteInteraction.getFeatures().getLength();
+
+  // Wenn mindestens ein Objekt ausgewählt ist -> Button zeigen
+  if (selectedCount > 0) {
+    if (!btn) {
+      // Button live erzeugen, falls er noch nicht im HTML existiert
+      btn = document.createElement('button');
+      btn.id = 'mobile-delete-btn';
+      // Ein schickes Mülleimer-Symbol (FontAwesome hast du ja aktiv)
+      btn.innerHTML = '<i class="fa fa-trash"></i> Ausgewählte löschen';
+      
+      // Styling direkt per JS (schwebend unten rechts über der Karte)
+      Object.assign(btn.style, {
+        position: 'absolute',
+        bottom: '20px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: '2000',
+        backgroundColor: '#d9534f',
+        color: 'white',
+        border: 'none',
+        padding: '12px 20px',
+        borderRadius: '8px',
+        fontSize: '16px',
+        boxShadow: '0px 4px 10px rgba(0,0,0,0.3)',
+        cursor: 'pointer',
+        fontWeight: 'bold'
+      });
+
+      // Klick-Event für das Handy
+      btn.addEventListener('click', executeDeleteAction);
+      document.body.appendChild(btn);
+    }
+    btn.style.display = 'block';
+  } else {
+    // Wenn nichts mehr ausgewählt ist -> ausblenden
+    if (btn) btn.style.display = 'none';
+  }
 }

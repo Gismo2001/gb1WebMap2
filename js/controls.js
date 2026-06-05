@@ -488,18 +488,43 @@ export function createSubBarT(map) {
           const mainBtnEl = mainTableBtnInstance.element.querySelector('button') || mainTableBtnInstance.element;
           mainBtnEl.classList.add('is-running');
         }
-      } else {
+  } else {
+        // 💡 1. Sicherheitsabfrage: Prüfen, ob gezeichnete Objekte vorhanden sind
+        let hatFeatures = false;
+        
+        if (typeof drawSource !== 'undefined' && drawSource) {
+            hatFeatures = drawSource.getFeatures().length > 0;
+        } else if (drawLayer && typeof drawLayer.getSource === 'function') {
+            const source = drawLayer.getSource();
+            if (source && typeof source.getFeatures === 'function') {
+                hatFeatures = source.getFeatures().length > 0;
+            }
+        }
+
+        // 💡 2. Wenn Objekte da sind, den Nutzer um Bestätigung bitten
+        if (hatFeatures) {
+            const abbrechenBestaetigen = confirm(
+                "Möchtest du die Zeichenleiste wirklich schließen?\n\nAlle noch nicht gespeicherten Elemente gehen dabei unwiderruflich verloren!"
+            );
+            
+            // Wenn der Nutzer auf "Abbrechen" klickt, beenden wir die Funktion vorzeitig
+            if (!abbrechenBestaetigen) {
+                console.log("Schließen abgebrochen, Daten gesichert.");
+                return; 
+            }
+        }
+
+        // --- Ab hier läuft dein bisheriger Code unverändert weiter, falls die Karte leer war ODER bestätigt wurde ---
+
         // Zeichenleiste ausblenden
         if (drawBtns) { 
           drawBtns.style.setProperty('display', 'none', 'important');
           drawBtns.classList.remove('is-running');
           if (drawLayer) {
             // 💡 HIER DIE QUELLE LEEREN:
-            // Falls 'drawSource' global/allgemein verfügbar ist:
             if (typeof drawSource !== 'undefined' && drawSource) {
               drawSource.clear(); 
               console.log("drawSource erfolgreich geleert.");
-            // 💡 ALTERNATIVE (falls drawSource nicht direkt im Scope ist, holen wir sie aus dem Layer):
             } else {
               const source = drawLayer.getSource();
               if (source && typeof source.clear === 'function') {
@@ -510,7 +535,6 @@ export function createSubBarT(map) {
             drawLayer.set('displayInLayerSwitcher', false);
             drawLayer.setVisible(false); // 👈 Schaltet die Darstellung auf der Karte ab
             
-            // map.removeLayer(drawLayer); // ❌ DIESE ZEILE ENTFERNEN
             map.changed(); 
           }
         }
@@ -519,7 +543,7 @@ export function createSubBarT(map) {
           const mainBtnEl = mainTableBtnInstance.element.querySelector('button') || mainTableBtnInstance.element;
           mainBtnEl.classList.remove('is-running');
         }
-      }
+    }
     // Ende ontoggle
     }
   // Ende drawToggleBtn

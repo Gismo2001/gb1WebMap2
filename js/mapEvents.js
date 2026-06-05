@@ -505,7 +505,25 @@ contextMenu.on('open', function (evt) {
     }
   ]);
 });
-}
+const mapViewport = map.getViewport();
+
+  mapViewport.addEventListener('contextmenu', function (e) {
+    const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    
+    // Prüfen, ob der Löschmodus-Button die Klasse 'active' hat (wie in deinem Klick-Block oben)
+    const deleteBtn = document.getElementById('draw-clear');
+    const isDeleteActive = deleteBtn && deleteBtn.classList.contains('active');
+    
+    // Wenn wir auf dem Handy sind UND entweder gezeichnet oder gelöscht wird:
+    if (isMobile && (isDrawingActive() || isDeleteActive)) {
+      // Verhindert, dass das ol-contextmenu aufpoppt!
+      e.stopPropagation();
+      e.preventDefault();
+      // console.log("ol-contextmenu unterdrückt für Handy-Long-Press.");
+    }
+  }, true); // 'true' aktiviert die Capture-Phase, damit wir schneller als das Plugin sind!
+} // Ende von initMapCli
+
 
 function handleCombinedPointerMove(evt) {
   if (evt.dragging) return;

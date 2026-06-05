@@ -22,6 +22,8 @@ let snapInteraction = null;
 let deleteInteraction = null; // 💡 NEU: Für das gezielte Löschen per Klick
 let translateInteraction = null; // 💡 NEU: Für das Verschieben ganzer Objekte
 let selectInteraction = null; // 💡 NEU: Für die Auswahl von Objekten (z.B. zum Löschen oder Verschieben)
+let longPressTimer;
+let isMultiSelectActive = false;
 
 
 // Initialisiert die Zeichen-Funktionalität
@@ -71,15 +73,29 @@ function setupDrawUi() {
   
   buttons.forEach(btn => {
     btn.addEventListener('click', (e) => {
-      // Aktiven Button-Style umschalten
+      // 1. Aktiven Button-Style umschalten
       buttons.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
+      
+      // 💡 2. NEU: Wenn ein Werkzeug-Button geklickt wird, 
+      // blenden wir den mobilen Lösch-Button sofort vorsorglich aus!
+      const mobileBtn = document.getElementById('mobile-delete-btn');
+      if (mobileBtn) {
+        mobileBtn.style.display = 'none';
+      }
+
+      // 💡 3. NEU: Falls du die Funktion 'deactivateDeleteMode' nutzt,
+      // kannst du sie hier ebenfalls aufrufen, um die Selektion aufzuheben:
+      if (typeof deactivateDeleteMode === 'function') {
+        deactivateDeleteMode();
+      }
       
       const type = btn.getAttribute('data-type');
       updateDrawInteraction(type);
     });
   });
-  //Event-Listener für den Export-Button
+
+  // Event-Listener für den Export-Button
   const exportBtn = document.getElementById('draw-export');
   if (exportBtn) {
     exportBtn.addEventListener('click', () => {
@@ -89,11 +105,47 @@ function setupDrawUi() {
 }
 // Wechselt den Zeichenmodus basierend auf dem ausgewählten Typ
 function updateDrawInteraction(type) {
-  // 1. Vorherige Interaktionen IMMER komplett von der Karte entfernen
+  // 1. Vorherige Interaktionen IMMER komplett von der Karte entfernen und aufräumen
   if (drawInteraction) { mapInstance.removeInteraction(drawInteraction); drawInteraction = null; }
   if (snapInteraction) { mapInstance.removeInteraction(snapInteraction); snapInteraction = null; }
-  if (deleteInteraction) { mapInstance.removeInteraction(deleteInteraction); deleteInteraction = null; }
+  
+  // 💡 Beim Werkzeugwechsel den Long-Press-Timer und den Handy-Button sofort zurücksetzen
+  clearTimeout(longPressTimer);
+  isMultiSelectActive = false;
+  const mobileBtn = document.getElementById('mobile-delete-btn');
+  if (mobileBtn) mobileBtn.style.display = 'none';
+
+  // Tastatur-Listener vom Löschmodus sauber entfernen, falls vorhanden
+  if (deleteInteraction) {
+    const cleanup = deleteInteraction.get('keyListenerCleanup');
+    if (cleanup) document.removeEventListener('keydown', cleanup);
+    // 💡 NATIVE TOUCH-LISTENERS ENTFERNEN
+    const touchCleanup = deleteInteraction.get('touchCleanup');
+    if (touchCleanup) {
+      touchCleanup.viewport.removeEventListener('touchstart', touchCleanup.startLongPress);
+      touchCleanup.viewport.removeEventListener('touchmove', touchCleanup.cancelLongPress);
+      touchCleanup.viewport.removeEventListener('touchend', touchCleanup.cancelLongPress);
+    }
+    deleteInteraction.getFeatures().clear();
+    mapInstance.removeInteraction(deleteInteraction); 
+    deleteInteraction = null; 
+  }
+  
   if (translateInteraction) { mapInstance.removeInteraction(translateInteraction); translateInteraction = null; } 
+  if (selectInteraction) { 
+    const touchCleanup = selectInteraction.get('touchCleanup');
+    if (touchCleanup) {
+      touchCleanup.viewport.removeEventListener('touchstart', touchCleanup.startLongPress);
+      touchCleanup.viewport.removeEventListener('touchmove', touchCleanup.cancelLongPress);
+      touchCleanup.viewport.removeEventListener('touchend', touchCleanup.cancelLongPress);
+    }
+    selectInteraction.getFeatures().clear(); 
+    mapInstance.removeInteraction(selectInteraction); 
+    selectInteraction = null; 
+  }
+
+  // Prüfen, ob es ein mobiles Gerät ist (Touch-Unterstützung)
+  const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
   // Fall A: Navigation / Hand-Symbol aktiv
   if (type === 'None') {
@@ -102,90 +154,160 @@ function updateDrawInteraction(type) {
     return;
   }
 
-// Fall B: Löschmodus aktiv
-if (type === 'Delete') {
-  if (modifyInteraction) modifyInteraction.setActive(false);
-  if (drawInteraction) drawInteraction.setActive(false);
-  if (translateInteraction) translateInteraction.setActive(false);
+ // ==========================================
+  // Fall B: Löschmodus aktiv
+  // ==========================================
+  if (type === 'Delete') {
+    if (modifyInteraction) modifyInteraction.setActive(false);
+    if (drawInteraction) drawInteraction.setActive(false);
+    if (translateInteraction) translateInteraction.setActive(false);
 
-  const deleteSelectionStyle = new Style({
-    stroke: new Stroke({ color: '#ff0000', width: 4 }),
-    fill: new Fill({ color: 'rgba(255, 0, 0, 0.3)' }),
-    image: new CircleStyle({
-      radius: 7,
-      fill: new Fill({ color: '#ff0000' })
-    })
-  });
-
-  // Prüfen, ob es ein mobiles Gerät ist (Touch-Unterstützung)
-  const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-
-  deleteInteraction = new Select({
-    layers: [drawLayer],
-    style: deleteSelectionStyle,
-    // 💡 HIER DIE WEICHE:
-    // Am PC: Strg+Klick zum Auswählen mehrerer Objekte.
-    // Am Handy: Jeder normale Touch fügt hinzu oder entfernt (toggelt).
-    toggleCondition: isMobile ? click : platformModifierKeyOnly
-  });
-
-  // Jedes Mal, wenn sich die Auswahl ändert (Mobil oder PC), prüfen wir den Löschbutton
-  deleteInteraction.on('select', function () {
-    toggleMobileDeleteButton();
-  });
-
-  mapInstance.addInteraction(deleteInteraction);
-  
-  // PC-Tastatur-Support bleibt unverändert erhalten
-  const handleKeyDown = function (e) {
-    if (e.key === 'Delete' || e.key === 'Backspace') {
-      executeDeleteAction();
-    }
-  };
-  document.addEventListener('keydown', handleKeyDown);
-  deleteInteraction.set('keyListenerCleanup', handleKeyDown);
-
-  // Initial prüfen, falls noch Alt-Auswahlen da sind
-  toggleMobileDeleteButton();
-  return;
-}  
-// In deinem Fall D ("Translate") in myDraw.js baust du das so um:
-if (type === 'Translate') {
-  if (modifyInteraction) modifyInteraction.setActive(false);
-  if (drawInteraction) drawInteraction.setActive(false);
-
-  // 1. Select-Modus starten, falls noch nicht aktiv
-  if (!selectInteraction) {
-    initSelectMode(mapInstance, drawLayer);
-  } else {
-    selectInteraction.setActive(true);
-  }
-
-  // 2. Translate an die Features des Select-Modus koppeln!
-  translateInteraction = new Translate({
-    // 💡 HIER DER TRICK: Statt 'layers: [drawLayer]' nutzen wir die Features der Auswahl!
-    features: selectInteraction.getFeatures() 
-  });
-
-  // Metriken nach dem Verschieben für ALLE bewegten Objekte updaten
-  translateInteraction.on('translateend', function (e) {
-    const translatedFeatures = e.features.getArray();
-    translatedFeatures.forEach(feature => {
-      calculateMetrics(feature); 
+    const deleteSelectionStyle = new Style({
+      stroke: new Stroke({ color: '#ff0000', width: 4 }),
+      fill: new Fill({ color: 'rgba(255, 0, 0, 0.3)' }),
+      image: new CircleStyle({ radius: 7, fill: new Fill({ color: '#ff0000' }) })
     });
-    // Tabelle live aktualisieren, falls offen
-    if (typeof updateTableFromVisibleLayers === 'function') {
-      updateTableFromVisibleLayers(mapInstance);
+
+    deleteInteraction = new Select({
+      layers: [drawLayer],
+      style: deleteSelectionStyle,
+      toggleCondition: function (mapBrowserEvent) {
+        if (!isMobile) return platformModifierKeyOnly(mapBrowserEvent);
+        return isMultiSelectActive;
+      }
+    });
+
+    deleteInteraction.on('select', function () {
+      if (typeof toggleMobileDeleteButton === 'function') toggleMobileDeleteButton();
+    });
+
+    mapInstance.addInteraction(deleteInteraction);
+    
+    // 💡 ROBUSTE HANDY-ERKENNUNG ÜBER DAS HTML-ELEMENT
+    if (isMobile) {
+      const viewport = mapInstance.getViewport();
+
+      const startLongPress = function (e) {
+        clearTimeout(longPressTimer);
+        
+        longPressTimer = setTimeout(() => {
+          // Touch-Position in Pixel auf der Karte umrechnen
+          const touch = e.touches[0];
+          const rect = viewport.getBoundingClientRect();
+          const pixel = [touch.clientX - rect.left, touch.clientY - rect.top];
+
+          // Feature an dieser Stelle suchen
+          const feature = mapInstance.forEachFeatureAtPixel(pixel, f => f, { 
+            layerFilter: l => l === drawLayer 
+          });
+
+          if (feature) {
+            isMultiSelectActive = true; // Mehrfachauswahl aktivieren
+            const selectedFeatures = deleteInteraction.getFeatures();
+            if (!selectedFeatures.getArray().includes(feature)) {
+              selectedFeatures.push(feature);
+            }
+            if (navigator.vibrate) navigator.vibrate(50); // Vibrations-Feedback
+            console.log("Mehrfachauswahl (Löschen) via HTML-Long-Press aktiv!");
+          }
+        }, 1200); // 1.2 Sekunden reicht oft völlig aus und fühlt sich knackiger an
+      };
+
+      const cancelLongPress = () => clearTimeout(longPressTimer);
+
+      // Native Event-Listener an das Karten-Fenster hängen
+      viewport.addEventListener('touchstart', startLongPress, { passive: true });
+      viewport.addEventListener('touchmove', cancelLongPress, { passive: true });
+      viewport.addEventListener('touchend', cancelLongPress, { passive: true });
+
+      // Funktionen temporär merken, um sie beim Werkzeugwechsel wieder sauber zu entfernen
+      deleteInteraction.set('touchCleanup', { startLongPress, cancelLongPress, viewport });
     }
-    console.log(`${translatedFeatures.length} Objekt(e) erfolgreich verschoben.`);
-  });
 
-  mapInstance.addInteraction(translateInteraction);
-  return;
+    const handleKeyDown = function (e) {
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (typeof executeDeleteAction === 'function') executeDeleteAction();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    deleteInteraction.set('keyListenerCleanup', handleKeyDown);
+
+    if (typeof toggleMobileDeleteButton === 'function') toggleMobileDeleteButton();
+    return;
+  }
   
-}
+  // ==========================================
+  // Fall D: Verschieben-Modus aktiv ("Translate")
+  // ==========================================
+ // ==========================================
+  // Fall D: Verschieben-Modus aktiv ("Translate")
+  // ==========================================
+  if (type === 'Translate') {
+    if (modifyInteraction) modifyInteraction.setActive(false);
+    if (drawInteraction) drawInteraction.setActive(false);
 
+    selectInteraction = new Select({
+      layers: [drawLayer],
+      style: selectStyle, // Dein vordefinierter Auswahl-Style (z.B. Cyan)
+      toggleCondition: function (mapBrowserEvent) {
+        if (!isMobile) return platformModifierKeyOnly(mapBrowserEvent);
+        return isMultiSelectActive;
+      }
+    });
 
+    mapInstance.addInteraction(selectInteraction);
+
+    // 💡 ROBUSTE HANDY-ERKENNUNG FÜR VERSCHIEBEN
+    if (isMobile) {
+      const viewport = mapInstance.getViewport();
+
+      const startLongPress = function (e) {
+        clearTimeout(longPressTimer);
+        
+        longPressTimer = setTimeout(() => {
+          const touch = e.touches[0];
+          const rect = viewport.getBoundingClientRect();
+          const pixel = [touch.clientX - rect.left, touch.clientY - rect.top];
+
+          const feature = mapInstance.forEachFeatureAtPixel(pixel, f => f, { 
+            layerFilter: l => l === drawLayer 
+          });
+
+          if (feature) {
+            isMultiSelectActive = true;
+            const selectedFeatures = selectInteraction.getFeatures();
+            if (!selectedFeatures.getArray().includes(feature)) {
+              selectedFeatures.push(feature);
+            }
+            if (navigator.vibrate) navigator.vibrate(50);
+            console.log("Mehrfachauswahl (Verschieben) via HTML-Long-Press aktiv!");
+          }
+        }, 1200);
+      };
+
+      const cancelLongPress = () => clearTimeout(longPressTimer);
+
+      viewport.addEventListener('touchstart', startLongPress, { passive: true });
+      viewport.addEventListener('touchmove', cancelLongPress, { passive: true });
+      viewport.addEventListener('touchend', cancelLongPress, { passive: true });
+
+      selectInteraction.set('touchCleanup', { startLongPress, cancelLongPress, viewport });
+    }
+
+    translateInteraction = new Translate({
+      features: selectInteraction.getFeatures() 
+    });
+
+    translateInteraction.on('translateend', function (e) {
+      const translatedFeatures = e.features.getArray();
+      translatedFeatures.forEach(feature => { calculateMetrics(feature); });
+      if (typeof updateTableFromVisibleLayers === 'function') updateTableFromVisibleLayers(mapInstance);
+      console.log(`${translatedFeatures.length} Objekt(e) erfolgreich verschoben.`);
+    });
+
+    mapInstance.addInteraction(translateInteraction);
+    return;
+  }
   // ==========================================
   // Fall C: Normales Zeichnen (Point, Line, Polygon...)
   // ==========================================
@@ -198,21 +320,14 @@ if (type === 'Translate') {
 
   drawInteraction.on('drawend', function (event) {
     const feature = event.feature;
-    
-    // 💡 1. Eine absolut eindeutige ID generieren (Kombination aus Zeitstempel & Zufall)
     const eindeutigeId = `draw_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
     
-    // 💡 2. Für OpenLayers intern setzen (wichtig für interne Suchen)
     feature.setId(eindeutigeId);
-    
-    // 💡 3. In die Attribute schreiben (wichtig für deinen GeoJSON-Export!)
     feature.set('id', eindeutigeId);
     feature.set('erstellt_am', new Date().toISOString().slice(0, 10));
-    feature.set('zeichnentyp', type); // Speichert z.B. 'Polygon' oder 'Point' im Datensatz
+    feature.set('zeichnentyp', type);
 
-    // 4. Metriken berechnen (Fläche, UTM-Koordinaten etc.)
     calculateMetrics(feature);
-    //console.log(`Neues Objekt gezeichnet. ID vergeben: ${eindeutigeId}`);
   });
 
   mapInstance.addInteraction(drawInteraction);
@@ -449,7 +564,7 @@ function executeDeleteAction() {
   const selectedFeatures = deleteInteraction.getFeatures().getArray();
   if (selectedFeatures.length === 0) return;
 
-  if (confirm(`Möchtest du die ${selectedFeatures.length} ausgewählten Objekte wirklich löschen?`)) {
+  
     // Rückwärts löschen wegen Array-Verschiebung
     for (let i = selectedFeatures.length - 1; i >= 0; i--) {
       const feat = selectedFeatures[i];
@@ -465,7 +580,7 @@ function executeDeleteAction() {
     if (typeof updateTableFromVisibleLayers === 'function') {
       updateTableFromVisibleLayers(mapInstance);
     }
-  }
+  
 }
 
 // Blendet den Handy-Löschbutton ein/aus, je nachdem ob etwas ausgewählt ist
@@ -503,7 +618,8 @@ function toggleMobileDeleteButton() {
         fontSize: '14px',
         boxShadow: '0px 2px 5px rgba(0,0,0,0.3)',
         cursor: 'pointer',
-        fontWeight: 'bold'
+        fontWeight: 'bold',
+        whiteSpace: 'nowrap' // 💡 Verhindert ungewollten Textumbruch auf schmalen Handys
       });
 
       // Klick-Event für das Handy

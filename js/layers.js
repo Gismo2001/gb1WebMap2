@@ -10,6 +10,8 @@ import {bbox as bboxStrategy} from 'ol/loadingstrategy';
 import Style from 'ol/style/Style';
 import Fill from 'ol/style/Fill';
 import Stroke from 'ol/style/Stroke';
+//import Text from 'ol/style/Text';
+//import { Circle as CircleStyle } from 'ol/style';
 
 import {SleStyle, WehStyle, BruAndereStyle, BruNlwknStyle, DueStyle, QueStyle, getStyleForArtEin, getStyleForArtSonPun, getStyleForArtSonLin, getStyleForArtGewInfo, getStyleForArtUmn, Km10scalStyle, Km100scalStyle, Km500scalStyle, getStyleForArtFSK } from './utils.js';
 import LayerGroup from 'ol/layer/Group';

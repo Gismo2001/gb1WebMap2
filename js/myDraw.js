@@ -491,17 +491,17 @@ function toggleMobileDeleteButton() {
       // Styling direkt per JS (schwebend unten rechts über der Karte)
       Object.assign(btn.style, {
         position: 'absolute',
-        bottom: '20px',
+        bottom: '60px',
         left: '50%',
         transform: 'translateX(-50%)',
         zIndex: '2000',
         backgroundColor: '#d9534f',
         color: 'white',
         border: 'none',
-        padding: '12px 20px',
-        borderRadius: '8px',
-        fontSize: '16px',
-        boxShadow: '0px 4px 10px rgba(0,0,0,0.3)',
+        padding: '6px 10px',
+        borderRadius: '4px',
+        fontSize: '14px',
+        boxShadow: '0px 2px 5px rgba(0,0,0,0.3)',
         cursor: 'pointer',
         fontWeight: 'bold'
       });

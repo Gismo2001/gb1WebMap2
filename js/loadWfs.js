@@ -13,23 +13,25 @@ import GML3 from 'ol/format/GML3';
 
 export async function loadWFSCapabilities(baseUrl) {
   const cleanUrl = baseUrl.split('?')[0]; 
-  
-  // 💡 Alternative zu cors-anywhere, die die Antwort in ein JSON-Objekt verpackt
-  const url = `https://api.allorigins.win/get?url=${encodeURIComponent(cleanUrl + '?service=WFS&request=GetCapabilities')}`;
-  
-  console.log("Rufe Capabilities auf über AllOrigins Proxy...");
+  const wfsUrl = cleanUrl + '?service=WFS&request=GetCapabilities';
 
   try {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`Server antwortet mit Status ${response.status}`);
+    const response = await fetch(wfsUrl);
     
-    const wrapper = await response.json(); // AllOrigins liefert ein JSON-Wrapper zurück
-    const text = wrapper.contents;         // Hier drin steckt das echte XML vom LGLN-Server
+    if (!response.ok) {
+      throw new Error(`Server antwortet mit Status ${response.status}`);
+    }
     
+    const text = await response.text();
     const parser = new DOMParser();
     const xml = parser.parseFromString(text, "text/xml");
     
-    // Ab hier bleibt deine Namespace-sichere Schleife exakt identisch:
+    // Parse-Fehler prüfen
+    if (xml.getElementsByTagName("parsererror").length > 0) {
+      throw new Error("XML Parse-Fehler: Server hat keine gültigen WFS-Daten gesendet");
+    }
+    
+    // FeatureType-Elemente auslesen
     const featureTypes = xml.getElementsByTagNameNS("*", "FeatureType");
     const wfsLayers = [];
     
@@ -45,11 +47,11 @@ export async function loadWFSCapabilities(baseUrl) {
       }
     }
     
-    console.log(`${wfsLayers.length} Layer erfolgreich eingelesen!`);
+    console.log(`✅ ${wfsLayers.length} WFS-Layer geladen`);
     return wfsLayers;
 
   } catch (error) {
-    console.error("Fehler beim Laden der WFS Capabilities:", error);
+    console.error("❌ Fehler beim Laden der WFS Capabilities:", error.message);
     throw error;
   }
 }
@@ -57,23 +59,18 @@ export function loadWFSLayer(map, baseUrl, typeName) {
   const cleanUrl = baseUrl.split('?')[0];
 
   const vectorSource = new VectorSource({
-    // 💡 1. ÄNDERUNG: Wir nutzen den WFS/GML-Parser statt GeoJSON
     format: new WFS({
-      gmlFormat: new GML3() // ALKIS nutzt meist GML3
+      gmlFormat: new GML3()
     }),
     url: function (extent, resolution, projection) {
       const srsUrn = 'urn:ogc:def:crs:EPSG::3857';
 
-      // Wenn du einen CORS-Proxy brauchst (siehe vorherige Nachricht), hier davorhängen:
-      const proxyUrl = ''; // z.B. 'https://cors-anywhere.herokuapp.com/'
-
+      // Direkter Zugriff - BfN-Server unterstützt CORS
       return (
-        proxyUrl +
         `${cleanUrl}?service=WFS` +
         `&version=1.1.0` +
         `&request=GetFeature` +
         `&typeName=${typeName}` +
-        // 💡 2. ÄNDERUNG: Offizielles LGLN-Format anfordern
         `&outputFormat=text/xml; subtype=gml/3.1.1` + 
         `&srsname=${srsUrn}` +
         `&bbox=${extent.join(',')},${srsUrn}`
@@ -85,7 +82,6 @@ export function loadWFSLayer(map, baseUrl, typeName) {
   const layer = new VectorLayer({
     source: vectorSource,
     properties: { title: typeName },
-    // Dein Style bleibt absolut identisch...
     style: new Style({
       stroke: new Stroke({ color: '#0078d4', width: 2 }),
       fill: new Fill({ color: 'rgba(0, 120, 212, 0.15)' })
@@ -94,13 +90,13 @@ export function loadWFSLayer(map, baseUrl, typeName) {
 
   map.addLayer(layer);
 
-  // 💡 TIPP ZUR FEHLERSUCHE: Überwache, ob Features geladen werden
+  // Fehlerüberwachung
   vectorSource.on('featuresloadend', function(evt) {
-    console.log(`Erfolgreich ${evt.features.length} Features für ${typeName} geladen!`);
+    console.log(`✅ ${evt.features.length} Features für ${typeName} geladen`);
   });
   
   vectorSource.on('featuresloaderror', function(evt) {
-    console.error(`Fehler beim Laden der WFS-Features für ${typeName}`);
+    console.error(`❌ Fehler beim Laden der WFS-Features für ${typeName}`);
   });
 }
 

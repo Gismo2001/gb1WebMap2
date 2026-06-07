@@ -175,6 +175,7 @@ import { loadWFSCapabilities, loadWFSLayer, loadArcGISCapabilities, loadArcGISLa
 
 document.getElementById('load-wfs-btn').addEventListener('click', async function () {
   const baseUrl = document.getElementById('wfs-url').value.trim();
+  console.log('Eingegebene URL:', baseUrl);
   if (!baseUrl) return;
 
   const container = document.getElementById('wfs-layer-list');

@@ -1160,13 +1160,13 @@ export function fileToggleInput(map) {
 
   fileInput.onchange = (event) => {
     const files = event.target.files;
+    console.log(files)
     if (!files.length) return;
 
     Array.from(files).forEach(file => {
       const fileName = file.name.replace(/\.[^/.]+$/, "");
       const fileEnd = file.name.split('.').pop().toLowerCase();
 
-      
       // 1. RASTER-DATEN (GeoTIFF) -> Unverändert
       if (fileEnd === 'tif' || fileEnd === 'tiff') {
         const blobUrl = URL.createObjectURL(file);
@@ -1187,7 +1187,6 @@ export function fileToggleInput(map) {
 
         tiffSource.getView().then((viewConfig) => {
             const extent3857 = transformExtent(viewConfig.extent, 'EPSG:25832', 'EPSG:3857');
-            
             const tiffLayer = new WebGLTileLayer({
                 source: tiffSource,
                 title: sourceName,
@@ -1241,6 +1240,7 @@ export function fileToggleInput(map) {
         };
         reader.readAsArrayBuffer(file); 
       } 
+   
       // 3. TEXT-LOGIK (KML, GeoJSON) -> MIT NEUER WEICHE
       else {
         const reader = new FileReader();
@@ -1303,6 +1303,7 @@ export function fileToggleInput(map) {
   };
   fileInput.click();
 }
+
 function addVectorLayerToMap(map, features, sourceName) {
   const vectorSource = new VectorSource({
     features: features
@@ -1312,8 +1313,6 @@ function addVectorLayerToMap(map, features, sourceName) {
   const style = sourceName === 'fsk'
     ? getStyleForArtFSK
     : uploadStyle;
-
-  
 
   const vectorLayer = new VectorLayer({
     source: vectorSource,
@@ -1333,6 +1332,7 @@ function addVectorLayerToMap(map, features, sourceName) {
     });
   }
 }
+
 // Wir definieren den Style einmal außerhalb, damit er nicht bei jedem 
 // Feature-Upload neu erstellt werden muss (besser für die Performance).
 const uploadStyle = new Style({
@@ -1364,12 +1364,14 @@ function shouldShowPopup(layer) {
 
   return true;
 }
+
 function createDatenLink(url, label) {
   if (url && url.trim() !== '') {
     return `<a href="${url}" style="color: #0078d4; text-decoration: underline;" onclick="window.open('${url}', '_blank'); return false;">${label}</a>`;
   }
   return label;
 }
+
 export function initPopup(map) {
   const container = document.getElementById('popup');
   const content = document.getElementById('popup-content');

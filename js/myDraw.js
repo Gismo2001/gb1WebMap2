@@ -1,7 +1,7 @@
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { Draw, Modify, Snap, Select, Translate } from 'ol/interaction';
-import { Style, Stroke, Fill, Circle as CircleStyle } from 'ol/style';
+import { Style, Stroke, Fill, Circle as CircleStyle, Text } from 'ol/style';
 import { getLength, getArea } from 'ol/sphere';
 import { transform } from 'ol/proj'; // 💡 NEU: Für die Koordinaten-Umrechnung
 import { selectStyle } from './controls.js'; // 💡 NEU: Für die Auswahl-Interaktion
@@ -239,7 +239,51 @@ function updateDrawInteraction(type) {
   // ==========================================
   // Fall D: Verschieben-Modus aktiv ("Translate")
   // ==========================================
- // ==========================================
+if (type === 'Text') {
+    if (modifyInteraction) modifyInteraction.setActive(false);
+    if (drawInteraction) drawInteraction.setActive(false);
+
+    drawInteraction = new Draw({
+      source: drawSource,
+      type: 'Point'
+    });
+
+    drawInteraction.on('drawend', function (event) {
+      const feature = event.feature;
+      const label = window.prompt('Text für das Label eingeben:', '');
+
+      if (!label || !label.trim()) {
+        drawSource.removeFeature(feature);
+        return;
+      }
+
+      feature.set('text_label', label.trim());
+      feature.set('typ', 'Text');
+      feature.setStyle(new Style({
+        text: new Text({
+          text: label.trim(),
+          font: 'bold 14px Arial, sans-serif',
+          fill: new Fill({ color: '#000' }),
+          stroke: new Stroke({ color: '#fff', width: 4 }),
+          overflow: true,
+          offsetY: -10
+        })
+      }));
+
+      const eindeutigeId = `draw_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      feature.setId(eindeutigeId);
+      feature.set('id', eindeutigeId);
+      feature.set('erstellt_am', new Date().toISOString().slice(0, 10));
+      feature.set('zeichnentyp', 'Text');
+    });
+
+    mapInstance.addInteraction(drawInteraction);
+    snapInteraction = new Snap({ source: drawSource });
+    mapInstance.addInteraction(snapInteraction);
+    return;
+  }
+
+  // ==========================================
   // Fall D: Verschieben-Modus aktiv ("Translate")
   // ==========================================
   if (type === 'Translate') {

@@ -206,32 +206,6 @@ html, body {
   background-color: #2a90fc;  
 }
 
-.ol-control.ol-layerswitcher {
-  z-index: 2;
-}
-
-.ol-control.ol-layerswitcher-collapsed {
-  min-width: unset;
-}
-
-.ol-control.ol-layerswitcher button {
-  margin: 1px;
-  padding: 0;
-  width: 1.375em;
-  height: 1.375em;
-  border-radius: 0px;
-  font-size: inherit;
-}
-
-.ol-control.ol-layerswitcher li .li-content label {
-  box-sizing: border-box;
-  vertical-align: middle;
-}
-
-.ol-control.ol-layerswitcher .panel-container {
-  overflow-y: auto;
-  box-sizing: border-box;
-}
 
 #table-header {
     display: flex;
@@ -477,7 +451,7 @@ html, body {
     font-size: 11px !important;
   }
 
-  /* 💡 NEU: Zeichenleiste an die 26px der restlichen UI im Querformat anpassen */
+  /*Zeichenleiste an die 26px der restlichen UI im Querformat anpassen */
   #draw-bar {
     bottom: 10px !important; /* Etwas näher an den Rand im Querformat */
     left: 10px !important;

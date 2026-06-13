@@ -54,7 +54,7 @@ export function initDrawing(map) {
   modifyInteraction = new Modify({ source: drawSource });
   mapInstance.addInteraction(modifyInteraction);
 
-  // 💡 NEU: Automatische Neuberechnung nach dem Verschieben/Verändern von Punkten
+  // Automatische Neuberechnung nach dem Verschieben/Verändern von Punkten
   modifyInteraction.on('modifyend', function (event) {
     const modifiedFeatures = event.features.getArray();
     modifiedFeatures.forEach(feature => {
@@ -103,6 +103,7 @@ function setupDrawUi() {
     });
   }
 }
+
 // Wechselt den Zeichenmodus basierend auf dem ausgewählten Typ
 function updateDrawInteraction(type) {
   // 1. Vorherige Interaktionen IMMER komplett von der Karte entfernen und aufräumen
@@ -147,16 +148,15 @@ function updateDrawInteraction(type) {
   // Prüfen, ob es ein mobiles Gerät ist (Touch-Unterstützung)
   const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
-  // Fall A: Navigation / Hand-Symbol aktiv
+  // Fall A: Navigation / Hand-Symbol aktiv / Zeichenmodus pausert
   if (type === 'None') {
     if (modifyInteraction) modifyInteraction.setActive(false);
     console.log("Zeichenmodus beendet. Navigation aktiv.");
     return;
   }
 
- // ==========================================
+ 
   // Fall B: Löschmodus aktiv
-  // ==========================================
   if (type === 'Delete') {
     if (modifyInteraction) modifyInteraction.setActive(false);
     if (drawInteraction) drawInteraction.setActive(false);
@@ -236,10 +236,9 @@ function updateDrawInteraction(type) {
     return;
   }
   
-  // ==========================================
-  // Fall D: Verschieben-Modus aktiv ("Translate")
-  // ==========================================
-if (type === 'Text') {
+  
+  // Fall C: Text hinzufügen
+  if (type === 'Text') {
     if (modifyInteraction) modifyInteraction.setActive(false);
     if (drawInteraction) drawInteraction.setActive(false);
 
@@ -283,9 +282,8 @@ if (type === 'Text') {
     return;
   }
 
-  // ==========================================
+  
   // Fall D: Verschieben-Modus aktiv ("Translate")
-  // ==========================================
   if (type === 'Translate') {
     if (modifyInteraction) modifyInteraction.setActive(false);
     if (drawInteraction) drawInteraction.setActive(false);
@@ -352,16 +350,13 @@ if (type === 'Text') {
     mapInstance.addInteraction(translateInteraction);
     return;
   }
-  // ==========================================
-  // Fall C: Normales Zeichnen (Point, Line, Polygon...)
-  // ==========================================
-  if (modifyInteraction) modifyInteraction.setActive(true);
   
+  // Fall E: Normales Zeichnen (Point, Line, Polygon...)
+  if (modifyInteraction) modifyInteraction.setActive(true);
   drawInteraction = new Draw({
     source: drawSource,
     type: type,
   });
-
   drawInteraction.on('drawend', function (event) {
     const feature = event.feature;
     const eindeutigeId = `draw_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
@@ -373,12 +368,11 @@ if (type === 'Text') {
 
     calculateMetrics(feature);
   });
-
   mapInstance.addInteraction(drawInteraction);
   snapInteraction = new Snap({ source: drawSource });
   mapInstance.addInteraction(snapInteraction);
 }
-// 💡 NEU: Zentrale Hilfsfunktion zur Berechnung von Länge, Fläche und Typ
+// Zentrale Hilfsfunktion zur Berechnung von Länge, Fläche und Typ
 export function calculateMetrics(feature) {
   const geometry = feature.getGeometry();
   if (!geometry) return;
@@ -414,9 +408,9 @@ export function calculateMetrics(feature) {
     
     // Umrechnung in EPSG:4326 (WGS84 - Gradzahlen für GPS/Google Maps)
     const coords4326 = transform(coords3857, 'EPSG:3857', 'EPSG:4326');
-    feature.set('lon_4326', parseFloat(coords4326[0].toFixed(6))); // 6 Dezimalstellen reichen für cm-Genauigkeit
     feature.set('lat_4326', parseFloat(coords4326[1].toFixed(6)));
-    
+    feature.set('lon_4326', parseFloat(coords4326[0].toFixed(6))); // 6 Dezimalstellen reichen für cm-Genauigkeit
+
     // Umrechnung in EPSG:25832 (UTM Zone 32N - Meterkoordinaten für DE/Niedersachsen)
     const coords25832 = transform(coords3857, 'EPSG:3857', 'EPSG:25832');
     feature.set('x_25832', parseFloat(coords25832[0].toFixed(2)));

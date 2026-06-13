@@ -61,7 +61,7 @@ export const profileLayer = createProfilLayer(profileSource);
 let profileMode = false;
 
 let isDrawActive = false; 
-let isWfsActive = false; // 💡 NEU: Zustand für den WFS-Loader
+let isWfsActive = false; 
 
 
 //export const permalinkControl = null; 
@@ -144,7 +144,7 @@ export function createMainToolbar(map) {
     bar: createSubBarI(map),
   });
 
-  // --- NEU: DGM/DOM Hauptbutton mit Sub-Bar ---
+  //DGM/DOM Hauptbutton mit Sub-Bar ---
   const toggleBtn2 = new Toggle({
     html: 'W',
     title: 'DGM / DOM Auswahl',
@@ -447,14 +447,14 @@ export function createSubBarT(map) {
       isDrawActive = active;
       const drawBtns = document.getElementById('draw-bar');
       const wfsContainer = document.getElementById('wfs-loader'); // 💡 WFS-Container holen
-      // 💡 Den drawLayer aus der Karte suchen
+      //  Den drawLayer aus der Karte suchen
       const drawLayer = map.getLayers().getArray().find(l => l.get('name') === 'drawLayer');
       if (active) {
         // Andere Sub-Buttons ausschalten
         if (isTableActive && tableToggleBtnInstance) tableToggleBtnInstance.setActive(false);
         if (isWfsActive && wfsToggleBtnInstance) wfsToggleBtnInstance.setActive(false);
 
-        // 💡 NEU: WFS-Eingabefenster explizit ausblenden und Liste leeren, falls noch offen
+        //  WFS-Eingabefenster explizit ausblenden und Liste leeren, falls noch offen
         if (wfsContainer) {
           wfsContainer.style.setProperty('display', 'none', 'important');
           const list = document.getElementById('wfs-layer-list');
@@ -465,7 +465,7 @@ export function createSubBarT(map) {
         if (drawBtns) {
           drawBtns.style.setProperty('display', 'flex', 'important');
           drawBtns.classList.add('is-running');
-          // 💡drawLayer im Layer-Switcher einschalten
+          // drawLayer im Layer-Switcher einschalten
           if (drawLayer) {
             // Fall A: Layer existiert auf der Karte, nur einschalten
             drawLayer.set('displayInLayerSwitcher', true);

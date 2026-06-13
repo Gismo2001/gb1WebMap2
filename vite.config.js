@@ -29,12 +29,6 @@ export default defineConfig({
         changeOrigin: true,
         secure: true,
         rewrite: (path) => path.replace(/^\/dom/, ''),
-      },
-      '/lgln-wfs': {
-        target: 'https://opendata.lgln.niedersachsen.de/doorman/noauth/verwaltungsgrenzen_wfs',
-        changeOrigin: true,
-        secure: true,
-        rewrite: (path) => path.replace(/^\/lgln-wfs/, ''),
       }
     },
   },

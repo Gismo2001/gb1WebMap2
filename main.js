@@ -211,8 +211,8 @@ document.getElementById('load-wfs-btn').addEventListener('click', async function
           // 👉 Übergibt die ArcGIS Layer-ID (z.B. 0, 1)
           loadArcGISLayer(map, baseUrl, layerInfo.id, layerInfo.name);
         } else {
-          // 👉 Übergibt den gesamten WFS-Layer-Info-Block, damit Version und OutputFormat verwendet werden können
-          loadWFSLayer(map, baseUrl, layerInfo);
+          // 👉 Übergibt den WFS Layer-Namen
+          loadWFSLayer(map, baseUrl, layerInfo.name);
         }
         container.innerHTML = ''; // Schließt die Liste nach Auswahl
       };

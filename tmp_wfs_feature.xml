@@ -1,3 +1,0 @@
-﻿<?xml version='1.0' encoding='UTF-8'?>
-<wfs:FeatureCollection xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.opengis.net/wfs http://schemas.opengis.net/wfs/1.1.0/wfs.xsd https://registry.gdi-de.org/id/de.hh.up https://geodienste.hamburg.de/HH_WFS_Postleitzahlen?SERVICE=WFS&amp;VERSION=1.1.0&amp;REQUEST=DescribeFeatureType&amp;OUTPUTFORMAT=text%2Fxml%3B+subtype%3Dgml%2F3.1.1&amp;TYPENAME=de.hh.up:postleitzahlen&amp;NAMESPACE=xmlns(de.hh.up=https%3A%2F%2Fregistry.gdi-de.org%2Fid%2Fde.hh.up)" xmlns:wfs="http://www.opengis.net/wfs" timeStamp="2026-06-13T07:35:28Z" xmlns:gml="http://www.opengis.net/gml">
-</wfs:FeatureCollection>

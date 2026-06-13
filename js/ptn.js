@@ -20,7 +20,7 @@ export function initPtn(map) { //hier wird map übergeben
            
         );
         ptnLayer = new VectorLayer({
-            title: 'test',
+            title: 'ptnLayer',
             source: ptnSource,
             // Optional: Ein schöner Style, damit der Punkt auffällt
             style: new Style({

@@ -431,17 +431,83 @@ const contextMenu = new ContextMenu({
 map.addControl(contextMenu);
 
 // 2. Event-Listener: Was passiert, wenn das Menü GEÖFFNET wird?
+// 2. Event-Listener in deiner mapEvents.js (Wenn das Menü GEÖFFNET wird)
 contextMenu.on('open', function (evt) {
-  // Das Plugin liefert die exakte Karten-Koordinate im Event mit!
   const koordinaten = evt.coordinate;
-
-  // Wir leeren das Menü bei jedem Öffnen, um es dynamisch für den Klickpunkt zu füllen
+  
+  // Wir leeren das Menü in jedem Fall vorab
   contextMenu.clear();
 
-  // --- UNTERMENÜ FÜR KOORDINATEN BAUEN ---
+  // 1. Prüfen, ob der Klick aus dem Layer-Switcher kam
+  const targetElement = evt.originalEvent.target;
+  const isInsideSwitcher = targetElement.closest('.ol-layerswitcher');
+
+  if (isInsideSwitcher) {
+    // 💡 TRICK: Wir suchen uns das zugehörige Listen-Element (li), 
+    // um herauszufinden, welcher Layer genau rechtsgeklickt wurde.
+    const listItem = targetElement.closest('li');
+    
+    // Wir holen uns die flache Liste aller Layer der Karte
+    const allLayersList = getAllLayers(map.getLayerGroup());
+    
+    // Wir finden den Layer anhand des Titels im Label
+    const labelText = listItem.querySelector('label').innerText.trim();
+    const foundLayerObj = allLayersList.find(obj => (obj.layer.get('title') || '').trim() === labelText);
+
+    if (foundLayerObj) {
+      const clickedLayer = foundLayerObj.layer;
+
+      // Hauptmenü speziell für den Layer befüllen!
+      contextMenu.extend([
+        {
+          text: `Layer: ${labelText}`,
+          classname: 'menu-layer-header', // Optionaler CSS-Style für eine Überschrift
+          disabled: true // Nicht anklickbar, dient als Titel
+        },
+        '-', // Trennlinie
+        {
+          text: 'Auf Layergrenzen zoomen',
+          icon: 'fa fa-search-plus',
+          callback: function () {
+            const source = clickedLayer.getSource();
+            if (source && typeof source.getExtent === 'function') {
+              const extent = source.getExtent();
+              map.getView().fit(extent, { duration: 800, padding: [50, 50, 50, 50] });
+            } else {
+              alert("Für diesen Layer sind keine genauen Grenzen bekannt.");
+            }
+          }
+        },
+        {
+          text: 'Transparenz: 50%',
+          icon: 'fa fa-adjust',
+          callback: function () {
+            clickedLayer.setOpacity(0.5);
+          }
+        },
+        {
+          text: 'Voll sichtbar (100%)',
+          icon: 'fa fa-eye',
+          callback: function () {
+            clickedLayer.setOpacity(1.0);
+          }
+        }
+      ]);
+    }
+    
+    return; // WICHTIG: Hier abbrechen, damit nicht die Koordinaten-Logik geladen wird!
+  }
+
+  // =========================================================================
+  // 2. STANDARD-FALL (Klick auf die freie Karte): Koordinaten-Menü laden
+  // =========================================================================
+  
+  // Sicherstellen, dass das Menü wieder sichtbar ist, falls vorab CSS-Eingriffe liefen
+  const menuEl = document.getElementById('custom-context-menu');
+  if (menuEl) menuEl.style.display = 'block';
+
   const epsgSysteme = [
-    { code: 'EPSG:25832', label: 'ETRS89 / UTM 32N (25832)', digits: 2, type: 'standard' },
-    { code: 'EPSG:32632', label: 'WGS84 / UTM 32N (32632)', digits: 2, type: 'standard' },
+    { code: 'EPSG:25832', label: 'ETRS89 / UTM 32N (25832)', digits: 2, type: 'standard' },    { code: 'EPSG:32632', label: 'WGS84 / UTM 32N (32632)', digits: 2, type: 'standard' },
     { code: 'EPSG:4326',  label: 'WGS84 / Lat, Lon (Dezimal)', digits: 5, type: 'standard', order: 'YX' },
     { code: 'EPSG:4326',  label: 'WGS84 / Grad, Min, Sek (DMS)', type: 'DMS' },
     { code: 'EPSG:3857',  label: 'Web Mercator (3857)', digits: 2, type: 'standard' }
@@ -505,6 +571,7 @@ contextMenu.on('open', function (evt) {
     }
   ]);
 });
+
 const mapViewport = map.getViewport();
 
   mapViewport.addEventListener('contextmenu', function (e) {
@@ -1030,7 +1097,7 @@ export function getVisibleVectorFeatures(map) {
     const features = source.getFeaturesInExtent(extent);
     if (features.length === 0) return;
 
-    results[name || 'Unbenannter Layer'] = features.map((f) => {
+    results[name || 'Unbekannter Layer'] = features.map((f) => {
       const props = { ...f.getProperties() };
       delete props.geometry;
       return props;
@@ -1086,29 +1153,35 @@ export function switcherDrawList(layerSwitcher) {
 export function switcherToggle(layerSwitcher) {
   layerSwitcher.on('drawlist', (evt) => {
     var clickedLayer = evt.layer;
-    
-    evt.li.querySelector('label').addEventListener('click', () => {
+    const labelElement = evt.li.querySelector('label');
+
+    // 💡 1. Der bestehende Linksklick (Sichtbarkeits-Check)
+    labelElement.addEventListener('click', () => {
       setTimeout(() => {
         console.log(`--- Sichtbarkeits-Check ausgelöst durch Klick auf: ${clickedLayer.get('title')} ---`);
         
         const map = layerSwitcher.getMap(); 
         if (!map) return;
 
-        // 💡 1. Hol dir die flache Liste aller aktiven/erlaubten Layer
-        // Wir übergeben map.getLayerGroup(), damit ab der obersten Ebene gesucht wird
         const aktiveLayerListe = getAllLayers(map.getLayerGroup());
-
-        // 💡 2. Einfach die Liste durchlaufen und ausgeben
         aktiveLayerListe.forEach((obj) => {
           const title = obj.layer.get('title') || 'Unbenannter Layer';
           console.log(`🗺️ [Layer] ${title} (Gruppe: ${obj.groupTitle}) --> Sichtbar: ${obj.visible}`);
         });
-
       }, 50); 
     });
+
+    
+    // 💡 2. NEU: RECHTSKLICK (PC) & LONG-PRESS (HANDY) ABFANGEN
+    labelElement.addEventListener('contextmenu', (e) => {
+      e.preventDefault(); 
+      const layerTitle = clickedLayer.get('title') || 'Unbenannter Layer';
+      console.log(`🎛️ Rechtsklick auf Layer-Label erkannt: "${layerTitle}"`);
+
+    }, true); // 💡 ACHTUNG: Das 'true' (Capture-Phase) fängt das Event vor dem Plugin ab!
+
   });
 }
-
 
 // --------------------Funktion für GPS-Suche--------------------
 export function initSearchEvents(searchPlaceControl, map) { //Zustand searchPlaceControl und die Karte werden übergeben

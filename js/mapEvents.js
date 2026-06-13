@@ -430,7 +430,7 @@ const contextMenu = new ContextMenu({
 
 map.addControl(contextMenu);
 
-// 2. Event-Listener: Was passiert, wenn das Menü GEÖFFNET wird?
+
 // 2. Event-Listener in deiner mapEvents.js (Wenn das Menü GEÖFFNET wird)
 contextMenu.on('open', function (evt) {
   const koordinaten = evt.coordinate;
@@ -438,66 +438,109 @@ contextMenu.on('open', function (evt) {
   // Wir leeren das Menü in jedem Fall vorab
   contextMenu.clear();
 
-  // 1. Prüfen, ob der Klick aus dem Layer-Switcher kam
+
+// 1. Prüfen, ob der Klick aus dem Layer-Switcher kam
   const targetElement = evt.originalEvent.target;
   const isInsideSwitcher = targetElement.closest('.ol-layerswitcher');
 
   if (isInsideSwitcher) {
-    // 💡 TRICK: Wir suchen uns das zugehörige Listen-Element (li), 
-    // um herauszufinden, welcher Layer genau rechtsgeklickt wurde.
     const listItem = targetElement.closest('li');
     
-    // Wir holen uns die flache Liste aller Layer der Karte
-    const allLayersList = getAllLayers(map.getLayerGroup());
-    
-    // Wir finden den Layer anhand des Titels im Label
-    const labelText = listItem.querySelector('label').innerText.trim();
-    const foundLayerObj = allLayersList.find(obj => (obj.layer.get('title') || '').trim() === labelText);
+    // 💡 DIREKT UND OHNE SUCHSCHLEIFE: Hol dir das Layer-Objekt aus dem <li>
+    const clickedLayer = listItem ? listItem._olLayer : null;
+    const labelText = listItem ? listItem.querySelector('label').innerText.trim() : 'Unbekannt';
 
-    if (foundLayerObj) {
-      const clickedLayer = foundLayerObj.layer;
+    console.log("Gefundener Layer im Switcher:", clickedLayer);
 
-      // Hauptmenü speziell für den Layer befüllen!
-      contextMenu.extend([
-        {
-          text: `Layer: ${labelText}`,
-          classname: 'menu-layer-header', // Optionaler CSS-Style für eine Überschrift
-          disabled: true // Nicht anklickbar, dient als Titel
-        },
-        '-', // Trennlinie
-        {
-          text: 'Auf Layergrenzen zoomen',
-          icon: 'fa fa-search-plus',
-          callback: function () {
-            const source = clickedLayer.getSource();
-            if (source && typeof source.getExtent === 'function') {
-              const extent = source.getExtent();
-              map.getView().fit(extent, { duration: 800, padding: [50, 50, 50, 50] });
-            } else {
-              alert("Für diesen Layer sind keine genauen Grenzen bekannt.");
+    if (clickedLayer) {
+      // 💡 PRÜFUNG: Ist es eine Gruppe?
+      // ol-layerswitcher setzt bei Gruppen oft auch eine CSS-Klasse am li, 
+      // aber die Prüfung auf die Funktion getLayers() ist am sichersten:
+      const isGroup = typeof clickedLayer.getLayers === 'function';
+
+      if (isGroup) {
+        // =========================================================================
+        // 🗂️ KONTEXTMENÜ FÜR EINE LAYER-GRUPPE
+        // =========================================================================
+        contextMenu.extend([
+          {
+            text: `Gruppe: ${labelText}`,
+            classname: 'menu-layer-header',
+            disabled: true
+          },
+          '-',
+          {
+            text: 'Alle Layer einschalten',
+            icon: 'fa fa-check-square',
+            callback: function () {
+              clickedLayer.getLayers().forEach((subLayer) => {
+                subLayer.setVisible(true);
+                if (typeof subLayer.getLayers === 'function') {
+                  subLayer.getLayers().forEach(sl => sl.setVisible(true));
+                }
+              });
+              map.changed();
+            }
+          },
+          {
+            text: 'Alle Layer ausschalten',
+            icon: 'fa fa-square-o',
+            callback: function () {
+              clickedLayer.getLayers().forEach((subLayer) => {
+                subLayer.setVisible(false);
+                if (typeof subLayer.getLayers === 'function') {
+                  subLayer.getLayers().forEach(sl => sl.setVisible(false));
+                }
+              });
+              map.changed();
             }
           }
-        },
-        {
-          text: 'Transparenz: 50%',
-          icon: 'fa fa-adjust',
-          callback: function () {
-            clickedLayer.setOpacity(0.5);
+        ]);
+
+      } else {
+        // =========================================================================
+        // 📄 RECHTSKLICK AUF EINEN EINZELNEN LAYER
+        // =========================================================================
+        contextMenu.extend([
+          {
+            text: `Layer: ${labelText}`,
+            classname: 'menu-layer-header',
+            disabled: true
+          },
+          '-',
+          {
+            text: 'Auf Layergrenzen zoomen',
+            icon: 'fa fa-search-plus',
+            callback: function () {
+              const source = clickedLayer.getSource();
+              if (source && typeof source.getExtent === 'function') {
+                const extent = source.getExtent();
+                map.getView().fit(extent, { duration: 800, padding: [50, 50, 50, 50] });
+              } else {
+                alert("Für diesen Layer sind keine genauen Grenzen bekannt.");
+              }
+            }
+          },
+          {
+            text: 'Transparenz: 50%',
+            icon: 'fa fa-adjust',
+            callback: function () {
+              clickedLayer.setOpacity(0.5);
+            }
+          },
+          {
+            text: 'Voll sichtbar (100%)',
+            icon: 'fa fa-eye',
+            callback: function () {
+              clickedLayer.setOpacity(1.0);
+            }
           }
-        },
-        {
-          text: 'Voll sichtbar (100%)',
-          icon: 'fa fa-eye',
-          callback: function () {
-            clickedLayer.setOpacity(1.0);
-          }
-        }
-      ]);
+        ]);
+      }
     }
     
-    return; // WICHTIG: Hier abbrechen, damit nicht die Koordinaten-Logik geladen wird!
+    return; // WICHTIG: Abbrechen für Karten-Kontextmenü
   }
-
   // =========================================================================
   // 2. STANDARD-FALL (Klick auf die freie Karte): Koordinaten-Menü laden
   // =========================================================================
@@ -1154,11 +1197,14 @@ export function switcherToggle(layerSwitcher) {
   layerSwitcher.on('drawlist', (evt) => {
     var clickedLayer = evt.layer;
     const labelElement = evt.li.querySelector('label');
+    const listItem = evt.li; // Das <li> Element
+    // 💡 Speichere die Layer-Instanz direkt am HTML-Element ab!
+    listItem._olLayer = clickedLayer;
 
     // 💡 1. Der bestehende Linksklick (Sichtbarkeits-Check)
     labelElement.addEventListener('click', () => {
       setTimeout(() => {
-        console.log(`--- Sichtbarkeits-Check ausgelöst durch Klick auf: ${clickedLayer.get('title')} ---`);
+        //console.log(`--- Sichtbarkeits-Check ausgelöst durch Klick auf: ${clickedLayer.get('title')} ---`);
         
         const map = layerSwitcher.getMap(); 
         if (!map) return;
@@ -1166,7 +1212,7 @@ export function switcherToggle(layerSwitcher) {
         const aktiveLayerListe = getAllLayers(map.getLayerGroup());
         aktiveLayerListe.forEach((obj) => {
           const title = obj.layer.get('title') || 'Unbenannter Layer';
-          console.log(`🗺️ [Layer] ${title} (Gruppe: ${obj.groupTitle}) --> Sichtbar: ${obj.visible}`);
+          //console.log(`🗺️ [Layer] ${title} (Gruppe: ${obj.groupTitle}) --> Sichtbar: ${obj.visible}`);
         });
       }, 50); 
     });

@@ -415,6 +415,11 @@ export function calculateMetrics(feature) {
     const coords25832 = transform(coords3857, 'EPSG:3857', 'EPSG:25832');
     feature.set('x_25832', parseFloat(coords25832[0].toFixed(2)));
     feature.set('y_25832', parseFloat(coords25832[1].toFixed(2)));
+
+    // Koordinaten als x,y paar für copy and paste
+    const coordStringMaps = `${feature.get('lat_4326')}, ${feature.get('lon_4326')}`;
+    feature.set('koordMaps', coordStringMaps);
+    
   }
 }
 

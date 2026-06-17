@@ -842,3 +842,13 @@ div.ol-ctx-menu-container li.ol-ctx-menu-submenu > .ol-ctx-menu-container {
   flex-grow: 1;
   font-size: 12px;
 }
+
+/* In deiner CSS-Datei */
+.ol-layerswitcher li label.is-selected {
+    background-color: rgba(0, 123, 255, 0.15) !important;
+    font-weight: bold;
+    border-radius: 4px;
+    padding-left: 5px;
+    padding-right: 5px;
+    transition: background-color 0.2s ease;
+}

@@ -494,6 +494,20 @@ contextMenu.on('open', function (evt) {
               });
               map.changed();
             }
+          },
+           {
+            text: 'irgendwas anderes',
+            icon: 'fa fa-square-o',
+            callback: function () {
+              clickedLayer.getLayers().forEach((subLayer) => {
+                /* subLayer.setVisible(false);
+                if (typeof subLayer.getLayers === 'function') {
+                  subLayer.getLayers().forEach(sl => sl.setVisible(false));
+                } */
+               console.log(subLayer);
+              });
+              map.changed();
+            }
           }
         ]);
 
@@ -1200,6 +1214,32 @@ export function switcherToggle(layerSwitcher) {
     const listItem = evt.li; // Das <li> Element
     // 💡 Speichere die Layer-Instanz direkt am HTML-Element ab!
     listItem._olLayer = clickedLayer;
+    // =========================================================================
+    // 💡 NEU: LINKSKLICK AUF DAS LABEL MODIFIZIEREN
+    // =========================================================================
+    labelElement.addEventListener('click', (e) => {
+      // 1. Verhindert, dass der Layer-Switcher den Layer an- oder ausschaltet!
+      e.preventDefault();
+      e.stopPropagation();
+
+      console.log(`Label geklickt (ohne Toggle): ${clickedLayer.get('title')}`);
+
+      const map = layerSwitcher.getMap();
+      if (!map) return;
+
+      // 2. Modus A: Einzelauswahl (Falls du immer nur einen Layer aktiv haben willst)
+      // Wir entfernen die Auswahl von allen anderen Labels im gesamten Switcher
+      const allLabels = layerSwitcher.element.querySelectorAll('label');
+      allLabels.forEach(lbl => lbl.classList.remove('is-selected'));
+
+      // 3. Dieses Label als ausgewählt markieren
+      labelElement.classList.add('is-selected');
+
+      // 4. [Optional] Globale Variable oder Event feuern, damit deine App weiß, 
+      // welcher Layer gerade für die "Gruppieren"-Aktion bereitsteht
+      window.currentSelectedLayer = clickedLayer; 
+      
+    });
 
     // 💡 1. Der bestehende Linksklick (Sichtbarkeits-Check)
     labelElement.addEventListener('click', () => {

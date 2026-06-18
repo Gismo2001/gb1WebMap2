@@ -1237,40 +1237,63 @@ export function switcherToggle(layerSwitcher) {
     const labelElement = evt.li.querySelector('label');
     const listItem = evt.li;
 
-    // Referenz für den Rechtsklick merken
     listItem._olLayer = clickedLayer;
 
+    // Timer für das Gedrückthalten auf dem Handy
+    let touchTimer;
+    let isLongPress = false;
+
     // =========================================================================
-    // 💡 STRG + LINKSKLICK FÜR MEHRFACHAUSWAHL
+    // 📱 HANDY-STEUERUNG: Erkennung von langem Drücken (Long Press)
+    // =========================================================================
+    labelElement.addEventListener('touchstart', (e) => {
+      isLongPress = false;
+      // Wenn der Nutzer den Finger 600ms hält, gilt es als Mehrfachauswahl-Aktion
+      touchTimer = setTimeout(() => {
+        isLongPress = true;
+        labelElement.classList.toggle('is-selected');
+        console.log(`Mobiles Long-Press für: ${clickedLayer.get('title')}`);
+      }, 600); 
+    }, { passive: true });
+
+    labelElement.addEventListener('touchend', () => {
+      // Finger angehoben -> Timer löschen, damit schnelles Tippen kein Long-Press wird
+      clearTimeout(touchTimer);
+    });
+
+    labelElement.addEventListener('touchmove', () => {
+      // Wenn der Nutzer scrollt, brechen wir das Auswählen ab
+      clearTimeout(touchTimer);
+    });
+
+    // =========================================================================
+    // 💻 DESKTOP-STEUERUNG (Und Fallback für normalen Handy-Klick)
     // =========================================================================
     labelElement.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
 
-      // Prüfen, ob Strg (Windows/Linux) oder Cmd (Mac) gedrückt gehalten wird
-      const isMultiSelectKey = e.ctrlKey || e.metaKey;
+      // Wenn es auf dem Handy bereits als Long-Press verarbeitet wurde, hier stoppen
+      if (isLongPress) return;
+
+      // 💡 Für Desktop: Shift-Taste prüfen
+      const isMultiSelectKey = e.shiftKey;
 
       if (isMultiSelectKey) {
-        // Modus 1: Mehrfachauswahl -> Einfach den Zustand dieses einen Layers toggeln
+        // Modus A: Mehrfachauswahl (Mit gedrückter Shift-Taste)
         labelElement.classList.toggle('is-selected');
-        console.log(`Mehrfachauswahl getoggelt für: ${clickedLayer.get('title')}`);
       } else {
-        // Modus 2: Normaler Klick ohne Strg -> Einzelauswahl (alle anderen löschen)
+        // Modus B: Normaler Klick ohne Shift (Alle anderen Markierungen löschen)
         const allLabels = layerSwitcher.element.querySelectorAll('label');
         allLabels.forEach(lbl => {
           if (lbl !== labelElement) lbl.classList.remove('is-selected');
         });
-        
-        // Den aktuellen Layer toggeln oder fest auswählen
         labelElement.classList.toggle('is-selected');
-        console.log(`Einzelauswahl für: ${clickedLayer.get('title')}`);
       }
     });
 
-    // Kontextmenü-Trigger bleibt unverändert (kein preventDefault/stopPropagation hier, 
-    // damit das ol-contextmenu aufgerufen wird!)
     labelElement.addEventListener('contextmenu', (e) => {
-      // Leer lassen, das Event muss hochblubbern zum ol-contextmenu
+      e.preventDefault();
     });
   });
 }

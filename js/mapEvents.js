@@ -50,6 +50,12 @@ import { initDrawing, isDrawingActive } from './myDraw.js';
 import { convertToDMS } from './utils.js';
 import ContextMenu from 'ol-contextmenu';
 
+import { createNewGroupFromLayers } from './layers.js';
+import { layerSwitcher } from '../main.js';
+
+
+
+
 
 
 let currentClickResults = {};
@@ -435,33 +441,67 @@ map.addControl(contextMenu);
 contextMenu.on('open', function (evt) {
   const koordinaten = evt.coordinate;
   
-  // Wir leeren das Menü in jedem Fall vorab
+  // Menü leeren
   contextMenu.clear();
-
 
 // 1. Prüfen, ob der Klick aus dem Layer-Switcher kam
   const targetElement = evt.originalEvent.target;
   const isInsideSwitcher = targetElement.closest('.ol-layerswitcher');
 
-  if (isInsideSwitcher) {
+if (isInsideSwitcher) {
     const listItem = targetElement.closest('li');
-    
-    // 💡 DIREKT UND OHNE SUCHSCHLEIFE: Hol dir das Layer-Objekt aus dem <li>
     const clickedLayer = listItem ? listItem._olLayer : null;
     const labelText = listItem ? listItem.querySelector('label').innerText.trim() : 'Unbekannt';
 
-    console.log("Gefundener Layer im Switcher:", clickedLayer);
-
     if (clickedLayer) {
-      // 💡 PRÜFUNG: Ist es eine Gruppe?
-      // ol-layerswitcher setzt bei Gruppen oft auch eine CSS-Klasse am li, 
-      // aber die Prüfung auf die Funktion getLayers() ist am sichersten:
       const isGroup = typeof clickedLayer.getLayers === 'function';
 
-      if (isGroup) {
-        // =========================================================================
-        // 🗂️ KONTEXTMENÜ FÜR EINE LAYER-GRUPPE
-        // =========================================================================
+      // 💡 1. ZÄHLEN, WIE VIELE LAYER AKTUELL MARKIERT SIND
+      const switcherEl = targetElement.closest('.ol-layerswitcher');
+      const selectedLabels = switcherEl ? switcherEl.querySelectorAll('label.is-selected') : [];
+      
+      // Eine "echte" Mehrfachauswahl liegt vor, wenn mindestens 2 Layer markiert sind
+      const isMultiSelectActive = selectedLabels.length >= 2;
+
+      // =========================================================================
+      // 🗂️ SONDERFALL: MEHRFACHAUSWAHL AKTIV (Mindestens 2 Layer ausgewählt)
+      // =========================================================================
+      if (isMultiSelectActive) {
+        contextMenu.extend([
+          {
+            text: `Aktion für ${selectedLabels.length} gewählte Layer:`,
+            classname: 'menu-layer-header',
+            disabled: true
+          },
+          '-',
+        {
+  text: 'In neuer Gruppe zusammenfassen...',
+  icon: 'fa fa-folder-open',
+  callback: function () {
+    const layersToGroup = [];
+    selectedLabels.forEach(lbl => {
+      const li = lbl.closest('li');
+      if (li && li._olLayer) layersToGroup.push(li._olLayer);
+    });
+
+    // 💡 HIER DER AUFRUF:
+    // Du musst sicherstellen, dass 'map' und 'layerSwitcher' in diesem Scope verfügbar sind
+    createNewGroupFromLayers(layersToGroup, map, layerSwitcher);
+  }
+},
+          {
+            text: 'Auswahl komplett aufheben',
+            icon: 'fa fa-times',
+            callback: function () {
+              selectedLabels.forEach(lbl => lbl.classList.remove('is-selected'));
+            }
+          }
+        ]);
+
+      // =========================================================================
+      // 📂 STANDARD-FALL A: RECHTSKLICK AUF EINE EINZELNE GRUPPE (ohne Mehrfachauswahl)
+      // =========================================================================
+      } else if (isGroup) {
         contextMenu.extend([
           {
             text: `Gruppe: ${labelText}`,
@@ -494,27 +534,13 @@ contextMenu.on('open', function (evt) {
               });
               map.changed();
             }
-          },
-           {
-            text: 'irgendwas anderes',
-            icon: 'fa fa-square-o',
-            callback: function () {
-              clickedLayer.getLayers().forEach((subLayer) => {
-                /* subLayer.setVisible(false);
-                if (typeof subLayer.getLayers === 'function') {
-                  subLayer.getLayers().forEach(sl => sl.setVisible(false));
-                } */
-               console.log(subLayer);
-              });
-              map.changed();
-            }
           }
         ]);
 
+      // =========================================================================
+      // 📄 STANDARD-FALL B: RECHTSKLICK AUF EINEN EINZELNEN LAYER
+      // =========================================================================
       } else {
-        // =========================================================================
-        // 📄 RECHTSKLICK AUF EINEN EINZELNEN LAYER
-        // =========================================================================
         contextMenu.extend([
           {
             text: `Layer: ${labelText}`,
@@ -530,8 +556,6 @@ contextMenu.on('open', function (evt) {
               if (source && typeof source.getExtent === 'function') {
                 const extent = source.getExtent();
                 map.getView().fit(extent, { duration: 800, padding: [50, 50, 50, 50] });
-              } else {
-                alert("Für diesen Layer sind keine genauen Grenzen bekannt.");
               }
             }
           },
@@ -552,7 +576,7 @@ contextMenu.on('open', function (evt) {
         ]);
       }
     }
-    
+
     return; // WICHTIG: Abbrechen für Karten-Kontextmenü
   }
   // =========================================================================
@@ -1211,61 +1235,43 @@ export function switcherToggle(layerSwitcher) {
   layerSwitcher.on('drawlist', (evt) => {
     var clickedLayer = evt.layer;
     const labelElement = evt.li.querySelector('label');
-    const listItem = evt.li; // Das <li> Element
-    // 💡 Speichere die Layer-Instanz direkt am HTML-Element ab!
+    const listItem = evt.li;
+
+    // Referenz für den Rechtsklick merken
     listItem._olLayer = clickedLayer;
+
     // =========================================================================
-    // 💡 NEU: LINKSKLICK AUF DAS LABEL MODIFIZIEREN
+    // 💡 STRG + LINKSKLICK FÜR MEHRFACHAUSWAHL
     // =========================================================================
     labelElement.addEventListener('click', (e) => {
-      // 1. Verhindert, dass der Layer-Switcher den Layer an- oder ausschaltet!
       e.preventDefault();
       e.stopPropagation();
 
-      console.log(`Label geklickt (ohne Toggle): ${clickedLayer.get('title')}`);
+      // Prüfen, ob Strg (Windows/Linux) oder Cmd (Mac) gedrückt gehalten wird
+      const isMultiSelectKey = e.ctrlKey || e.metaKey;
 
-      const map = layerSwitcher.getMap();
-      if (!map) return;
-
-      // 2. Modus A: Einzelauswahl (Falls du immer nur einen Layer aktiv haben willst)
-      // Wir entfernen die Auswahl von allen anderen Labels im gesamten Switcher
-      const allLabels = layerSwitcher.element.querySelectorAll('label');
-      allLabels.forEach(lbl => lbl.classList.remove('is-selected'));
-
-      // 3. Dieses Label als ausgewählt markieren
-      labelElement.classList.add('is-selected');
-
-      // 4. [Optional] Globale Variable oder Event feuern, damit deine App weiß, 
-      // welcher Layer gerade für die "Gruppieren"-Aktion bereitsteht
-      window.currentSelectedLayer = clickedLayer; 
-      
-    });
-
-    // 💡 1. Der bestehende Linksklick (Sichtbarkeits-Check)
-    labelElement.addEventListener('click', () => {
-      setTimeout(() => {
-        //console.log(`--- Sichtbarkeits-Check ausgelöst durch Klick auf: ${clickedLayer.get('title')} ---`);
-        
-        const map = layerSwitcher.getMap(); 
-        if (!map) return;
-
-        const aktiveLayerListe = getAllLayers(map.getLayerGroup());
-        aktiveLayerListe.forEach((obj) => {
-          const title = obj.layer.get('title') || 'Unbenannter Layer';
-          //console.log(`🗺️ [Layer] ${title} (Gruppe: ${obj.groupTitle}) --> Sichtbar: ${obj.visible}`);
+      if (isMultiSelectKey) {
+        // Modus 1: Mehrfachauswahl -> Einfach den Zustand dieses einen Layers toggeln
+        labelElement.classList.toggle('is-selected');
+        console.log(`Mehrfachauswahl getoggelt für: ${clickedLayer.get('title')}`);
+      } else {
+        // Modus 2: Normaler Klick ohne Strg -> Einzelauswahl (alle anderen löschen)
+        const allLabels = layerSwitcher.element.querySelectorAll('label');
+        allLabels.forEach(lbl => {
+          if (lbl !== labelElement) lbl.classList.remove('is-selected');
         });
-      }, 50); 
+        
+        // Den aktuellen Layer toggeln oder fest auswählen
+        labelElement.classList.toggle('is-selected');
+        console.log(`Einzelauswahl für: ${clickedLayer.get('title')}`);
+      }
     });
 
-    
-    // 💡 2. NEU: RECHTSKLICK (PC) & LONG-PRESS (HANDY) ABFANGEN
+    // Kontextmenü-Trigger bleibt unverändert (kein preventDefault/stopPropagation hier, 
+    // damit das ol-contextmenu aufgerufen wird!)
     labelElement.addEventListener('contextmenu', (e) => {
-      e.preventDefault(); 
-      const layerTitle = clickedLayer.get('title') || 'Unbenannter Layer';
-      console.log(`🎛️ Rechtsklick auf Layer-Label erkannt: "${layerTitle}"`);
-
-    }, true); // 💡 ACHTUNG: Das 'true' (Capture-Phase) fängt das Event vor dem Plugin ab!
-
+      // Leer lassen, das Event muss hochblubbern zum ol-contextmenu
+    });
   });
 }
 

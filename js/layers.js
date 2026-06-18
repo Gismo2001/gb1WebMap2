@@ -1056,3 +1056,70 @@ export function createLayerStructure() {
   ];
 }
 
+
+import Collection from 'ol/Collection';
+import Group from 'ol/layer/Group';
+
+/**
+ * Erstellt eine neue Layer-Gruppe und verschiebt die übergebenen Layer hinein.
+ * @param {Array} layersToGroup - Array aus echten OpenLayers-Layer-Objekten
+ * @param {ol.Map} map - Deine OpenLayers Map-Instanz
+ * @param {Object} layerSwitcher - Die Instanz deines ol-layerswitcher Controls
+ */
+export function createNewGroupFromLayers(layersToGroup, map, layerSwitcher) {
+  if (!layersToGroup || layersToGroup.length === 0) return;
+
+  // 1. Den Nutzer nach einem Namen für die neue Gruppe fragen
+  const groupName = prompt("Bitte gib einen Namen für die neue Gruppe ein:", "Meine neue Gruppe");
+  if (!groupName) return; // Abbrechen, wenn kein Name eingegeben wurde
+
+  // 2. Erstelle eine neue OpenLayers-Gruppe
+  const newGroup = new Group({
+    title: groupName,
+    combine: false, // false erlaubt es, die Unterlayer einzeln im Switcher aufzuklappen
+    layers: new Collection([])
+  });
+
+  // 3. Hilfsfunktion, um einen Layer aus seiner aktuellen Position im Baum zu entfernen
+  function removeLayerFromTree(layerToRemove, currentGroup) {
+    const layersInGroup = currentGroup.getLayers();
+    
+    // Prüfen, ob der Layer direkt in dieser Gruppe liegt
+    if (layersInGroup.getArray().includes(layerToRemove)) {
+      layersInGroup.remove(layerToRemove);
+      return true;
+    }
+    
+    // Wenn nicht, tiefer in eventuellen Untergruppen suchen
+    for (let i = 0; i < layersInGroup.getLength(); i++) {
+      const subLayer = layersInGroup.item(i);
+      if (typeof subLayer.getLayers === 'function') {
+        const found = removeLayerFromTree(layerToRemove, subLayer);
+        if (found) return true;
+      }
+    }
+    return false;
+  }
+
+  // 4. Layer aus dem alten Verzeichnis entfernen und der neuen Gruppe hinzufügen
+  layersToGroup.forEach(layer => {
+    // Aus der alten Struktur löschen (wir starten die Suche an der Wurzel der Karte)
+    removeLayerFromTree(layer, map.getLayerGroup());
+    
+    // In die neue Gruppe einfügen
+    newGroup.getLayers().push(layer);
+  });
+
+  // 5. Die neue Gruppe ganz oben auf der Karte (bzw. der Haupt-LayerGroup) hinzufügen
+  map.getLayerGroup().getLayers().push(newGroup);
+
+  // 6. WICHTIG: Den Layer-Switcher komplett neu rendern, damit er die Struktur neu aufbaut
+  if (layerSwitcher && typeof layerSwitcher.render === 'function') {
+    layerSwitcher.render();
+  }
+
+  // 7. Karte aktualisieren
+  map.changed();
+  
+  console.log(`Gruppe "${groupName}" erfolgreich mit ${layersToGroup.length} Layern erstellt!`);
+}

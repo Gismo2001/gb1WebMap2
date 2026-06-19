@@ -444,11 +444,11 @@ contextMenu.on('open', function (evt) {
   // Menü leeren
   contextMenu.clear();
 
-// 1. Prüfen, ob der Klick aus dem Layer-Switcher kam
+  // 1. Prüfen, ob der Klick aus dem Layer-Switcher kam
   const targetElement = evt.originalEvent.target;
   const isInsideSwitcher = targetElement.closest('.ol-layerswitcher');
 
-if (isInsideSwitcher) {
+  if (isInsideSwitcher) {
     const listItem = targetElement.closest('li');
     const clickedLayer = listItem ? listItem._olLayer : null;
     const labelText = listItem ? listItem.querySelector('label').innerText.trim() : 'Unbekannt';
@@ -456,11 +456,27 @@ if (isInsideSwitcher) {
     if (clickedLayer) {
       const isGroup = typeof clickedLayer.getLayers === 'function';
 
-      // 💡 1. ZÄHLEN, WIE VIELE LAYER AKTUELL MARKIERT SIND
+      // 💡 GEMEINSAME AKTION: Umbenennen für Gruppen und Einzellayer
+      const renameAction = {
+        text: 'Umbenennen...',
+        icon: 'fa fa-pencil',
+        callback: function () {
+          const currentTitle = clickedLayer.get('title') || labelText;
+          const newTitle = prompt(`Neuen Namen für "${currentTitle}" eingeben:`, currentTitle);
+          
+          if (newTitle && newTitle.trim() !== "") {
+            clickedLayer.set('title', newTitle.trim());
+            
+            if (layerSwitcher && typeof layerSwitcher.render === 'function') {
+              layerSwitcher.render();
+            }
+          }
+        }
+      };
+
+      // Überprüfung auf Mehrfachauswahl (falls aktiv, lassen wir das Umbenennen weg)
       const switcherEl = targetElement.closest('.ol-layerswitcher');
       const selectedLabels = switcherEl ? switcherEl.querySelectorAll('label.is-selected') : [];
-      
-      // Eine "echte" Mehrfachauswahl liegt vor, wenn mindestens 2 Layer markiert sind
       const isMultiSelectActive = selectedLabels.length >= 2;
 
       // =========================================================================
@@ -474,21 +490,19 @@ if (isInsideSwitcher) {
             disabled: true
           },
           '-',
-        {
-  text: 'In neuer Gruppe zusammenfassen...',
-  icon: 'fa fa-folder-open',
-  callback: function () {
-    const layersToGroup = [];
-    selectedLabels.forEach(lbl => {
-      const li = lbl.closest('li');
-      if (li && li._olLayer) layersToGroup.push(li._olLayer);
-    });
+          {
+            text: 'In neuer Gruppe zusammenfassen...',
+            icon: 'fa fa-folder-open',
+            callback: function () {
+              const layersToGroup = [];
+              selectedLabels.forEach(lbl => {
+                const li = lbl.closest('li');
+                if (li && li._olLayer) layersToGroup.push(li._olLayer);
+              });
 
-    // 💡 HIER DER AUFRUF:
-    // Du musst sicherstellen, dass 'map' und 'layerSwitcher' in diesem Scope verfügbar sind
-    createNewGroupFromLayers(layersToGroup, map, layerSwitcher);
-  }
-},
+              createNewGroupFromLayers(layersToGroup, map, layerSwitcher);
+            }
+          },
           {
             text: 'Auswahl komplett aufheben',
             icon: 'fa fa-times',
@@ -499,7 +513,7 @@ if (isInsideSwitcher) {
         ]);
 
       // =========================================================================
-      // 📂 STANDARD-FALL A: RECHTSKLICK AUF EINE EINZELNE GRUPPE (ohne Mehrfachauswahl)
+      // 📂 STANDARD-FALL A: RECHTSKLICK AUF EINE LAYER-GRUPPE (Ordner)
       // =========================================================================
       } else if (isGroup) {
         contextMenu.extend([
@@ -508,6 +522,8 @@ if (isInsideSwitcher) {
             classname: 'menu-layer-header',
             disabled: true
           },
+          '-',
+          renameAction, // Umbenennen für Gruppen
           '-',
           {
             text: 'Alle Layer einschalten',
@@ -548,23 +564,22 @@ if (isInsideSwitcher) {
             disabled: true
           },
           '-',
-          // 💡 HIER DER NEUE MENÜPUNKT:
-         {
-          text: 'Zu einer Gruppe hinzufügen...',
-          icon: 'fa fa-folder-plus',
-          callback: function () {
-          // Wir merken uns den Layer, den wir verschieben wollen, global
-          window.layerToMove = clickedLayer;
-      
-          // Optisches Feedback für den Nutzer (z.B. Mauszeiger ändern oder Alert)
-          alert(`Bitte klicke jetzt im Layer-Switcher auf die Ziel-Gruppe, in die "${labelText}" verschoben werden soll.`);
-      
-          // Optional: Füge dem ganzen Switcher eine CSS-Klasse hinzu, um zu signalisieren, dass ein Modus aktiv ist
-          const switcherEl = targetElement.closest('.ol-layerswitcher');
-            if (switcherEl) switcherEl.classList.add('targeting-group-mode');
-         }
-        },
-        '-', // T
+          renameAction, // Umbenennen für Einzellayer
+          '-',
+          // 💡 REINTEGRIERT: Die Verschiebe-Funktion für den Einzellayer
+          {
+            text: 'Zu einer Gruppe hinzufügen...',
+            icon: 'fa fa-folder-plus',
+            callback: function () {
+              window.layerToMove = clickedLayer;
+              
+              alert(`Bitte klicke jetzt im Layer-Switcher auf die Ziel-Gruppe, in die "${labelText}" verschoben werden soll.`);
+              
+              const switcherEl = targetElement.closest('.ol-layerswitcher');
+              if (switcherEl) switcherEl.classList.add('targeting-group-mode');
+            }
+          },
+          '-',
           {
             text: 'Auf Layergrenzen zoomen',
             icon: 'fa fa-search-plus',
@@ -596,28 +611,26 @@ if (isInsideSwitcher) {
 
     return; // WICHTIG: Abbrechen für Karten-Kontextmenü
   }
+
   // =========================================================================
   // 2. STANDARD-FALL (Klick auf die freie Karte): Koordinaten-Menü laden
   // =========================================================================
-  
-  // Sicherstellen, dass das Menü wieder sichtbar ist, falls vorab CSS-Eingriffe liefen
   const menuEl = document.getElementById('custom-context-menu');
   if (menuEl) menuEl.style.display = 'block';
 
   const epsgSysteme = [
-    { code: 'EPSG:25832', label: 'ETRS89 / UTM 32N (25832)', digits: 2, type: 'standard' },    { code: 'EPSG:32632', label: 'WGS84 / UTM 32N (32632)', digits: 2, type: 'standard' },
+    { code: 'EPSG:25832', label: 'ETRS89 / UTM 32N (25832)', digits: 2, type: 'standard' },
+    { code: 'EPSG:32632', label: 'WGS84 / UTM 32N (32632)', digits: 2, type: 'standard' },
     { code: 'EPSG:4326',  label: 'WGS84 / Lat, Lon (Dezimal)', digits: 5, type: 'standard', order: 'YX' },
     { code: 'EPSG:4326',  label: 'WGS84 / Grad, Min, Sek (DMS)', type: 'DMS' },
     { code: 'EPSG:3857',  label: 'Web Mercator (3857)', digits: 2, type: 'standard' }
   ];
 
-  // Hier mappen wir deine Systeme in das Format, das 'ol-contextmenu' für Submenus erwartet
   const submenuItems = epsgSysteme.map(sys => {
     return {
       text: sys.label,
       classname: 'submenu-item-style',
       callback: function () {
-        // Logik für die Transformation und Zwischenablage (identisch zu vorher)
         const transformierteKoordinaten = transform(koordinaten, 'EPSG:3857', sys.code);
         let textToCopy = "";
 
@@ -634,23 +647,20 @@ if (isInsideSwitcher) {
         }
 
         navigator.clipboard.writeText(textToCopy).then(() => {
-          // Kleiner Trick: Da wir im Plugin sind, nutzen wir ein kurzes Konsolen-Feedback 
-          // oder du lässt hier einen eleganten Toast auflaufen.
           console.log("Kopiert:", textToCopy);
         }).catch(err => alert(`Koordinaten: ${textToCopy}`));
       }
     };
   });
 
-  // 3. HAUPTMENÜ-PUNKTE HINZUFÜGEN
   contextMenu.extend([
     {
       text: 'Koordinaten anzeigen',
       classname: 'main-menu-item-style',
-      icon: 'fa fa-map-marker', // Deine FontAwesome-Icons funktionieren direkt!
-      items: submenuItems       // 💡 HIER geschieht die Magie: Das Array wird zum echten Untermenü!
+      icon: 'fa fa-map-marker',
+      items: submenuItems
     },
-    '-', // Ein horizontaler Trennstrich (Separator)
+    '-',
     {
       text: 'Google Maps Navigation',
       icon: 'fa fa-location-arrow',
@@ -669,7 +679,6 @@ if (isInsideSwitcher) {
     }
   ]);
 });
-
 const mapViewport = map.getViewport();
 
   mapViewport.addEventListener('contextmenu', function (e) {
@@ -1375,7 +1384,6 @@ export function switcherToggle(layerSwitcher) {
     });
   });
 }
-
 // --------------------Funktion für GPS-Suche--------------------
 export function initSearchEvents(searchPlaceControl, map) { //Zustand searchPlaceControl und die Karte werden übergeben
   if (!searchPlaceControl) return; // Wenn searchPlaceControl nicht aktiv ist wieder verlassen

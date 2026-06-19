@@ -727,6 +727,7 @@ export function initializeWMS(map) {
         'HW-Schutz, Umwelkarten NI':'https://www.umweltkarten-niedersachsen.de/arcgis/services/HWSchutz_wms/MapServer/WMSServer?VERSION=1.3.0.&SERVICE=WMS&REQUEST=GetCapabilities',
         'schutzgebiete, NL': 'https://service.pdok.nl/provincies/aardkundige-waarden/wms/v1_0?request=GetCapabilities&service=WMS',
         'krw wateren, NL': 'https://service.pdok.nl/ihw/gebiedsbeheer/krw-oppervlaktewaterlichamen/wms/v1_0?SERVICE=WMS&VERSION=1.3.0&request=getcapabilities',
+        'luchtfotos, NL': 'https://service.pdok.nl/hwh/luchtfotorgb/wms/v1_0?',
         'EU-Waterbodies 3rd RBMP': 'https://water.discomap.eea.europa.eu/arcgis/services/WISE_WFD/WFD2022_SurfaceWaterBody_WM/MapServer/WMSServer?request=GetCapabilities&service=WMS',
         //'Luft u. Lärm': 'https://www.umweltkarten-niedersachsen.de/arcgis/services/Luft_Laerm_wms/MapServer/WMSServer?VERSION=1.3.0.&SERVICE=WMS&REQUEST=GetCapabilities',
         'Boden, Umweltkarten NI': 'https://www.umweltkarten-niedersachsen.de/arcgis/services/Boden_wms/MapServer/WMSServer?VERSION=1.3.0.&SERVICE=WMS&REQUEST=GetCapabilities',
@@ -744,6 +745,7 @@ export function initializeWMS(map) {
       const rawTitle = (e.options.data && (e.options.data.title || e.options.data.Name)) || "WMS Layer";
       const permalinkId = rawTitle.toLowerCase().replace(/\s+/g, '_');
       layer.set('permalink', permalinkId);
+      console.log(`Permalink für Layer "${rawTitle}": ${permalinkId}`);
       layer.set('title', rawTitle);
       layer.set('name', rawTitle); // Falls du 'name' als ID nutzt
       // Layer der Karte hinzufügen

@@ -548,6 +548,23 @@ if (isInsideSwitcher) {
             disabled: true
           },
           '-',
+          // 💡 HIER DER NEUE MENÜPUNKT:
+         {
+          text: 'Zu einer Gruppe hinzufügen...',
+          icon: 'fa fa-folder-plus',
+          callback: function () {
+          // Wir merken uns den Layer, den wir verschieben wollen, global
+          window.layerToMove = clickedLayer;
+      
+          // Optisches Feedback für den Nutzer (z.B. Mauszeiger ändern oder Alert)
+          alert(`Bitte klicke jetzt im Layer-Switcher auf die Ziel-Gruppe, in die "${labelText}" verschoben werden soll.`);
+      
+          // Optional: Füge dem ganzen Switcher eine CSS-Klasse hinzu, um zu signalisieren, dass ein Modus aktiv ist
+          const switcherEl = targetElement.closest('.ol-layerswitcher');
+            if (switcherEl) switcherEl.classList.add('targeting-group-mode');
+         }
+        },
+        '-', // T
           {
             text: 'Auf Layergrenzen zoomen',
             icon: 'fa fa-search-plus',
@@ -1244,46 +1261,107 @@ export function switcherToggle(layerSwitcher) {
     let isLongPress = false;
 
     // =========================================================================
-    // 📱 HANDY-STEUERUNG: Erkennung von langem Drücken (Long Press)
+    // 📱 HANDY-STEUERUNG: Long-Press aktiviert den Gruppen-Verschiebemodus
     // =========================================================================
     labelElement.addEventListener('touchstart', (e) => {
       isLongPress = false;
-      // Wenn der Nutzer den Finger 600ms hält, gilt es als Mehrfachauswahl-Aktion
+      const isGroup = typeof clickedLayer.getLayers === 'function';
+
+      // Wenn der Nutzer den Finger 600ms hält...
       touchTimer = setTimeout(() => {
         isLongPress = true;
-        labelElement.classList.toggle('is-selected');
-        console.log(`Mobiles Long-Press für: ${clickedLayer.get('title')}`);
+
+        // Gruppen müssen nicht verschoben werden, das betrifft nur Einzellayer
+        if (!isGroup) {
+          // 💡 SCHALTE DEN MODUS SCHARF (Ersetzt den Rechtsklick auf dem Handy!)
+          window.layerToMove = clickedLayer;
+          
+          alert(`Verschiebemodus aktiv: Bitte tippe jetzt auf die Ziel-Gruppe für "${clickedLayer.get('title') || 'Layer'}".`);
+          
+          const switcherEl = layerSwitcher.element;
+          if (switcherEl) switcherEl.classList.add('targeting-group-mode');
+        }
       }, 600); 
     }, { passive: true });
 
     labelElement.addEventListener('touchend', () => {
-      // Finger angehoben -> Timer löschen, damit schnelles Tippen kein Long-Press wird
+      // Finger rechtzeitig angehoben -> Kein Long-Press
       clearTimeout(touchTimer);
     });
 
     labelElement.addEventListener('touchmove', () => {
-      // Wenn der Nutzer scrollt, brechen wir das Auswählen ab
+      // Wenn der Nutzer scrollt, Aktion abbrechen
       clearTimeout(touchTimer);
     });
 
     // =========================================================================
-    // 💻 DESKTOP-STEUERUNG (Und Fallback für normalen Handy-Klick)
+    // 💻 CLICK-STEUERUNG: Normales Auswählen ODER Ziel-Gruppe einrasten lassen
     // =========================================================================
     labelElement.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
 
-      // Wenn es auf dem Handy bereits als Long-Press verarbeitet wurde, hier stoppen
+      // Wenn das Event gerade eben schon als Long-Press gefeuert hat, hier stoppen
       if (isLongPress) return;
 
-      // 💡 Für Desktop: Shift-Taste prüfen
-      const isMultiSelectKey = e.shiftKey;
+      // -----------------------------------------------------------------------
+      // AKTIV: Wenn wir uns im Verschiebemodus befinden (Handy & Desktop)
+      // -----------------------------------------------------------------------
+      if (window.layerToMove) {
+        const isTargetGroup = typeof clickedLayer.getLayers === 'function';
+
+        if (!isTargetGroup) {
+          alert("Fehler: Bitte wähle eine LAYER-GRUPPE (Ordner) als Ziel aus!");
+          return;
+        }
+
+        if (window.layerToMove === clickedLayer) {
+          alert("Ein Layer kann nicht in sich selbst verschoben werden.");
+          return;
+        }
+
+        const map = layerSwitcher.getMap();
+        
+        // Hilfsfunktion zum Entfernen aus dem alten Verzeichnis
+        function removeLayerFromTree(layerToRemove, currentGroup) {
+          const layersInGroup = currentGroup.getLayers();
+          if (layersInGroup.getArray().includes(layerToRemove)) {
+            layersInGroup.remove(layerToRemove);
+            return true;
+          }
+          for (let i = 0; i < layersInGroup.getLength(); i++) {
+            const subLayer = layersInGroup.item(i);
+            if (typeof subLayer.getLayers === 'function') {
+              if (removeLayerFromTree(layerToRemove, subLayer)) return true;
+            }
+          }
+          return false;
+        }
+
+        // Verschieben durchführen
+        removeLayerFromTree(window.layerToMove, map.getLayerGroup());
+        clickedLayer.getLayers().push(window.layerToMove);
+
+        console.log(`Layer erfolgreich in Gruppe "${clickedLayer.get('title')}" verschoben!`);
+
+        // Modus beenden & aufräumen
+        window.layerToMove = null;
+        const switcherEl = layerSwitcher.element;
+        if (switcherEl) switcherEl.classList.remove('targeting-group-mode');
+
+        layerSwitcher.render();
+        map.changed();
+        return; 
+      }
+
+      // -----------------------------------------------------------------------
+      // STANDARD: Normales Auswählen (Einzelauswahl / Desktop-Mehrfachauswahl)
+      // -----------------------------------------------------------------------
+      const isMultiSelectKey = e.shiftKey; // Shift für PC-Mehrfachauswahl
 
       if (isMultiSelectKey) {
-        // Modus A: Mehrfachauswahl (Mit gedrückter Shift-Taste)
         labelElement.classList.toggle('is-selected');
       } else {
-        // Modus B: Normaler Klick ohne Shift (Alle anderen Markierungen löschen)
         const allLabels = layerSwitcher.element.querySelectorAll('label');
         allLabels.forEach(lbl => {
           if (lbl !== labelElement) lbl.classList.remove('is-selected');

@@ -852,3 +852,14 @@ div.ol-ctx-menu-container li.ol-ctx-menu-submenu > .ol-ctx-menu-container {
     padding-right: 5px;
     transition: background-color 0.2s ease;
 }
+
+/* Ändert den Mauszeiger zu einer helfenden Hand, wenn man eine Gruppe auswählen soll */
+.ol-layerswitcher.targeting-group-mode label {
+    cursor: cell !important; /* Oder 'alias', 'copy' */
+}
+
+/* Lässt Gruppen-Labels im Auswahlmodus leicht pulsieren oder hebt sie farblich hervor */
+.ol-layerswitcher.targeting-group-mode li.ol-layerswitcher-group > label {
+    background-color: rgba(40, 167, 69, 0.1); /* Zartes Grün für gültige Ziele */
+    border: 1px dashed #28a745;
+}

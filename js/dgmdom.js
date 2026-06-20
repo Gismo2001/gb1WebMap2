@@ -32,11 +32,7 @@ export function setDomActive(value) { isDomActive = value; }
 let dgmLayerCounter = 0;
 let domLayerCounter = 0;
 
-// ==========================================
 // DGM - FUNKTIONEN
-// ==========================================
-
-
 export async function addDgmLayer(map, url, bbox, id1) {
     dgmLayerCounter++;
     const proxyUrl = url.replace('https://dgm1.s3.eu-de.cloud-object-storage.appdomain.cloud', '/dgm');
@@ -71,7 +67,6 @@ export async function addDgmLayer(map, url, bbox, id1) {
 
     return dgmData;
 }
-
 export function getOverallDgmMinMax() {
     if (activeDgmRasterData.length === 0) return null;
     let min = Infinity, max = -Infinity;
@@ -81,7 +76,6 @@ export function getOverallDgmMinMax() {
     });
     return { min, max };
 }
-
 export async function handleDgmPointerMove(evt) {
     const heightStatus = document.getElementById('height-status-container');
     const heightValue = document.getElementById('height-value-main');
@@ -119,8 +113,6 @@ export async function handleDgmPointerMove(evt) {
 }
 
 }
-
-
 export function disableDgmInteraction() {
     if (dgmClickListener) { unByKey(dgmClickListener); dgmClickListener = null; }
     if (dgmPointerMoveListener) { unByKey(dgmPointerMoveListener); dgmPointerMoveListener = null; }
@@ -132,10 +124,7 @@ export function disableDgmInteraction() {
     if (hs) hs.style.display = 'none';
 }
 
-// ==========================================
 // DOM - FUNKTIONEN
-// ==========================================
-
 export async function addDomLayer(map, url, bbox, id1) {
     domLayerCounter++;
     const proxyUrl = url.replace('https://dom1.s3.eu-de.cloud-object-storage.appdomain.cloud', '/dom');
@@ -170,7 +159,6 @@ export async function addDomLayer(map, url, bbox, id1) {
 
     return domData;
 }
-
 export function getOverallDomMinMax() {
     if (activeDomRasterData.length === 0) return null;
     let min = Infinity, max = -Infinity;
@@ -180,7 +168,6 @@ export function getOverallDomMinMax() {
     });
     return { min, max };
 }
-
 export async function handleDomPointerMove(evt) {
     const heightStatus = document.getElementById('height-status-container');
     const heightValue = document.getElementById('height-value-main');
@@ -217,8 +204,6 @@ if (data && data.length > 0) {
 }
 
 }
-
-
 export function disableDomInteraction() {
     if (domClickListener) { unByKey(domClickListener); domClickListener = null; }
     if (domPointerMoveListener) { unByKey(domPointerMoveListener); domPointerMoveListener = null; }
@@ -230,10 +215,7 @@ export function disableDomInteraction() {
     if (hs) hs.style.display = 'none';
 }
 
-// ==========================================
 // ALLGEMEINE HILFSFUNKTIONEN
-// ==========================================
-
 export function createGeoTiffStyle(minHeight, maxHeight) {
     const NO_DATA = -9999;
     const range = (maxHeight - minHeight) || 1;
@@ -253,7 +235,6 @@ export function createGeoTiffStyle(minHeight, maxHeight) {
         ]
     };
 }
-
 export async function getMinMaxFromMetadata(url, typePath = '/dgm') {
     try {
         const response = await fetch(url);
@@ -286,14 +267,12 @@ export async function getMinMaxFromMetadata(url, typePath = '/dgm') {
         return { min: 0, max: 100 };
     }
 }
-
 export function getLoadedDgmExtent() {
   if (loadedDgms.length === 0) return null;
   let extent = createEmpty();
   loadedDgms.forEach(dgm => { extend(extent, dgm.bbox); });
   return extent;
 }
-
 export function getLoadedDomExtent() {
   if (loadedDoms.length === 0) return null;
   let extent = createEmpty();

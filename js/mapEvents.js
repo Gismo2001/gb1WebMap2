@@ -1441,39 +1441,41 @@ export function fileToggleInput(map) {
       const fileName = file.name.replace(/\.[^/.]+$/, "");
       const fileEnd = file.name.split('.').pop().toLowerCase();
 
-      // 1. RASTER-DATEN (GeoTIFF) -> Unverändert
+      // 1. RASTER-DATEN (GeoTIFF) -> Optimiert für lokales Blob-Laden
       if (fileEnd === 'tif' || fileEnd === 'tiff') {
-        const blobUrl = URL.createObjectURL(file);
         const sourceName = `Lokal_DGM_${fileName}`;
-
         const tiffSource = new GeoTIFFSource({
-          sources: [{ 
-              url: blobUrl,
+            sources: [{ 
+              blob: file,      // Direkt das File/Blob-Objekt übergeben
               nodata: -9999 
-          }],
-          projection: 'EPSG:25832',
-          normalize: false, 
-          convertToRGB: false, 
-          sourceOptions: { 
-              allowFullFile: true 
+            }],
+            projection: 'EPSG:25832',
+            normalize: false, 
+            convertToRGB: false, 
+            sourceOptions: { 
+            // HIER DIE ZWEITE ÄNDERUNG:
+            allowFullFile: false, // COG-Vorteil auch lokal nutzen
+            cache: true
           }
         });
 
         tiffSource.getView().then((viewConfig) => {
-            const extent3857 = transformExtent(viewConfig.extent, 'EPSG:25832', 'EPSG:3857');
-            const tiffLayer = new WebGLTileLayer({
-                source: tiffSource,
-                title: sourceName,
-                name: sourceName, 
-                style: createGeoTiffStyle(13, 32), 
-                opacity: 1
-            });
+      const extent3857 = transformExtent(viewConfig.extent, 'EPSG:25832', 'EPSG:3857');
+      const tiffLayer = new WebGLTileLayer({
+          source: tiffSource,
+          title: sourceName,
+          name: sourceName, 
+          style: createGeoTiffStyle(5, 50), // Hinweis unten beachten
+          opacity: 1
+      });
+      
+      
 
             tiffLayer.bbox = extent3857;
             const localDgmData = { 
               bbox: extent3857, 
-              min: 13,   
-              max: 32, 
+              min: 5,   
+              max: 50, 
               layer: tiffLayer 
             };
             

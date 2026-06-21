@@ -283,6 +283,85 @@ function handleLayerSwitcherMenu(evt, targetElement, map, layerSwitcher, context
       },
       '-',
       {
+  text: 'Filtern',
+  icon: '/data/filterlist.svg',
+  callback: () => {
+    const source = clickedLayer.getSource();
+    if (!source || typeof source.getFeatures !== 'function') {
+      alert('Filtern ist nur für Vektor-Layer verfügbar!');
+      return;
+    }
+
+    // 1. Nutzer nach dem Filterwert fragen
+    const aktuellerFilter = clickedLayer.get('currentFilter') || '';
+    const filterWert = prompt('Nach welchem Attributwert soll gefiltert werden? (Leerlassen zum Zurücksetzen):', aktuellerFilter);
+
+    // 2. Filterwert auf dem Layer speichern (für spätere Abfragen)
+    if (filterWert === null) return; // Abbrechen gedrückt
+    
+    const bereinigterFilter = filterWert.trim().toLowerCase();
+    clickedLayer.set('currentFilter', bereinigterFilter);
+
+    // 3. Den Style-Funktion des Layers anpassen
+    // Wir merken uns den originalen Style, falls noch nicht geschehen
+    if (!clickedLayer.get('originalStyle')) {
+      clickedLayer.set('originalStyle', clickedLayer.getStyle());
+    }
+
+    const originalStyle = clickedLayer.get('originalStyle');
+
+    // Wenn der Filter leer ist, setzen wir den Original-Style zurück
+    if (bereinigterFilter === '') {
+      clickedLayer.setStyle(originalStyle);
+      return;
+    }
+
+    // 4. Dynamischen Style-Filter setzen
+    clickedLayer.setStyle(function (feature, resolution) {
+      // Hole alle Eigenschaften des Features (z. B. { name: 'Schleuse', typ: 'Kanal' })
+      const properties = feature.getProperties();
+      
+      // Prüfen, ob IRGENDEIN Textfeld den Suchbegriff enthält
+      const treffer = Object.values(properties).some(val => {
+        if (typeof val === 'string' || typeof val === 'number') {
+          return String(val).toLowerCase().includes(bereinigterFilter);
+        }
+        return false;
+      });
+
+      if (treffer) {
+        // Feature entspricht dem Filter -> Normal zeichnen
+        // Falls originalStyle eine Funktion ist, rufen wir sie auf, sonst geben wir ihn direkt zurück
+        return typeof originalStyle === 'function' ? originalStyle(feature, resolution) : originalStyle;
+      } else {
+        // Feature entspricht NICHT dem Filter -> Nicht zeichnen (unsichtbar)
+        return null; 
+      }
+    });
+  }
+},
+      '-',
+      {
+  text: 'Filter aufheben',
+  icon: '/data/filter_clear.svg', // Falls du ein passendes Icon hast
+  // Der Button ist ausgegraut (disabled), wenn aktuell gar kein Filter gesetzt ist
+  disabled: !clickedLayer.get('currentFilter'), 
+  callback: () => {
+    const originalStyle = clickedLayer.get('originalStyle');
+
+    if (originalStyle) {
+      // 1. Den originalen Style wieder auf den Layer anwenden
+      clickedLayer.setStyle(originalStyle);
+      
+      // 2. Die Filter-Merker vom Layer löschen
+      clickedLayer.unset('currentFilter');
+      
+      // Optional: Karte einmal explizit updaten, falls die Features nicht sofort erscheinen
+      map.changed();
+    }
+  }
+},
+      {
         text: 'Auf Layer zoomen',
         icon: '/data/zoomborder.svg',
         callback: () => {

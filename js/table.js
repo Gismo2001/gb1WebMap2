@@ -160,14 +160,14 @@ export function showTable(data) {
   // 3. Deine expliziten Zuweisungen
   if (normalizedName === 'fsk') {
     idKey = 'OBJECTID';
-  } else if (normalizedName.startsWith('shapefile')) {
-    idKey = 'objectid';
+  // } else if (normalizedName.startsWith('shapefile')) {
+  //   idKey = 'objectid';
   } else {
     // 2. Dynamische Erkennung für WMS und unbekannte Layer
     if (data && data.length > 0) {
       const firstItem = data.find(item => item !== null && typeof item === 'object');
       if (firstItem) {
-        const commonKeys = ['ID_con', 'id', 'gml_id', 'OBJECTID', 'objectid', 'FID'];
+        const commonKeys = ['ID_con', 'id', 'gml_id', 'OBJECTID', 'objectid', 'objid','OBJID', 'FID'];
         idKey = commonKeys.find(key => key in firstItem);
         if (!idKey) {
           idKey = Object.keys(firstItem)[0]; 
@@ -601,14 +601,11 @@ export function highlightFeatureForRow(rowData) {
     console.warn("Highlight abgebrochen: Kein LayerName in rowData oder Selector gefunden.", rowData);
     return;
   }
+  
   let idKey = null;
   clearHighlightedFeature();
   if (!mapRef) return;
-  const selector = getTableDocument().getElementById('layer-selector');
-  if (!layerName) {
-    console.warn("Highlight abgebrochen: Kein LayerName gefunden");
-    return;
-  }
+
   let targetLayer = null;
   mapRef.getLayers().getArray().forEach((l) => {
     if (l.get('name') === layerName) targetLayer = l;
@@ -618,31 +615,63 @@ export function highlightFeatureForRow(rowData) {
       });
     }
   });
-  //nsole.log ("Targetlayer: ",targetLayer)
+
   if (!targetLayer) return;
   const source = targetLayer.getSource();
   if (!source || typeof source.getFeatures !== 'function') return;
+
+  const features = source.getFeatures();
+  if (features.length === 0) return; // Abbrechen, wenn keine Features da sind
+
   const normalizedName = layerName.toLowerCase();
-  // Schlüssel bestimmen je nach Layer
+
+  // =========================================================================
+ // =========================================================================
+  // 🔑 ID-SCHLÜSSEL BESTIMMEN (Erweitert für Shapefile, GeoJSON und JSON)
+  // =========================================================================
   if (normalizedName === 'fsk') {
-      idKey = 'OBJECTID';
-  } else if (normalizedName.startsWith("shapefile")) {
-      idKey = 'objectid';
-  } else if (normalizedName === 'gew_umn' || normalizedName === 'umnlin') {
-      idKey = 'ID_Umn';
-  } else {
-      idKey = 'ID_con';
+    idKey = 'OBJECTID';
+  } 
+  // 💡 DYNAMISCHE SUCHE FÜR SHAPEFILES & (GEO)JSON-LAYERS
+  else if (
+    normalizedName.startsWith("shapefile") || 
+    normalizedName.includes("geojson") || 
+    normalizedName.includes("json")
+  ) {
+    const sampleProps = features[0].getProperties();
+    
+    // Die gängigsten ID-Schreibweisen in GIS- und JSON-Daten
+    const moeglicheKeys = [
+      'id', 'ID', 'Id', 
+      'fid', 'FID', 'Fid', 
+      'objectid', 'OBJECTID', 'ObjectId', 
+      'id_0', 'id_con', 'ID_con'
+    ];
+    
+    // Finde den ersten Schlüssel, der tatsächlich im Feature existiert
+    idKey = moeglicheKeys.find(key => key in sampleProps);
+    
+    // Fallback, falls absolut gar nichts davon matcht
+    if (!idKey) idKey = 'id'; 
+  } 
+  else if (normalizedName === 'gew_umn' || normalizedName === 'umnlin') {
+    idKey = 'ID_Umn';
+  } 
+  else {
+    idKey = 'ID_con';
   }
 
-  // 3. Feature suchen
-  const features = source.getFeatures();
+  // =========================================================================
+  // 🎯 FEATURE SUCHEN
+  // =========================================================================
   const feature = features.find((f) => {
-  const props = f.getProperties();
+    const props = f.getProperties();
     
-  // dynamisch vergleichen mit dem Wert des jeweiligen Keys
-  const featId = props[idKey];
-  const rowId = rowData[idKey];
-  return featId !== null && 
+    // Dynamisch vergleichen mit dem Wert des ermittelten Keys
+    const featId = props[idKey];
+    const rowId = rowData[idKey];
+    
+    return featId !== null && 
            featId !== undefined && 
            String(featId) === String(rowId);
   });

@@ -119,8 +119,6 @@ export async function loadArcGISCapabilities(serviceUrl) {
   }));
 }
 
-
-
 export async function loadArcGISLayer(map, serviceUrl, layerId, layerName) {
   const baseUrl = `${serviceUrl.replace(/\/$/, '')}/${layerId}/query`;
 

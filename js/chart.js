@@ -387,33 +387,6 @@ function showProfileChart(profile, layerlabel) {
   };
 }
 
-
-/*  //Ursprüngliche Variante 
-
-    win.document.getElementById("addHorizontalBtn").onclick = function() {
-    const value = win.prompt("Höhe für horizontale Linie (m):");
-    if (value === null) return;
-    const h = parseFloat(value);
-    if (isNaN(h)) {
-      win.alert("Bitte eine gültige Zahl eingeben.");
-      return;
-    }
-    const horizontalData = new Array(distances.length).fill(h);
-    chart.data.datasets.push({
-      label: "Horizontale " + h + " m",
-      data: horizontalData,
-      borderColor: `hsl(${Math.random() * 360}, 70%, 50%)`,
-      borderWidth: 3,
-      borderDash: [6,6],
-      pointRadius: 0,
-      fill: false
-    });
-    chart.update();
-  };
- */
-
-// In chart.js (außerhalb oder innerhalb von showProfileChart)
-
 import Feature from 'ol/Feature';
 import Point from 'ol/geom/Point';
 import { Vector as VectorLayer } from 'ol/layer';

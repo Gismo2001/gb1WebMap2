@@ -363,9 +363,23 @@ export function initMapClick(map) {
       if (isTableEnabled()) {
         const firstLayerData = currentClickResults[layerNames[0]];
         // 💡 Alle gefundenen Features dieses Layers sauber mappen (nicht nur das nullte!)
-        const allFeaturesOfLayer = firstLayerData.data.map(item => item.properties || item);
+        // 💡 KORREKTUR: Attribute sauber auslesen – egal ob GeoJSON oder Shapefile/Vektor
+        const allFeaturesOfLayer = firstLayerData.data.map(item => {
+          // 1. Fall: Es ist ein echtes OpenLayers-Feature-Objekt
+          if (item && typeof item.getProperties === 'function') {
+            return item.getProperties();
+        }
+        // 2. Fall: Es ist ein WMS- oder vorgeparstes Objekt mit .properties
+        if (item && item.properties) {
+          return item.properties;
+        }
+        // 3. Fall: Fallback auf das Objekt selbst
+          return item;
+        });
         const firstItem = firstLayerData.data[0];
-        const clickedFeatureData = firstItem.properties || firstItem;
+        const clickedFeatureData = firstItem && typeof firstItem.getProperties === 'function' 
+        ? firstItem.getProperties() 
+        : (firstItem?.properties || firstItem); 
         
         const selector = getTableDocument().getElementById('layer-selector');
         const currentSelectedLayer = selector ? selector.value : "unknown";
@@ -373,9 +387,11 @@ export function initMapClick(map) {
         if (typeof table !== 'undefined' && table && currentSelectedLayer === layerNames[0]) {
           const idKey =
             clickedFeatureData.OBJECTID ? 'OBJECTID' :
+            clickedFeatureData.objectid ? 'objectid' :
+            clickedFeatureData.OBJID ? 'OBJID' :
+            clickedFeatureData.objid ? 'objid' :
             clickedFeatureData.ID_con ? 'ID_con' :
             clickedFeatureData.ID ? 'ID' :
-            clickedFeatureData.objectid ? 'objectid' :
             clickedFeatureData.id ? 'id' : null;
 
           if (idKey) {
@@ -1420,14 +1436,17 @@ searchPlaceControl.on('select', (e) => { //Eventhandler für searchPlaceControl,
 
 let zaehlerGeojson = 1;
 let zaehlerKML = 1;
+let zaehlerGML = 1;
 let fileInput;
+
+import GML from 'ol/format/GML';
 
 export function fileToggleInput(map) {
   if (!fileInput) {
     fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.multiple = true;
-    fileInput.accept = '.geojson,.json,.kml,.zip,.tif,.tiff';
+    fileInput.accept = '.geojson,.json,.kml,.gml,.zip,.tif,.tiff';
     fileInput.style.display = 'none';
     document.body.appendChild(fileInput);
   }
@@ -1529,6 +1548,11 @@ export function fileToggleInput(map) {
             format = new KML({ extractStyles: true });
             sourceName = `KML:${zaehlerKML}_${fileName}`;
             zaehlerKML++;
+           } else if (fileEnd === 'gml') {
+            format = new GML3();
+            sourceName = `GML:${zaehlerGML}_${fileName}`;
+            zaehlerGML++;
+            
           } else {
             if (fileName === 'exp_allgm_fsk') {
               format = new GeoJSON();
@@ -1547,7 +1571,8 @@ export function fileToggleInput(map) {
 
             // 💡 DIE NEUE WEICHE: Nur GeoJSON/JSON bei aktiver Zeichenleiste abfangen
             const istGeoJson = (fileEnd === 'geojson' || fileEnd === 'json');
-            
+            const istGml = (fileEnd === 'gml');
+
             if (istGeoJson && istZeichenleisteAktiv()) {
               // Pfad 1: Bearbeitungsmodus aktivieren (Gelb & Editierbar)
               features.forEach((feature, index) => {
@@ -1560,6 +1585,10 @@ export function fileToggleInput(map) {
               drawSource.addFeatures(features);
               map.getView().fit(drawSource.getExtent(), { duration: 1000, padding: [50, 50, 50, 50] });
               console.log(`"${file.name}" direkt in den Bearbeitungsmodus (drawSource) geladen.`);
+            } else if (istGml) {
+              // Pfad 3: GML-Datei (immer als normaler Layer, da Editierbarkeit hier komplex ist)
+              addVectorLayerToMap(map, features, sourceName);
+              console.log(`"${file.name}" als GML-Vektor-Layer hinzugefügt.`);
             } 
             else {
               // Pfad 2: Normalzustand (Rot & Schreibgeschützt als separater Layer)

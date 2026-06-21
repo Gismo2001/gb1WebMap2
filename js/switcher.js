@@ -1,79 +1,129 @@
 
+import ContextMenu from 'ol-contextmenu';
+import { transform } from 'ol/proj';
+import { createNewGroupFromLayers } from './layers.js';
+import { convertToDMS } from './utils.js';
+import { isDrawingActive } from './myDraw.js';
+
+const MOBILE_PRESS_DELAY = 600;
+
+function isTouchDevice() {
+  return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+}
+
+function isMobileScreen() {
+  return window.innerWidth <= 768 || isTouchDevice();
+}
+
+function showSwitcherInfo(message) {
+  const toastElement = document.getElementById('myShortMessage');
+  if (toastElement) {
+    toastElement.textContent = message;
+    toastElement.className = 'toast show';
+    window.setTimeout(() => {
+      toastElement.className = toastElement.className.replace('toast show', 'toast');
+    }, 2500);
+    return;
+  }
+  console.log('[Switcher] ' + message);
+}
+
+function cancelTargetingMode(layerSwitcher) {
+  window.layerToMove = null;
+  const switcherEl = layerSwitcher && layerSwitcher.element;
+  if (switcherEl) switcherEl.classList.remove('targeting-group-mode');
+}
+
 export function switcherToggle(layerSwitcher) {
   layerSwitcher.on('drawlist', (evt) => {
-    var clickedLayer = evt.layer;
+    const clickedLayer = evt.layer;
     const labelElement = evt.li.querySelector('label');
     const listItem = evt.li;
+    const isGroup = typeof clickedLayer.getLayers === 'function';
+
+    if (!labelElement || !listItem) return;
 
     listItem._olLayer = clickedLayer;
+    labelElement.style.touchAction = 'manipulation';
+    labelElement.style.userSelect = 'none';
 
-    // Timer für das Gedrückthalten auf dem Handy
-    let touchTimer;
+    let touchTimer = null;
     let isLongPress = false;
 
-    // =========================================================================
-    // 📱 HANDY-STEUERUNG: Long-Press aktiviert den Gruppen-Verschiebemodus
-    // =========================================================================
-    labelElement.addEventListener('touchstart', (e) => {
+    const clearTouchTimer = () => {
+      if (touchTimer !== null) {
+        window.clearTimeout(touchTimer);
+        touchTimer = null;
+      }
+    };
+
+    const startLongPress = () => {
       isLongPress = false;
-      const isGroup = typeof clickedLayer.getLayers === 'function';
-
-      // Wenn der Nutzer den Finger 600ms hält...
-      touchTimer = setTimeout(() => {
+      clearTouchTimer();
+      touchTimer = window.setTimeout(() => {
         isLongPress = true;
-
-        // Gruppen müssen nicht verschoben werden, das betrifft nur Einzellayer
         if (!isGroup) {
-          // 💡 SCHALTE DEN MODUS SCHARF (Ersetzt den Rechtsklick auf dem Handy!)
           window.layerToMove = clickedLayer;
-          
-          alert(`Verschiebemodus aktiv: Bitte tippe jetzt auf die Ziel-Gruppe für "${clickedLayer.get('title') || 'Layer'}".`);
-          
+          showSwitcherInfo(`Verschiebemodus aktiv: Tippe jetzt auf die Ziel-Gruppe für "${clickedLayer.get('title') || 'Layer'}".`);
           const switcherEl = layerSwitcher.element;
           if (switcherEl) switcherEl.classList.add('targeting-group-mode');
         }
-      }, 600); 
-    }, { passive: true });
+      }, MOBILE_PRESS_DELAY);
+    };
 
-    labelElement.addEventListener('touchend', () => {
-      // Finger rechtzeitig angehoben -> Kein Long-Press
-      clearTimeout(touchTimer);
-    });
+    const stopLongPress = () => {
+      clearTouchTimer();
+    };
 
-    labelElement.addEventListener('touchmove', () => {
-      // Wenn der Nutzer scrollt, Aktion abbrechen
-      clearTimeout(touchTimer);
-    });
+    const touchStartHandler = (event) => {
+      if (!isMobileScreen()) return;
+      startLongPress(event);
+    };
 
-    // =========================================================================
-    // 💻 CLICK-STEUERUNG: Normales Auswählen ODER Ziel-Gruppe einrasten lassen
-    // =========================================================================
+    if (window.PointerEvent) {
+      labelElement.addEventListener('pointerdown', (e) => {
+        if (e.pointerType === 'touch') touchStartHandler(e);
+      }, { passive: true });
+      labelElement.addEventListener('pointerup', (e) => {
+        if (e.pointerType === 'touch') stopLongPress();
+      });
+      labelElement.addEventListener('pointercancel', (e) => {
+        if (e.pointerType === 'touch') stopLongPress();
+      });
+      labelElement.addEventListener('pointermove', (e) => {
+        if (e.pointerType === 'touch') stopLongPress();
+      }, { passive: true });
+    } else {
+      labelElement.addEventListener('touchstart', touchStartHandler, { passive: true });
+      labelElement.addEventListener('touchend', stopLongPress);
+      labelElement.addEventListener('touchcancel', stopLongPress);
+      labelElement.addEventListener('touchmove', stopLongPress, { passive: true });
+    }
+
     labelElement.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
 
-      // Wenn das Event gerade eben schon als Long-Press gefeuert hat, hier stoppen
-      if (isLongPress) return;
+      if (isLongPress) {
+        isLongPress = false;
+        return;
+      }
 
-      // -----------------------------------------------------------------------
-      // AKTIV: Wenn wir uns im Verschiebemodus befinden (Handy & Desktop)
-      // -----------------------------------------------------------------------
       if (window.layerToMove) {
         const isTargetGroup = typeof clickedLayer.getLayers === 'function';
 
         if (!isTargetGroup) {
-          alert("Fehler: Bitte wähle eine LAYER-GRUPPE (Ordner) als Ziel aus!");
+          showSwitcherInfo('Fehler: Bitte wähle eine Layer-Gruppe als Ziel aus!');
           return;
         }
 
         if (window.layerToMove === clickedLayer) {
-          alert("Ein Layer kann nicht in sich selbst verschoben werden.");
+          showSwitcherInfo('Ein Layer kann nicht in sich selbst verschoben werden.');
           return;
         }
 
         const map = layerSwitcher.getMap();
-        
-        // Hilfsfunktion zum Entfernen aus dem alten Verzeichnis
+
         function removeLayerFromTree(layerToRemove, currentGroup) {
           const layersInGroup = currentGroup.getLayers();
           if (layersInGroup.getArray().includes(layerToRemove)) {
@@ -89,26 +139,17 @@ export function switcherToggle(layerSwitcher) {
           return false;
         }
 
-        // Verschieben durchführen
         removeLayerFromTree(window.layerToMove, map.getLayerGroup());
         clickedLayer.getLayers().push(window.layerToMove);
 
-        console.log(`Layer erfolgreich in Gruppe "${clickedLayer.get('title')}" verschoben!`);
-
-        // Modus beenden & aufräumen
-        window.layerToMove = null;
-        const switcherEl = layerSwitcher.element;
-        if (switcherEl) switcherEl.classList.remove('targeting-group-mode');
-
+        showSwitcherInfo(`Layer erfolgreich in Gruppe "${clickedLayer.get('title')}" verschoben!`);
+        cancelTargetingMode(layerSwitcher);
         layerSwitcher.render();
         map.changed();
-        return; 
+        return;
       }
 
-      // -----------------------------------------------------------------------
-      // STANDARD: Normales Auswählen (Einzelauswahl / Desktop-Mehrfachauswahl)
-      // -----------------------------------------------------------------------
-      const isMultiSelectKey = e.shiftKey; // Shift für PC-Mehrfachauswahl
+      const isMultiSelectKey = e.shiftKey;
 
       if (isMultiSelectKey) {
         labelElement.classList.toggle('is-selected');
@@ -130,20 +171,12 @@ export function switcherToggle(layerSwitcher) {
 //Eventhandler für Layerswitcher Click 
 export function switcherDrawList(layerSwitcher) {
   layerSwitcher.on('drawlist', (evt) => {
-  var layer = evt.layer;
-  evt.li.querySelector('label').addEventListener('click', () => {
-    console.log('Layerswitcher Click')
+    const layer = evt.layer;
+    evt.li.querySelector('label').addEventListener('click', () => {
+      console.log('Layerswitcher Click');
+    });
   });
-});
 }
-
-
-import ContextMenu from 'ol-contextmenu'; // Falls du es als Modul importierst
-import { transform } from 'ol/proj';
-// Importiere hier ggf. benötigte Hilfsfunktionen wie:
-import { createNewGroupFromLayers } from './layers.js';
-import { convertToDMS } from './utils.js';
-import { isDrawingActive } from './myDraw.js';
 
 export function initMapContextMenu(map, layerSwitcher) {
   
@@ -168,7 +201,7 @@ export function initMapContextMenu(map, layerSwitcher) {
     // =========================================================================
     if (isInsideSwitcher) {
       handleLayerSwitcherMenu(evt, targetElement, map, layerSwitcher, contextMenu);
-      return; 
+      return;
     }
 
     // =========================================================================
@@ -185,7 +218,8 @@ export function initMapContextMenu(map, layerSwitcher) {
 function handleLayerSwitcherMenu(evt, targetElement, map, layerSwitcher, contextMenu) {
   const listItem = targetElement.closest('li');
   const clickedLayer = listItem ? listItem._olLayer : null;
-  //const labelText = listItem ? listItem.querySelector('label').innerText.trim() : 'Unbekannt';
+  const labelText = listItem ? listItem.querySelector('label')?.innerText.trim() : 'Unbekannt';
+  const currentTitle = clickedLayer ? clickedLayer.get('title') || labelText : labelText;
 
   if (!clickedLayer) return;
 
@@ -196,7 +230,6 @@ function handleLayerSwitcherMenu(evt, targetElement, map, layerSwitcher, context
     text: 'Umbenennen...',
     icon: '/data/rename.svg',
     callback: function () {
-      //const currentTitle = clickedLayer.get('title') || labelText;
       const newTitle = prompt(`Neuen Namen für "${currentTitle}" eingeben:`, currentTitle);
       if (newTitle && newTitle.trim() !== "") {
         clickedLayer.set('title', newTitle.trim());
@@ -396,8 +429,8 @@ function handleMapFreeClickMenu(koordinaten, contextMenu) {
         let textToCopy = "";
 
         if (sys.type === 'DMS') {
-          const lon = transformierteCoordinates[0];
-          const lat = transformierteCoordinates[1];
+          const lon = transformierteKoordinaten[0];
+          const lat = transformierteKoordinaten[1];
           textToCopy = `${convertToDMS(lat, 'LAT')}, ${convertToDMS(lon, 'LON')}`;
         } else {
           textToCopy = sys.order === 'YX' 

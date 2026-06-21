@@ -64,6 +64,31 @@ html, body {
     font-size: 16px;
   }
 
+  .ol-layerswitcher {
+    width: min(95vw, 360px) !important;
+    max-height: 80vh !important;
+  }
+
+  .ol-layerswitcher .panel-container {
+    padding: 0.4rem !important;
+  }
+
+  .ol-layerswitcher li label {
+    padding: 0.75rem 0.85rem !important;
+    min-height: 2.2rem;
+    font-size: 1rem;
+    border-radius: 10px;
+  }
+
+  .ol-layerswitcher li {
+    margin-bottom: 0.2rem;
+  }
+
+  .ol-layerswitcher .ol-control button {
+    min-width: 2.6rem;
+    min-height: 2.6rem;
+  }
+
   .ol-search {
     left: 10px;   
     right: auto;

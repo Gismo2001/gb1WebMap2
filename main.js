@@ -22,8 +22,8 @@ import { getTableActive } from './js/table.js';
 
 import { initMapClick } from './js/mapEvents.js';
 import { initPopup } from './js/mapEvents.js';
-import { switcherDrawList } from './js/mapEvents.js';
-import { switcherToggle } from './js/mapEvents.js';
+import { switcherDrawList } from './js/switcher.js';
+import { switcherToggle } from './js/switcher.js';
 import { getClickResults } from './js/mapEvents.js';
 import { updateTableFromVisibleLayers  } from './js/mapEvents.js';
 import { getVisibleVectorFeatures } from './js/mapEvents.js';

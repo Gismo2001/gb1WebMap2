@@ -185,7 +185,7 @@ export function initMapContextMenu(map, layerSwitcher) {
 function handleLayerSwitcherMenu(evt, targetElement, map, layerSwitcher, contextMenu) {
   const listItem = targetElement.closest('li');
   const clickedLayer = listItem ? listItem._olLayer : null;
-  const labelText = listItem ? listItem.querySelector('label').innerText.trim() : 'Unbekannt';
+  //const labelText = listItem ? listItem.querySelector('label').innerText.trim() : 'Unbekannt';
 
   if (!clickedLayer) return;
 
@@ -196,7 +196,7 @@ function handleLayerSwitcherMenu(evt, targetElement, map, layerSwitcher, context
     text: 'Umbenennen...',
     icon: '/data/rename.svg',
     callback: function () {
-      const currentTitle = clickedLayer.get('title') || labelText;
+      //const currentTitle = clickedLayer.get('title') || labelText;
       const newTitle = prompt(`Neuen Namen für "${currentTitle}" eingeben:`, currentTitle);
       if (newTitle && newTitle.trim() !== "") {
         clickedLayer.set('title', newTitle.trim());
@@ -212,11 +212,11 @@ function handleLayerSwitcherMenu(evt, targetElement, map, layerSwitcher, context
   // 1. Mehrfachauswahl aktiv
   if (isMultiSelectActive) {
     contextMenu.extend([
-      { text: `Aktion für ${selectedLabels.length} gewählte Layer:`, classname: 'menu-layer-header', disabled: true },
-      '-',
+      //{ text: `Aktion für ${selectedLabels.length} gewählte Layer:`, classname: 'menu-layer-header', disabled: true },
+      //'-',
       {
         text: 'In neue Gruppe',
-        icon: 'fa fa-folder-open',
+        icon: '/data/folderopen.svg',
         callback: () => {
           const layersToGroup = [];
           selectedLabels.forEach(lbl => {
@@ -228,7 +228,7 @@ function handleLayerSwitcherMenu(evt, targetElement, map, layerSwitcher, context
       },
       {
         text: 'Auswahl aufheben',
-        icon: 'fa fa-times',
+        icon: '/data/unselect.svg',
         callback: () => selectedLabels.forEach(lbl => lbl.classList.remove('is-selected'))
       }
     ]);
@@ -236,8 +236,8 @@ function handleLayerSwitcherMenu(evt, targetElement, map, layerSwitcher, context
   // 2. Rechtsklick auf Gruppe (Ordner)
   else if (isGroup) {
     contextMenu.extend([
-      { text: `Gruppe: ${labelText}`, classname: 'menu-layer-header', disabled: true },
-      '-',
+      
+      
       renameAction,
       '-',
       {
@@ -267,8 +267,8 @@ function handleLayerSwitcherMenu(evt, targetElement, map, layerSwitcher, context
   // 3. Rechtsklick auf Einzellayer
   else {
     contextMenu.extend([
-      { text: `Layer: ${labelText}`, classname: 'menu-layer-header', disabled: true },
-      '-',
+    
+    
       renameAction,
       '-',
       {
@@ -283,8 +283,8 @@ function handleLayerSwitcherMenu(evt, targetElement, map, layerSwitcher, context
       },
       '-',
       {
-        text: 'Auf Layergrenzen zoomen',
-        icon: 'fa fa-search-plus',
+        text: 'Auf Layer zoomen',
+        icon: '/data/zoomborder.svg',
         callback: () => {
           const source = clickedLayer.getSource();
           if (source && typeof source.getExtent === 'function') {
@@ -292,8 +292,8 @@ function handleLayerSwitcherMenu(evt, targetElement, map, layerSwitcher, context
           }
         }
       },
-      { text: 'Transparenz: 50%', icon: 'fa fa-adjust', callback: () => clickedLayer.setOpacity(0.5) },
-      { text: 'Voll sichtbar (100%)', icon: 'fa fa-eye', callback: () => clickedLayer.setOpacity(1.0) }
+      { text: 'Transparenz: 50%', icon: '/data/transparenz.svg', callback: () => clickedLayer.setOpacity(0.5) },
+      { text: 'Voll sichtbar (100%)', icon: '/data/untransparenz.svg', callback: () => clickedLayer.setOpacity(1.0) }
     ]);
   }
 }

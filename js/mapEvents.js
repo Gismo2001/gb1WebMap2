@@ -693,7 +693,7 @@ async function askUserToChoose(currentClickResults, coord, map) {
             const nenner  = nennerKey  ? props[nennerKey]  : '';
             const nennerAnzeige = nenner ? `/${nenner}` : '';
     
-            name = `${gemark}, Flur ${flur}, ${zaehler}${nennerAnzeige}`;
+            name = `${gemark}, Flur ${flur}, ${zaehler}${nenner}`;
           }
           // STANDARD-FALLBACK (andere Vektor- oder WMS-Layer)
           else {
@@ -1290,7 +1290,7 @@ function buildPopupContent(featureOrProps, layerName) {
       `Gemark: ${daten.Gemark}<br>` +
       `ID: ${daten.fsk}<br>` +
       `Flur: ${daten.Flur}<br>` +
-      `Flurstk.: ${daten.Zaehler}/${daten.Flur}`;
+      `Flurstk.: ${daten.Zaehler}/${daten.Nenner}`;
     html += `<strong>${ueberschrift}</strong><br>`;
     html += `<span>${info}</span><br>`;
 

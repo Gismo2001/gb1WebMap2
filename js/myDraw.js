@@ -476,14 +476,32 @@ export function deactivateDrawing() {
 }
 
 
+import { fromCircle } from 'ol/geom/Polygon'; // 👈 WICHTIGER IMPORT
+
 export function exportDrawFeatures() {
   if (!drawSource || drawSource.getFeatures().length === 0) {
     alert("Es gibt keine gezeichneten Objekte zum Exportieren!");
     return;
   }
 
+  // 1. Klone die Features, damit wir die Originale auf der Karte nicht verändern
+  const exportFeatures = drawSource.getFeatures().map(feature => {
+    const clonedFeature = feature.clone();
+    const geom = clonedFeature.getGeometry();
+
+    // 🎯 Wenn die Geometrie ein echter OpenLayers-Kreis ist:
+    if (geom && geom.getType() === 'Circle') {
+      // Wandle den Kreis in ein Polygon um (mit z.B. 64 Segmenten für eine saubere Rundung)
+      const polygonGeom = fromCircle(geom, 64);
+      clonedFeature.setGeometry(polygonGeom);
+    }
+
+    return clonedFeature;
+  });
+
+  // 2. Jetzt exportieren wir die modifizierten (geklonten) Features
   const format = new GeoJSON();
-  const geoJsonString = format.writeFeatures(drawSource.getFeatures(), {
+  const geoJsonString = format.writeFeatures(exportFeatures, {
     featureProjection: 'EPSG:3857',
     dataProjection: 'EPSG:4326'
   });

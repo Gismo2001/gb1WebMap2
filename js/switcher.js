@@ -196,6 +196,8 @@ export function initMapContextMenu(map, layerSwitcher) {
     const targetElement = evt.originalEvent.target;
     const isInsideSwitcher = targetElement.closest('.ol-layerswitcher');
 
+    setupOutsideClickClose(contextMenu);
+
     // =========================================================================
     // 📂 FALL A: RECHTSKLICK IM LAYER-SWITCHER
     // =========================================================================
@@ -216,14 +218,31 @@ export function initMapContextMenu(map, layerSwitcher) {
 
 // --- Hilfsfunktion: Menü für Layer-Switcher aufbauen ---
 function handleLayerSwitcherMenu(evt, targetElement, map, layerSwitcher, contextMenu) {
-  const listItem = targetElement.closest('li');
+ const listItem = targetElement.closest('li');
   const clickedLayer = listItem ? listItem._olLayer : null;
   const labelText = listItem ? listItem.querySelector('label')?.innerText.trim() : 'Unbekannt';
   const currentTitle = clickedLayer ? clickedLayer.get('title') || labelText : labelText;
 
+
+  
+  
+
+
+
+
   if (!clickedLayer) return;
 
+  // 1. ZUERST prüfen, ob es eine Gruppe ist
   const isGroup = typeof clickedLayer.getLayers === 'function';
+  
+  // 2. getSource() NUR aufrufen, wenn es KEINE Gruppe ist
+  const source = !isGroup && typeof clickedLayer.getSource === 'function' ? clickedLayer.getSource() : null;
+
+  // 3. Jetzt ist die Prüfung auf WMS sicher
+  const legendUrl = getWmsLegendUrl(source);
+  const isWms = !!legendUrl;
+  
+  
 
   // Gemeinsame Aktion: Umbenennen
   const renameAction = {
@@ -300,10 +319,15 @@ function handleLayerSwitcherMenu(evt, targetElement, map, layerSwitcher, context
   // 3. Rechtsklick auf Einzellayer
   else {
     contextMenu.extend([
-    
-    
       renameAction,
       '-',
+      // NEU: Legende anzeigen (nur bei WMS-Layern)
+      ...(isWms ? [{
+      text: 'Legende anzeigen',
+      icon: '/data/legend.svg', // eigenes Icon, falls vorhanden – sonst Zeile weglassen
+      callback: () => showLegendModal(currentTitle, legendUrl)
+    }, '-'] : []),
+
       {
         text: 'Zu Gruppe',
         icon: '/data/add_folder.svg',
@@ -468,6 +492,29 @@ function handleMapFreeClickMenu(koordinaten, contextMenu) {
   ]);
 }
 
+// --- Hilfsfunktion: Menü bei Klick außerhalb schließen ---
+function setupOutsideClickClose(contextMenu) {
+  const closeOnOutsideClick = (evt) => {
+    if (!contextMenu.isOpen()) return;
+
+    const menuElement = contextMenu.element;
+    const target = evt.target;
+
+    if (target instanceof Node && menuElement && menuElement.contains(target)) {
+      return;
+    }
+
+    contextMenu.closeMenu();
+  };
+
+  document.removeEventListener('mousedown', closeOnOutsideClick, true);
+  document.addEventListener('mousedown', closeOnOutsideClick, true);
+
+  contextMenu.once('close', () => {
+    document.removeEventListener('mousedown', closeOnOutsideClick, true);
+  });
+}
+
 // --- Hilfsfunktion: Touch-Long-Press Unterdrückung ---
 function setupMobileProtection(map) {
   map.getViewport().addEventListener('contextmenu', function (e) {
@@ -480,4 +527,61 @@ function setupMobileProtection(map) {
       e.preventDefault();
     }
   }, true);
+}
+
+// --- Hilfsfunktion: wms-Legende URL holen ---
+function getWmsLegendUrl(source, layerNameOverride) {
+  if (!source || typeof source.getUrls !== 'function' && typeof source.getUrl !== 'function') {
+    return null;
+  }
+
+  // Basis-URL holen (TileWMS hat getUrls(), ImageWMS hat getUrl())
+  let baseUrl;
+  if (typeof source.getUrls === 'function') {
+    const urls = source.getUrls();
+    baseUrl = urls && urls[0];
+  } else if (typeof source.getUrl === 'function') {
+    baseUrl = source.getUrl();
+  }
+  if (!baseUrl) return null;
+
+  const params = source.getParams ? source.getParams() : {};
+  const layerName = layerNameOverride || params['LAYERS'];
+  if (!layerName) return null;
+
+  // Falls mehrere Layer kommagetrennt sind: nur den ersten für die Legende nehmen
+  const firstLayer = layerName.split(',')[0];
+
+  const separator = baseUrl.includes('?') ? '&' : '?';
+  return `${baseUrl}${separator}SERVICE=WMS&REQUEST=GetLegendGraphic&VERSION=1.1.1&FORMAT=image/png&LAYER=${encodeURIComponent(firstLayer)}`;
+}
+
+function showLegendModal(layerTitle, url) {
+  // Falls bereits ein Modal offen ist, entfernen
+  const altesModal = document.getElementById('wms-legend-modal');
+  if (altesModal) altesModal.remove();
+
+  // Modal-HTML erstellen
+  const modal = document.createElement('div');
+  modal.id = 'wms-legend-modal';
+  modal.style = `
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    background: white; padding: 20px; border-radius: 8px; z-index: 9999;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3); max-width: 90%; max-height: 80%; overflow: auto;
+  `;
+
+  modal.innerHTML = `
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 5px;">
+      <h3 style="margin: 0; font-size: 16px;">Legende: ${layerTitle || 'WMS Layer'}</h3>
+      <button id="close-legend-btn" style="cursor: pointer; background: none; border: none; font-size: 20px;">&times;</button>
+    </div>
+    <div style="text-align: center;">
+      <img src="${url}" alt="Lade Legende..." style="max-width: 100%;" />
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  // Schließen-Event
+  document.getElementById('close-legend-btn').onclick = () => modal.remove();
 }

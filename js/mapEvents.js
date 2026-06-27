@@ -1123,7 +1123,7 @@ export function fileToggleInput(map) {
             format = new KML({ extractStyles: true });
             sourceName = `KML:${zaehlerKML}_${fileName}`;
             zaehlerKML++;
-           } else if (fileEnd === 'gml') {
+          } else if (fileEnd === 'gml') {
             format = new GML3();
             sourceName = `GML:${zaehlerGML}_${fileName}`;
             zaehlerGML++;

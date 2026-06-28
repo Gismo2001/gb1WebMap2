@@ -4,6 +4,7 @@ import { transform } from 'ol/proj';
 import { createNewGroupFromLayers } from './layers.js';
 import { convertToDMS } from './utils.js';
 import { isDrawingActive } from './myDraw.js';
+import { swipeControl, activateLayerSwipe, deactivateLayerSwipe } from './controls.js';
 
 const MOBILE_PRESS_DELAY = 600;
 
@@ -215,23 +216,17 @@ export function initMapContextMenu(map, layerSwitcher) {
   // 3. Touch- & Mobile-Schutz registrieren
   setupMobileProtection(map);
 }
-
 // --- Hilfsfunktion: Menü für Layer-Switcher aufbauen ---
 function handleLayerSwitcherMenu(evt, targetElement, map, layerSwitcher, contextMenu) {
  const listItem = targetElement.closest('li');
   const clickedLayer = listItem ? listItem._olLayer : null;
   const labelText = listItem ? listItem.querySelector('label')?.innerText.trim() : 'Unbekannt';
   const currentTitle = clickedLayer ? clickedLayer.get('title') || labelText : labelText;
-
-
-  
-  
-
-
-
-
   if (!clickedLayer) return;
-
+  // 🎯 SCHRITT 0: Das Kontextmenü komplett leeren, damit keine alten Einträge überleben!
+  if (typeof contextMenu.clear === 'function') {
+    contextMenu.clear();
+  }
   // 1. ZUERST prüfen, ob es eine Gruppe ist
   const isGroup = typeof clickedLayer.getLayers === 'function';
   
@@ -241,8 +236,6 @@ function handleLayerSwitcherMenu(evt, targetElement, map, layerSwitcher, context
   // 3. Jetzt ist die Prüfung auf WMS sicher
   const legendUrl = getWmsLegendUrl(source);
   const isWms = !!legendUrl;
-  
-  
 
   // Gemeinsame Aktion: Umbenennen
   const renameAction = {
@@ -260,7 +253,6 @@ function handleLayerSwitcherMenu(evt, targetElement, map, layerSwitcher, context
   const switcherEl = targetElement.closest('.ol-layerswitcher');
   const selectedLabels = switcherEl ? switcherEl.querySelectorAll('label.is-selected') : [];
   const isMultiSelectActive = selectedLabels.length >= 2;
-
   // 1. Mehrfachauswahl aktiv
   if (isMultiSelectActive) {
     contextMenu.extend([
@@ -319,6 +311,11 @@ function handleLayerSwitcherMenu(evt, targetElement, map, layerSwitcher, context
   // 3. Rechtsklick auf Einzellayer
   else 
   {
+    
+    // Prüfen, ob GENAU DIESER clickedLayer gerade im Swipe-Control aktiv ist
+    const istImSplit = swipeControl && 
+                   typeof swipeControl.getLayers === 'function' && 
+                   swipeControl.getLayers().includes(clickedLayer);
     contextMenu.extend([
       renameAction,
       '-',
@@ -330,7 +327,20 @@ function handleLayerSwitcherMenu(evt, targetElement, map, layerSwitcher, context
       callback: () => showLegendModal(currentTitle, legendUrl)
       }, '-'] : []
       ),
-
+      '-',
+     // 🎯 DYNAMISCHE SPLIT-WEICHE
+  ...(isWms ? [
+    istImSplit ? {
+      text: 'Split aufheben',
+      icon: '/data/splitscreen.svg', // Falls du ein passendes Icon hast
+      callback: () => deactivateLayerSwipe(map) // Funktion zum Entfernen des Controls
+    } : {
+      text: 'im Split anzeigen',
+      icon: '/data/splitscreen.svg', 
+      callback: () => activateLayerSwipe(map, clickedLayer)
+    },
+    '-'
+  ] : []),
       {
       text: 'Zu Gruppe',
       icon: '/data/add_folder.svg',

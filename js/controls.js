@@ -794,4 +794,37 @@ export function initializeWFS(map) {
   }
   
 
-  
+ 
+import Swipe from 'ol-ext/control/Swipe';
+
+export let swipeControl = null;
+
+// --- Hilfsfunktion: Split-Screen aktivieren ---
+export function activateLayerSwipe(map, rightLayer) {
+  // Falls schon ein Swipe-Control aktiv ist, entfernen wir es zuerst
+  if (swipeControl) {
+    map.removeControl(swipeControl);
+  }
+
+  // 1. Erstelle das Swipe-Control
+  swipeControl = new Swipe({
+    orientation: 'vertical', // 'vertical' oder 'horizontal'
+    position: 0.5            // Startet genau in der Mitte (50%)
+  });
+
+  // 2. Füge den Layer hinzu, der NUR RECHTS sichtbar sein soll
+  // (In deinem Fall z.B. das frisch geladene GeoTIFF- oder GeoPackage-Layer)
+  swipeControl.addLayer(rightLayer, true); // true steht für "rechts"
+
+  // 3. Control der Karte hinzufügen
+  map.addControl(swipeControl);
+}
+
+export function deactivateLayerSwipe(map) {
+  if (swipeControl) {
+    map.removeControl(swipeControl);
+    swipeControl = null;
+  }
+}
+
+ 

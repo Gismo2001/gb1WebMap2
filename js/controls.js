@@ -818,6 +818,26 @@ export function activateLayerSwipe(map, rightLayer) {
 
   // 3. Control der Karte hinzufügen
   map.addControl(swipeControl);
+  // 🎯 NEU: Rechtsklick auf den Trenner abfangen
+  // Wir warten einen winzigen Moment, bis das Control im DOM gerendert wurde
+  setTimeout(() => {
+    // ol-ext erstellt ein Div mit der Klasse 'ol-swipe' für den Schieberegler
+    const swipeSeparator = document.querySelector('.ol-swipe');
+    
+    if (swipeSeparator) {
+      swipeSeparator.addEventListener('contextmenu', (e) => {
+        e.preventDefault(); // Verhindert das Standard-Browser-Menü
+        
+        // Split-Screen direkt beenden
+        deactivateLayerSwipe(map);
+        
+        console.log("Split über Rechtsklick auf Trenner aufgehoben.");
+      });
+      
+      // Optional: Dem Nutzer zeigen, dass er hier rechtsklicken kann (Tooltip)
+      swipeSeparator.title = "Rechtsklick, um den Split-Screen zu beenden";
+    }
+  }, 100);
 }
 
 export function deactivateLayerSwipe(map) {

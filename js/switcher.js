@@ -317,86 +317,85 @@ function handleLayerSwitcherMenu(evt, targetElement, map, layerSwitcher, context
     ]);
   } 
   // 3. Rechtsklick auf Einzellayer
-  else {
+  else 
+  {
     contextMenu.extend([
       renameAction,
       '-',
-      // NEU: Legende anzeigen (nur bei WMS-Layern)
-      ...(isWms ? [{
+      // Legende anzeigen (nur bei WMS-Layern)
+      ...(isWms ? 
+        [{
       text: 'Legende anzeigen',
-      icon: '/data/legend.svg', // eigenes Icon, falls vorhanden – sonst Zeile weglassen
+      icon: '/data/legend.svg', 
       callback: () => showLegendModal(currentTitle, legendUrl)
-    }, '-'] : []),
+      }, '-'] : []
+      ),
 
       {
-        text: 'Zu Gruppe',
-        icon: '/data/add_folder.svg',
-        //icon: 'fa fa-share', // 👈 Ganz sauber, ohne Anführungszeichen-Trick!
-        callback: () => {
-          window.layerToMove = clickedLayer;
-          alert(`Bitte klicke jetzt im Layer-Switcher auf die Ziel-Gruppe...`);
-          if (switcherEl) switcherEl.classList.add('targeting-group-mode');
-        }
+      text: 'Zu Gruppe',
+      icon: '/data/add_folder.svg',
+      callback: () => {
+        window.layerToMove = clickedLayer;
+        alert(`Bitte klicke jetzt im Layer-Switcher auf die Ziel-Gruppe...`);
+        if (switcherEl) switcherEl.classList.add('targeting-group-mode');
+      }
       },
       '-',
       {
-  text: 'Filtern',
-  icon: '/data/filterlist.svg',
-  callback: () => {
-    const source = clickedLayer.getSource();
-    if (!source || typeof source.getFeatures !== 'function') {
-      alert('Filtern ist nur für Vektor-Layer verfügbar!');
-      return;
-    }
+        text: 'Filtern',
+        icon: '/data/filterlist.svg',
+        callback: () => {
+          const source = clickedLayer.getSource();
+          if (!source || typeof source.getFeatures !== 'function') {
+            alert('Filtern ist nur für Vektor-Layer verfügbar!');
+            return;
+          }
+          // 1. Nutzer nach dem Filterwert fragen
+          const aktuellerFilter = clickedLayer.get('currentFilter') || '';
+          const filterWert = prompt('Nach welchem Attributwert soll gefiltert werden? (Leerlassen zum Zurücksetzen):', aktuellerFilter);
 
-    // 1. Nutzer nach dem Filterwert fragen
-    const aktuellerFilter = clickedLayer.get('currentFilter') || '';
-    const filterWert = prompt('Nach welchem Attributwert soll gefiltert werden? (Leerlassen zum Zurücksetzen):', aktuellerFilter);
+          // 2. Filterwert auf dem Layer speichern (für spätere Abfragen)
+          if (filterWert === null) return; // Abbrechen gedrückt
+          const bereinigterFilter = filterWert.trim().toLowerCase();
+          clickedLayer.set('currentFilter', bereinigterFilter);
+  
+          // 3. Den Style-Funktion des Layers anpassen
+          // Wir merken uns den originalen Style, falls noch nicht geschehen
+          if (!clickedLayer.get('originalStyle')) {
+            clickedLayer.set('originalStyle', clickedLayer.getStyle());
+          }
+          const originalStyle = clickedLayer.get('originalStyle');
 
-    // 2. Filterwert auf dem Layer speichern (für spätere Abfragen)
-    if (filterWert === null) return; // Abbrechen gedrückt
-    
-    const bereinigterFilter = filterWert.trim().toLowerCase();
-    clickedLayer.set('currentFilter', bereinigterFilter);
+          // Wenn der Filter leer ist, setzen wir den Original-Style zurück
+          if (bereinigterFilter === '') {
+            clickedLayer.setStyle(originalStyle);
+            return;
+          }
 
-    // 3. Den Style-Funktion des Layers anpassen
-    // Wir merken uns den originalen Style, falls noch nicht geschehen
-    if (!clickedLayer.get('originalStyle')) {
-      clickedLayer.set('originalStyle', clickedLayer.getStyle());
-    }
-
-    const originalStyle = clickedLayer.get('originalStyle');
-
-    // Wenn der Filter leer ist, setzen wir den Original-Style zurück
-    if (bereinigterFilter === '') {
-      clickedLayer.setStyle(originalStyle);
-      return;
-    }
-
-    // 4. Dynamischen Style-Filter setzen
-    clickedLayer.setStyle(function (feature, resolution) {
-      // Hole alle Eigenschaften des Features (z. B. { name: 'Schleuse', typ: 'Kanal' })
-      const properties = feature.getProperties();
+          // 4. Dynamischen Style-Filter setzen
+          clickedLayer.setStyle(function (feature, resolution) {
+            // Hole alle Eigenschaften des Features (z. B. { name: 'Schleuse', typ: 'Kanal' })
+            const properties = feature.getProperties();
       
-      // Prüfen, ob IRGENDEIN Textfeld den Suchbegriff enthält
-      const treffer = Object.values(properties).some(val => {
-        if (typeof val === 'string' || typeof val === 'number') {
-          return String(val).toLowerCase().includes(bereinigterFilter);
-        }
-        return false;
-      });
+            // Prüfen, ob IRGENDEIN Textfeld den Suchbegriff enthält
+            const treffer = Object.values(properties).some(val => {
+              if (typeof val === 'string' || typeof val === 'number') {
+                return String(val).toLowerCase().includes(bereinigterFilter);
+              }
+              return false;
+          });
 
-      if (treffer) {
-        // Feature entspricht dem Filter -> Normal zeichnen
-        // Falls originalStyle eine Funktion ist, rufen wir sie auf, sonst geben wir ihn direkt zurück
-        return typeof originalStyle === 'function' ? originalStyle(feature, resolution) : originalStyle;
-      } else {
-        // Feature entspricht NICHT dem Filter -> Nicht zeichnen (unsichtbar)
-        return null; 
+          if (treffer) {
+            // Feature entspricht dem Filter -> Normal zeichnen
+            // Falls originalStyle eine Funktion ist, rufen wir sie auf, sonst geben wir ihn direkt zurück
+            return typeof originalStyle === 'function' ? originalStyle(feature, resolution) : originalStyle;
+          } else {
+            // Feature entspricht NICHT dem Filter -> Nicht zeichnen (unsichtbar)
+            return null; 
+          }
+        });
       }
-    });
-  }
-},
+    },
       '-',
       {
   text: 'Filter aufheben',
@@ -556,6 +555,7 @@ function getWmsLegendUrl(source, layerNameOverride) {
   return `${baseUrl}${separator}SERVICE=WMS&REQUEST=GetLegendGraphic&VERSION=1.1.1&FORMAT=image/png&LAYER=${encodeURIComponent(firstLayer)}`;
 }
 
+// --- Hilfsfunktion: wms-Legende URL anzeigen ---
 function showLegendModal(layerTitle, url) {
   // Falls bereits ein Modal offen ist, entfernen
   const altesModal = document.getElementById('wms-legend-modal');
@@ -566,8 +566,8 @@ function showLegendModal(layerTitle, url) {
   modal.id = 'wms-legend-modal';
   modal.style = `
     position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    background: white; padding: 20px; border-radius: 8px; z-index: 9999;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.3); max-width: 90%; max-height: 80%; overflow: auto;
+    background: white; padding: 5px; border-radius: 2px; z-index: 9999;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3); max-width: 90%; max-height: 80%; overflow: auto;
   `;
 
   modal.innerHTML = `

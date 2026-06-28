@@ -29,6 +29,7 @@
     "ol": "^10.8.0",
     "ol-contextmenu": "^6.0.0",
     "ol-ext": "^4.0.26",
+    "ol-load-geopackage": "^2.3.1",
     "proj4": "^2.20.6",
     "shpjs": "^6.2.0",
     "split": "^1.0.1",

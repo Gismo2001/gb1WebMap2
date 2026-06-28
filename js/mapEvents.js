@@ -6,7 +6,8 @@ import GeoTIFF from 'ol/source/GeoTIFF';
 import GeoTIFFSource from 'ol/source/GeoTIFF';
 import WebGLTileLayer from 'ol/layer/WebGLTile';
 
-import { toLonLat, transform, fromLonLat, transformExtent } from 'ol/proj';
+import { toLonLat, transform, fromLonLat, transformExtent, get as getProjection } from 'ol/proj';
+
 
 import { EXCLUDED_LAYERS } from './config.js';
 
@@ -1015,13 +1016,19 @@ let zaehlerGML = 1;
 let fileInput;
 
 import GML from 'ol/format/GML';
+import { initSqlJsWasm, loadGpkg } from 'ol-load-geopackage';
+
+
+//initSqlJsWasm(window, (filename) => `/${filename}`);
+initSqlJsWasm('.');
+//initSqlJsWasm(window, () => 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.12.0/sql-wasm.wasm');
 
 export function fileToggleInput(map) {
   if (!fileInput) {
     fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.multiple = true;
-    fileInput.accept = '.geojson,.json,.kml,.gml,.zip,.tif,.tiff';
+    fileInput.accept = '.geojson,.json,.kml,.gml,.zip,.tif,.tiff,.gpkg';
     fileInput.style.display = 'none';
     document.body.appendChild(fileInput);
   }
@@ -1110,7 +1117,67 @@ export function fileToggleInput(map) {
         };
         reader.readAsArrayBuffer(file); 
       } 
-   
+      // =========================================================================
+      // 🎯 KORRIGIERT: GEOPACKAGE-LOGIK MIT DIREKTER FILE-ÜBERGABE
+      // =========================================================================
+      if (fileEnd === 'gpkg') {
+        // HIER DIE ÄNDERUNG: Kein FileReader nötig, wir starten direkt async!
+        (async () => {
+          try {
+           // Hol dir das echte OpenLayers Projektions-Objekt für deine Karte
+            //const zielProjektion = getProjection('EPSG:3857');
+            const zielProjektion = getProjection('EPSG:3857'); // Funktioniert jetzt!
+
+            // Falls die Projektion nicht geladen werden konnte, Fallback auf Standard
+            if (!zielProjektion) {
+              console.error("Projektion EPSG:25832 konnte nicht ermittelt werden.");
+              return;
+            }
+
+            const [gpkgLayers] = await loadGpkg(file, 'EPSG:3857');
+
+            if (!gpkgLayers || Object.keys(gpkgLayers).length === 0) {
+              console.error("GeoPackage enthält keine Feature-Tabellen oder konnte nicht geladen werden.");
+              return;
+            }
+
+            
+            // gpkgLayers durchlaufen und an deine Karte übergeben
+            Object.keys(gpkgLayers).forEach(tableName => {
+              // 🎯 Das Plugin liefert uns hier meistens direkt die Source oder eine Struktur, die die Features hält
+              const layerOderSource = gpkgLayers[tableName];
+  
+              const sourceName = `GPKG:${zaehlerGeojson}_${fileName}_${tableName}`;
+              zaehlerGeojson++;
+
+              // Sicherheits-Check: Wo verstecken sich die Features?
+              let features = [];
+  
+              if (typeof layerOderSource.getFeatures === 'function') {
+                // Falls es direkt die Source ist (Sehr wahrscheinlich bei diesem Plugin)
+                features = layerOderSource.getFeatures();
+              } else if (typeof layerOderSource.getSource === 'function') {
+                // Falls es doch ein echter Layer ist
+                features = layerOderSource.getSource().getFeatures();
+              }
+
+              // Nur hinzufügen, wenn auch wirklich Features in dieser Tabelle stecken
+              if (features && features.length > 0) {
+                addVectorLayerToMap(map, features, sourceName);
+                console.log(`Tabelle "${tableName}" mit ${features.length} Objekten erfolgreich geladen.`);
+              } else {
+                console.warn(`Tabelle "${tableName}" enthielt keine Features.`);
+              }
+            });
+
+          } catch (err) {
+            console.error("Fehler beim ol-load-geopackage Parsing:", err);
+            alert(`Fehler beim Laden des GeoPackages: ${file.name}`);
+          }
+        })(); // Sofortausführende async-Funktion (IIFE)
+      }
+      // =========================================================================
+
       // 3. TEXT-LOGIK (KML, GeoJSON) -> MIT NEUER WEICHE
       else {
         const reader = new FileReader();

@@ -156,6 +156,11 @@ document.getElementById('popout-table-btn').addEventListener('click', () => {
     }
 });
 
+// Der Event-Listener für den "Daten hinzufügen"-Button in main.js
+document.getElementById('add-data-btn').addEventListener('click', () => {
+ 
+});
+
 // 2. Schließen-Button Event-Listener in main.js
 document.getElementById('close-table-btn').addEventListener('click', function(e) {
     //e.stopPropagation(); 
@@ -165,7 +170,7 @@ document.getElementById('close-table-btn').addEventListener('click', function(e)
 map.on('moveend', () => {
   // Nur wenn der User die Tabelle offen hat, führen wir das Update aus
   if (getTableActive()) {
-    //updateTableFromVisibleLayers(map);
+    updateTableFromVisibleLayers(map);
   }
 });
 

@@ -194,7 +194,7 @@ export function showTable(data) {
         
         // Tabelle komplett neu aufbauen lassen
         showTable(data); 
-        console.log("tabelle angezeigt durch resetbutton")
+        
         console.log(`Layout für Layer ${normalizedName} zurückgesetzt.`);
       }
     };

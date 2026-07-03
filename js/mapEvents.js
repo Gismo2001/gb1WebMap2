@@ -592,7 +592,7 @@ function showFeatureFromSelection(selected, layerName, coord) {
                 showTableDebounced([featureData]);
                 popupOverlay.setPosition(undefined);
             };
-            console.log("tabelle angezeigt durch opentabelbutton");
+            
         }
  */
         // 👉 DATEN-BUTTON (Erweiterung für die Auswahlliste)
@@ -946,6 +946,7 @@ export function updateTableFromVisibleLayers(map) {
   if (!isTableEnabled()) return;
   const results = getVisibleVectorFeatures(map);
   const layerNames = Object.keys(results);
+  console.log (layerNames)
 
   if (layerNames.length > 0) {
     const tableDoc = getTableDocument();
@@ -971,7 +972,7 @@ export function updateTableFromVisibleLayers(map) {
     console.log("tabelle angezeigt durch updatetabel")
   } else {
     showTableDebounced([]);
-    console.log("tabelle angezeigt durch tabellenbutton")
+    
     updateSelector([]);
   }
 }

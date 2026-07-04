@@ -114,6 +114,8 @@ initializeWMS(map);
 
 map.updateSize();
 
+
+
 // permalinkButton aktivieren, 
 initPermalinkButton(map);
 

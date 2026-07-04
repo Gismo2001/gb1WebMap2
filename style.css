@@ -271,28 +271,14 @@ html, body {
   background-color: #0062ff;
 }
 
-/* --- PERMALINK BUTTON UNTER DER TOOLBAR --- */
-.ol-permalink-button {
-    display: none; 
-    top: 17.5em !important; 
-    left: 0.5em !important;
-    position: absolute;
-    z-index: 2500;
+
+ .ol-control.ol-permalink {
+    top: 0.5em;
+    right: 5em;
+    
 }
 
-.ol-permalink-button button {
-    background-color: rgba(255, 255, 255, 0.9) !important;
-    border: 1px solid #ccc !important;
-    color: #333 !important;
-    border-radius: 2px !important; 
-    width: 1.375em !important;
-    height: 1.375em !important;
-}
 
-.ol-permalink-button button::before {
-    content: "🔗";
-    font-size: 1.0em;
-}
 
 .tabulator-header-filter {
     display: block; 

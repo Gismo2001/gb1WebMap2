@@ -266,9 +266,10 @@ export function createSubBarI(map) {
          // Das Element im DOM suchen
         const permalinkButton = document.querySelector('.ol-permalink-button');
         //Sichtbar machen
-        if (permalinkButton) {
-          permalinkButton.style.display = 'block';
-        }
+       if (permalinkButton) {
+        permalinkButton.style.display = 'block';
+        permalinkButton.style.transform = 'translateY(50px)';
+       }
       } else {
         // suchen, von der Karte löschen
         const permalinkButton = document.querySelector('.ol-permalink-button');

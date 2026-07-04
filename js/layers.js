@@ -17,6 +17,10 @@ import {SleStyle, WehStyle, BruAndereStyle, BruNlwknStyle, DueStyle, QueStyle, g
 import LayerGroup from 'ol/layer/Group';
 import TileWMS from 'ol/source/TileWMS';
 
+import Collection from 'ol/Collection';
+import Group from 'ol/layer/Group';
+
+
 
 export function createGewLayer() {
   return new VectorLayer({
@@ -587,6 +591,7 @@ export function createExpBwSonPunLayer() {
    });
 }
 
+
 // FSK-Layer
 export function createFskLayer(){
 return  new VectorLayer({
@@ -939,7 +944,7 @@ export function createLayerStructure() {
   const que = createExpBwQueLayer();
   const ein = createExpBwEinLayer();
   const sonPun = createExpBwSonPunLayer();
-
+  
   //DGM/DOM-Kacheln
   //const DgmKacheln = createDgmKachelLayer();
   //const DomKacheln = createDomKachelLayer();
@@ -1051,14 +1056,13 @@ export function createLayerStructure() {
         bruAndere,
         weh,
         sle,
+        
       ]
     }),
   ];
 }
 
 
-import Collection from 'ol/Collection';
-import Group from 'ol/layer/Group';
 
 /**
  * Erstellt eine neue Layer-Gruppe und verschiebt die übergebenen Layer hinein.

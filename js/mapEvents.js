@@ -1212,7 +1212,7 @@ export function fileToggleInput(map) {
               featureProjection: 'EPSG:3857'
             });
 
-            // 💡 DIE NEUE WEICHE: Nur GeoJSON/JSON bei aktiver Zeichenleiste abfangen
+            // Nur GeoJSON/JSON bei aktiver Zeichenleiste abfangen
             const istGeoJson = (fileEnd === 'geojson' || fileEnd === 'json');
             const istGml = (fileEnd === 'gml');
 

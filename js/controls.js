@@ -799,12 +799,19 @@ export function initializeWFS(map) {
 import Swipe from 'ol-ext/control/Swipe';
 
 export let swipeControl = null;
+// Referenzen auf das DOM-Element und den Event-Handler, damit wir Listener sauber entfernen können
+let swipeSeparatorElement = null;
+let swipeSeparatorListener = null;
+// Touch-spezifische Referenzen für mobiles Long-Press
+let swipeSeparatorTouchTimer = null;
+let swipeSeparatorTouchStartListener = null;
+let swipeSeparatorTouchEndListener = null;
 
 // --- Hilfsfunktion: Split-Screen aktivieren ---
 export function activateLayerSwipe(map, rightLayer) {
-  // Falls schon ein Swipe-Control aktiv ist, entfernen wir es zuerst
+  // Falls schon ein Swipe-Control aktiv ist, entfernen wir es zuerst (sauber über die Deaktivierungs-Funktion)
   if (swipeControl) {
-    map.removeControl(swipeControl);
+    deactivateLayerSwipe(map);
   }
 
   // 1. Erstelle das Swipe-Control
@@ -826,24 +833,77 @@ export function activateLayerSwipe(map, rightLayer) {
     const swipeSeparator = document.querySelector('.ol-swipe');
     
     if (swipeSeparator) {
-      swipeSeparator.addEventListener('contextmenu', (e) => {
+      // Entferne alten Listener falls vorhanden
+      if (swipeSeparatorElement && swipeSeparatorListener) {
+        try { swipeSeparatorElement.removeEventListener('contextmenu', swipeSeparatorListener); } catch (err) { /* ignore */ }
+      }
+
+      const onSwipeContextmenu = (e) => {
         e.preventDefault(); // Verhindert das Standard-Browser-Menü
-        
         // Split-Screen direkt beenden
         deactivateLayerSwipe(map);
-        
         console.log("Split über Rechtsklick auf Trenner aufgehoben.");
-      });
-      
+      };
+
+      swipeSeparator.addEventListener('contextmenu', onSwipeContextmenu);
+      swipeSeparatorElement = swipeSeparator;
+      swipeSeparatorListener = onSwipeContextmenu;
+
+      // Mobile: Long-Press auf dem Trenner beendet ebenfalls den Split
+      const onSwipeTouchStart = (e) => {
+        // Start Timer für Long-Press (600ms)
+        if (swipeSeparatorTouchTimer) clearTimeout(swipeSeparatorTouchTimer);
+        swipeSeparatorTouchTimer = setTimeout(() => {
+          deactivateLayerSwipe(map);
+          console.log("Split über Long-Press auf Trenner aufgehoben.");
+        }, 1600);
+      };
+
+      const onSwipeTouchEnd = (e) => {
+        if (swipeSeparatorTouchTimer) {
+          clearTimeout(swipeSeparatorTouchTimer);
+          swipeSeparatorTouchTimer = null;
+        }
+      };
+
+      swipeSeparator.addEventListener('touchstart', onSwipeTouchStart, { passive: true });
+      swipeSeparator.addEventListener('touchend', onSwipeTouchEnd);
+      swipeSeparator.addEventListener('touchcancel', onSwipeTouchEnd);
+      swipeSeparatorTouchStartListener = onSwipeTouchStart;
+      swipeSeparatorTouchEndListener = onSwipeTouchEnd;
+
       // Optional: Dem Nutzer zeigen, dass er hier rechtsklicken kann (Tooltip)
-      swipeSeparator.title = "Rechtsklick, um den Split-Screen zu beenden";
+      swipeSeparator.title = "Rechtsklick (Desktop) oder langer Druck (Mobil) beendet den Split-Screen";
     }
   }, 100);
 }
 
 export function deactivateLayerSwipe(map) {
+  // Zuerst Listener entfernen, falls noch vorhanden
+  if (swipeSeparatorElement && swipeSeparatorListener) {
+    try { swipeSeparatorElement.removeEventListener('contextmenu', swipeSeparatorListener); } catch (err) { /* ignore */ }
+    try { swipeSeparatorElement.title = ''; } catch (err) { /* ignore */ }
+    swipeSeparatorElement = null;
+    swipeSeparatorListener = null;
+  }
+
+  // Touch-Listener entfernen
+  if (swipeSeparatorElement && swipeSeparatorTouchStartListener) {
+    try { swipeSeparatorElement.removeEventListener('touchstart', swipeSeparatorTouchStartListener); } catch (err) { /* ignore */ }
+  }
+  if (swipeSeparatorElement && swipeSeparatorTouchEndListener) {
+    try { swipeSeparatorElement.removeEventListener('touchend', swipeSeparatorTouchEndListener); } catch (err) { /* ignore */ }
+    try { swipeSeparatorElement.removeEventListener('touchcancel', swipeSeparatorTouchEndListener); } catch (err) { /* ignore */ }
+  }
+  swipeSeparatorTouchStartListener = null;
+  swipeSeparatorTouchEndListener = null;
+  if (swipeSeparatorTouchTimer) {
+    try { clearTimeout(swipeSeparatorTouchTimer); } catch (err) { /* ignore */ }
+    swipeSeparatorTouchTimer = null;
+  }
+
   if (swipeControl) {
-    map.removeControl(swipeControl);
+    try { map.removeControl(swipeControl); } catch (err) { /* ignore */ }
     swipeControl = null;
   }
 }

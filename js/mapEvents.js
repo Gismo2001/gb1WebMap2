@@ -1024,6 +1024,122 @@ import { initSqlJsWasm, loadGpkg } from 'ol-load-geopackage';
 initSqlJsWasm('.');
 //initSqlJsWasm(window, () => 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.12.0/sql-wasm.wasm');
 
+function getShapefileEntryLabel(entry, index, fallbackName) {
+  const candidate = entry?.name || entry?.fileName || entry?.path || entry?.layerName || '';
+  const trimmed = typeof candidate === 'string' ? candidate.trim() : '';
+  if (trimmed) return trimmed;
+  return `${fallbackName || 'Shapefile'} ${index + 1}`;
+}
+
+function showShapefileSelectionDialog(entries, fileName) {
+  return new Promise((resolve) => {
+    if (!entries || entries.length <= 1) {
+      resolve(entries ? entries.map((_, index) => index) : []);
+      return;
+    }
+
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+      position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 20000;
+    `;
+
+    const dialog = document.createElement('div');
+    dialog.style.cssText = `
+      width: min(420px, calc(100vw - 24px)); background: white;
+      border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+      padding: 16px; color: #222;
+    `;
+
+    const title = document.createElement('h3');
+    title.textContent = `Shapefiles aus ${fileName}.zip auswählen`;
+    title.style.margin = '0 0 8px 0';
+
+    const info = document.createElement('p');
+    info.textContent = 'Mehrere Shape-Dateien wurden im Archiv gefunden. Bitte auswählen, welche geladen werden sollen.';
+    info.style.margin = '0 0 12px 0';
+
+    const list = document.createElement('div');
+    list.style.display = 'grid';
+    list.style.gap = '8px';
+
+    const checkboxes = [];
+    entries.forEach((entry, index) => {
+      const label = document.createElement('label');
+      label.style.display = 'flex';
+      label.style.alignItems = 'center';
+      label.style.gap = '8px';
+      label.style.padding = '6px 8px';
+      label.style.border = '1px solid #d0d7de';
+      label.style.borderRadius = '6px';
+
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.checked = true;
+      checkbox.value = String(index);
+
+      const text = document.createElement('span');
+      text.textContent = getShapefileEntryLabel(entry, index, fileName);
+
+      label.appendChild(checkbox);
+      label.appendChild(text);
+      list.appendChild(label);
+      checkboxes.push(checkbox);
+    });
+
+    const actions = document.createElement('div');
+    actions.style.display = 'flex';
+    actions.style.justifyContent = 'flex-end';
+    actions.style.gap = '8px';
+    actions.style.marginTop = '14px';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'Abbrechen';
+    cancelBtn.type = 'button';
+    cancelBtn.style.padding = '8px 12px';
+
+    const okBtn = document.createElement('button');
+    okBtn.textContent = 'Laden';
+    okBtn.type = 'button';
+    okBtn.style.padding = '8px 12px';
+    okBtn.style.background = '#2563eb';
+    okBtn.style.color = 'white';
+    okBtn.style.border = 'none';
+    okBtn.style.borderRadius = '4px';
+
+    cancelBtn.onclick = () => {
+      overlay.remove();
+      resolve([]);
+    };
+
+    okBtn.onclick = () => {
+      const selectedIndices = checkboxes
+        .filter((checkbox) => checkbox.checked)
+        .map((checkbox) => Number(checkbox.value));
+      overlay.remove();
+      resolve(selectedIndices);
+    };
+
+    actions.appendChild(cancelBtn);
+    actions.appendChild(okBtn);
+
+    dialog.appendChild(title);
+    dialog.appendChild(info);
+    dialog.appendChild(list);
+    dialog.appendChild(actions);
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+
+    overlay.addEventListener('click', (event) => {
+      if (event.target === overlay) {
+        overlay.remove();
+        resolve([]);
+      }
+    });
+  });
+}
+
 export function fileToggleInput(map) {
   if (!fileInput) {
     fileInput = document.createElement('input');
@@ -1102,15 +1218,19 @@ export function fileToggleInput(map) {
         reader.onload = async (e) => {
           try {
             const buffer = e.target.result;
-            const geojson = await shp(buffer);
+            const parsedArchive = await shp(buffer);
+            const archiveEntries = Array.isArray(parsedArchive) ? parsedArchive : [parsedArchive];
+            const selectedIndices = await showShapefileSelectionDialog(archiveEntries, fileName);
+
+            if (!selectedIndices || selectedIndices.length === 0) {
+              return;
+            }
+
+            const selectedArchive = archiveEntries.filter((_, index) => selectedIndices.includes(index));
             const sourceName = `shapefile:${zaehlerGeojson}_${fileName}`;
             zaehlerGeojson++;
 
-            const features = new GeoJSON().readFeatures(geojson, {
-              featureProjection: 'EPSG:3857'
-            });
-
-            addVectorLayerToMap(map, features, sourceName);
+            await addShapefileArchiveToMap(map, selectedArchive, sourceName);
           } catch (err) {
             console.error("Fehler beim Shapefile-Parsing:", err);
             alert(`Fehler beim Laden des Shapefiles: ${file.name}`);
@@ -1252,7 +1372,46 @@ export function fileToggleInput(map) {
   fileInput.click();
 }
 
-function addVectorLayerToMap(map, features, sourceName) {
+async function addShapefileArchiveToMap(map, parsedArchive, sourceName) {
+  const geoJsonItems = Array.isArray(parsedArchive) ? parsedArchive : [parsedArchive];
+  const format = new GeoJSON();
+  const extents = [];
+
+  for (let index = 0; index < geoJsonItems.length; index += 1) {
+    const entry = geoJsonItems[index];
+    if (!entry || typeof entry !== 'object') continue;
+
+    const features = format.readFeatures(entry, {
+      featureProjection: 'EPSG:3857'
+    });
+
+    if (!features || features.length === 0) continue;
+
+    const layerName = `${sourceName}_${index + 1}`;
+    const layer = addVectorLayerToMap(map, features, layerName, { fitMap: false });
+    const source = layer?.getSource?.();
+
+    if (source && typeof source.getExtent === 'function') {
+      extents.push(source.getExtent());
+    }
+  }
+
+  if (extents.length > 0) {
+    const combinedExtent = extents.reduce((acc, extent) => {
+      extend(acc, extent);
+      return acc;
+    }, createEmpty());
+
+    map.getView().fit(combinedExtent, {
+      padding: [50, 50, 50, 50],
+      duration: 1000,
+      maxZoom: 18
+    });
+  }
+}
+
+function addVectorLayerToMap(map, features, sourceName, options = {}) {
+  const { fitMap = true } = options;
   const vectorSource = new VectorSource({
     features: features
   });
@@ -1272,13 +1431,15 @@ function addVectorLayerToMap(map, features, sourceName) {
 
   map.addLayer(vectorLayer);
 
-  if (features.length > 0) {
+  if (fitMap && features.length > 0) {
     map.getView().fit(vectorSource.getExtent(), {
       padding: [50, 50, 50, 50],
       duration: 1000,
       maxZoom: 18
     });
   }
+
+  return vectorLayer;
 }
 
 // Wir definieren den Style einmal außerhalb, damit er nicht bei jedem 

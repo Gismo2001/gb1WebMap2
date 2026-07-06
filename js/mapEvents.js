@@ -1016,7 +1016,7 @@ let zaehlerKML = 1;
 let zaehlerGML = 1;
 let fileInput;
 
-import GML from 'ol/format/GML';
+import GML3 from 'ol/format/GML3';
 import { initSqlJsWasm, loadGpkg } from 'ol-load-geopackage';
 
 

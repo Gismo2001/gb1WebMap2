@@ -23,7 +23,7 @@ function showSwitcherInfo(message) {
     toastElement.className = 'toast show';
     window.setTimeout(() => {
       toastElement.className = toastElement.className.replace('toast show', 'toast');
-    }, 2500);
+    }, 7500);
     return;
   }
   console.log('[Switcher] ' + message);
@@ -474,6 +474,7 @@ function handleMapFreeClickMenu(koordinaten, contextMenu) {
         navigator.clipboard.writeText(textToCopy)
           .then(() => console.log("Kopiert:", textToCopy))
           .catch(() => alert(`Koordinaten: ${textToCopy}`));
+        showSwitcherInfo(`Koordinaten: ${textToCopy}`);
       }
     };
   });

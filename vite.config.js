@@ -29,6 +29,13 @@ export default defineConfig({
         changeOrigin: true,
         secure: true,
         rewrite: (path) => path.replace(/^\/dom/, ''),
+      },
+
+      '/wfs-proxy': {
+        target: 'https://www.inspire.niedersachsen.de/doorman/noauth',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/wfs-proxy/, ''),
       }
     },
   },

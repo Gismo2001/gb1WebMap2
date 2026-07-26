@@ -302,6 +302,10 @@ function getStyleForArtFSK(feature) {
         fillColor = 'rgba(255, 220, 220, .6)';
         strokeColor = 'black';
         break;
+     case 'ö':
+        fillColor = 'rgba(255, 220, 220, .6)';
+        strokeColor = 'black';
+        break;
     case 'l':
         fillColor = 'rgba(255, 190, 150, .6)';
         strokeColor = 'black';

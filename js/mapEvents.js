@@ -1517,7 +1517,7 @@ function buildPopupContent(featureOrProps, layerName) {
     const ueberschrift = daten.Eig1 ? `Eigentümer: ${daten.Eig1}` : 'Keine Bezeichnung';
     const info =
       `Gemark: ${daten.Gemark}<br>` +
-      `ID: ${daten.fsk}<br>` +
+      `ID: ${daten.FSK}<br>` +
       `Flur: ${daten.Flur}<br>` +
       `Flurstk.: ${daten.Zaehler}/${daten.Nenner}`;
     html += `<strong>${ueberschrift}</strong><br>`;

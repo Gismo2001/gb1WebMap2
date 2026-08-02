@@ -843,3 +843,104 @@ div.ol-ctx-menu-container li.ol-ctx-menu-submenu > .ol-ctx-menu-container {
     background-color: rgba(40, 167, 69, 0.1); /* Zartes Grün für gültige Ziele */
     border: 1px dashed #28a745;
 }
+
+
+/* Standardmäßig für kleine Bildschirme reserviert */
+@media (max-width: 768px) {
+  /* Der Öffnen-Button */
+  .mobile-only-btn {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 1000;
+    background: white;
+    border: none;
+    padding: 10px 14px;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    font-size: 20px;
+    cursor: pointer;
+  }
+
+  /* Die Seitenleiste (versteckt links außerhalb des Bildschirms) */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: -85%; /* Nimmt 85% der Bildschirmbreite ein */
+    width: 85%;
+    max-width: 360px;
+    height: 100%;
+    background-color: #ffffff;
+    z-index: 1001;
+    transition: left 0.3s ease-in-out; /* Sanftes Hineingleiten */
+    box-shadow: 2px 0 10px rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Zustand, wenn die Seitenleiste geöffnet ist */
+  .sidebar.open {
+    left: 0;
+  }
+
+  /* Abdunklung des Hintergrunds */
+  .sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 1000;
+    display: none;
+  }
+
+  .sidebar-overlay.active {
+    display: block;
+  }
+
+  .sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: #f5f5f5;
+    border-bottom: 1px solid #ddd;
+  }
+
+  .sidebar-content {
+    padding: 15px;
+    overflow-y: auto; /* Scrollbar für lange Listen */
+    flex: 1;
+  }
+}
+
+/* Auf großen Bildschirmen (Desktop) den Mobile-Button ausblenden */
+@media (min-width: 769px) {
+  .mobile-only-btn {
+    display: none;
+  }
+}
+/* Styling für das Control-Container-Element */
+.mobile-sidebar-control {
+  position: absolute;
+  top: 50%;
+  left: 0.5em; /* Gleicher Abstand zum Rand wie bei Standard-Controls */
+  transform: translateY(-50%);
+  z-index: 1000;
+}
+
+/* Anpassung für mobile Endgeräte */
+@media (max-width: 768px) {
+  /* Wenn die Seitenleiste geöffnet ist, blenden wir den Öffnen-Button aus */
+  .sidebar.open ~ .mobile-sidebar-control {
+    display: none;
+  }
+}
+
+/* Auf Desktop-Bildschirmen das mobile Control komplett verbergen */
+@media (min-width: 769px) {
+  .mobile-sidebar-control {
+    display: none;
+  }
+}

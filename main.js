@@ -116,6 +116,34 @@ map.updateSize();
 
 
 
+const menuBtn = document.getElementById('mobile-menu-btn');
+const closeBtn = document.getElementById('close-sidebar-btn');
+const sidebar = document.getElementById('mobile-sidebar');
+const overlay = document.getElementById('sidebar-overlay');
+
+function openSidebar() {
+  sidebar.classList.add('open');
+  overlay.classList.add('active');
+}
+
+function closeSidebar() {
+  sidebar.classList.remove('open');
+  overlay.classList.remove('active');
+  
+  if (window.map) {
+    setTimeout(() => window.map.updateSize(), 300);
+  }
+}
+
+// Event-Listener fürs Öffnen & Schließen
+menuBtn.addEventListener('click', (e) => {
+  e.stopPropagation(); // Verhindert, dass die Karte im Hintergrund Klicks registriert
+  openSidebar();
+});
+
+closeBtn.addEventListener('click', closeSidebar);
+overlay.addEventListener('click', closeSidebar);
+
 // permalinkButton aktivieren, 
 initPermalinkButton(map);
 

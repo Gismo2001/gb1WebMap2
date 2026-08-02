@@ -82,7 +82,7 @@ export const selectStyle = new Style({
 });
 
 // --- Control definieren ---
-const permalinkControl = new Permalink({
+let permalinkControl = new Permalink({
   className: 'ol-permalink permalinkControl', // Eigene Klasse hinzufügen
   refreshDelay:100,
   visible: true,

@@ -115,7 +115,6 @@ initializeWMS(map);
 map.updateSize();
 
 
-
 const menuBtn = document.getElementById('mobile-menu-btn');
 const closeBtn = document.getElementById('close-sidebar-btn');
 const sidebar = document.getElementById('mobile-sidebar');
@@ -131,7 +130,7 @@ function closeSidebar() {
   overlay.classList.remove('active');
   
   if (window.map) {
-    setTimeout(() => window.map.updateSize(), 300);
+    setTimeout(() => map.updateSize(), 300);
   }
 }
 
@@ -144,6 +143,86 @@ menuBtn.addEventListener('click', (e) => {
 closeBtn.addEventListener('click', closeSidebar);
 overlay.addEventListener('click', closeSidebar);
 
+/**
+ * Generiert das Accordion-Menü für die Legenden der Gruppe "Bauw.(P)"
+ * @param {ol.Map} map - Deine OpenLayers-Karteninstanz
+ */
+export function initBauwerkeLegendAccordion(map) {
+  const container = document.getElementById('bauwerke-accordion');
+  if (!container) return;
+
+  container.innerHTML = ''; // Vorher leeren
+
+  // 1. Rekursive Suche nach der Gruppe "Bauw.(P)"
+  function findGroup(layerGroup, title) {
+    const layers = layerGroup.getLayers().getArray();
+    for (let layer of layers) {
+      if (layer.get('title') === title && typeof layer.getLayers === 'function') {
+        return layer;
+      }
+      if (typeof layer.getLayers === 'function') {
+        const found = findGroup(layer, title);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+
+  const bauwerkeGruppe = findGroup(map.getLayerGroup(), 'Bauw.(P)');
+
+  if (!bauwerkeGruppe) {
+    container.innerHTML = '<p style="font-size:12px; color:#888;">Gruppe "Bauw.(P)" nicht gefunden.</p>';
+    return;
+  }
+
+  // 2. Alle Sub-Layer der Gruppe durchgehen
+  const subLayers = bauwerkeGruppe.getLayers().getArray();
+
+  subLayers.forEach((layer) => {
+    const layerTitle = layer.get('title') || 'Unbenannter Layer';
+    
+    // WMS-Legenden-URL abfragen (nutzt deine bestehende Funktion)
+    const source = typeof layer.getSource === 'function' ? layer.getSource() : null;
+    const legendUrl = typeof getWmsLegendUrl === 'function' ? getWmsLegendUrl(source) : null;
+
+    // Accordion-Item-DOM-Elemente bauen
+    const itemEl = document.createElement('div');
+    itemEl.className = 'accordion-item';
+
+    const headerBtn = document.createElement('button');
+    headerBtn.className = 'accordion-header';
+    headerBtn.innerHTML = `
+      <span>${layerTitle}</span>
+      <span class="accordion-icon">▼</span>
+    `;
+
+    const contentEl = document.createElement('div');
+    contentEl.className = 'accordion-content';
+
+    // Inhalt befüllen: WMS-Bild oder Platzhalter für Vektordaten
+    if (legendUrl) {
+      contentEl.innerHTML = `<img src="${legendUrl}" alt="Legende ${layerTitle}" />`;
+    } else {
+      contentEl.innerHTML = `<span style="font-size:12px; color:#666;">Keine Bildlegende verfügbar.</span>`;
+    }
+
+    // Toggle-Event beim Klick auf den Header
+    headerBtn.addEventListener('click', () => {
+      const isActive = itemEl.classList.contains('active');
+      
+      // Optional: Alle anderen Items einklappen (Accordion-Effekt)
+      container.querySelectorAll('.accordion-item').forEach(el => el.classList.remove('active'));
+
+      if (!isActive) {
+        itemEl.classList.add('active');
+      }
+    });
+
+    itemEl.appendChild(headerBtn);
+    itemEl.appendChild(contentEl);
+    container.appendChild(itemEl);
+  });
+}
 // permalinkButton aktivieren, 
 initPermalinkButton(map);
 

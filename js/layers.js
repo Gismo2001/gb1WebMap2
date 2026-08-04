@@ -960,12 +960,12 @@ export function createLayerStructure() {
         ESRISat,
         googleHyb,
         googleSat,
-        dop20ni,
         baseDEGr,
         baseDECr,
         osmGrey,
+        topoPlus,
+        dop20ni,
         osmColor,
-        topoPlus
       ]
     }),
      // 🏗️ Luftbilder

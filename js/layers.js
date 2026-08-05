@@ -53,7 +53,7 @@ return new TileLayer({
     params: {"LAYERS": "ni_dop20", "TILED": "true", "VERSION": "1.3.0"},
   })),
   opacity: 1,
-  visible: true,
+  visible: false,
 });
 }
 export function creategnAtlasNI2020Layer() {
@@ -81,7 +81,7 @@ return new TileLayer({
     params: {"LAYERS": "ni_dop20h_rgb_2017", "TILED": "true", "VERSION": "1.3.0"},
   })),
   opacity: 1,
-  visible: false,
+  visible: true,
 });
 }
 export function creategnAtlasNI2014Layer() {

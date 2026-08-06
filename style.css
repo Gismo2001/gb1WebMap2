@@ -833,6 +833,27 @@ div.ol-ctx-menu-container li.ol-ctx-menu-submenu > .ol-ctx-menu-container {
     transition: background-color 0.2s ease;
 }
 
+.ol-layerswitcher li label.has-filter {
+    background-color: rgba(245, 158, 11, 0.16) !important;
+    color: #92400e;
+    font-weight: 600;
+    border-left: 3px solid #f59e0b;
+    padding-left: 5px;
+    border-radius: 4px;
+}
+
+.ol-layerswitcher li label .filter-badge {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 5px;
+    border-radius: 999px;
+    background: #f59e0b;
+    color: #fff;
+    font-size: 10px;
+    line-height: 1.2;
+    vertical-align: middle;
+}
+
 /* Ändert den Mauszeiger zu einer helfenden Hand, wenn man eine Gruppe auswählen soll */
 .ol-layerswitcher.targeting-group-mode label {
     cursor: cell !important; /* Oder 'alias', 'copy' */

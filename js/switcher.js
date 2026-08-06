@@ -29,6 +29,30 @@ function showSwitcherInfo(message) {
   console.log('[Switcher] ' + message);
 }
 
+function updateLayerFilterVisualState(layer, labelElement) {
+  if (!labelElement || !layer) return;
+
+  const currentFilter = layer.get('currentFilter');
+  const hasActiveFilter = Boolean(currentFilter && String(currentFilter).trim());
+
+  labelElement.classList.toggle('has-filter', hasActiveFilter);
+
+  let badge = labelElement.querySelector('.filter-badge');
+  if (hasActiveFilter) {
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'filter-badge';
+      badge.textContent = 'F';
+      badge.setAttribute('aria-label', 'Filter aktiv');
+      labelElement.appendChild(badge);
+    }
+    labelElement.setAttribute('title', `Filter aktiv: ${currentFilter}`);
+  } else {
+    if (badge) badge.remove();
+    labelElement.removeAttribute('title');
+  }
+}
+
 function cancelTargetingMode(layerSwitcher) {
   window.layerToMove = null;
   const switcherEl = layerSwitcher && layerSwitcher.element;
@@ -47,6 +71,7 @@ export function switcherToggle(layerSwitcher) {
     listItem._olLayer = clickedLayer;
     labelElement.style.touchAction = 'manipulation';
     labelElement.style.userSelect = 'none';
+    updateLayerFilterVisualState(clickedLayer, labelElement);
 
     let touchTimer = null;
     let isLongPress = false;
@@ -220,7 +245,8 @@ export function initMapContextMenu(map, layerSwitcher) {
 function handleLayerSwitcherMenu(evt, targetElement, map, layerSwitcher, contextMenu) {
  const listItem = targetElement.closest('li');
   const clickedLayer = listItem ? listItem._olLayer : null;
-  const labelText = listItem ? listItem.querySelector('label')?.innerText.trim() : 'Unbekannt';
+  const labelElement = listItem ? listItem.querySelector('label') : null;
+  const labelText = labelElement ? labelElement.innerText.trim() : 'Unbekannt';
   const currentTitle = clickedLayer ? clickedLayer.get('title') || labelText : labelText;
   if (!clickedLayer) return;
   // 🎯 SCHRITT 0: Das Kontextmenü komplett leeren, damit keine alten Einträge überleben!
@@ -368,6 +394,7 @@ function handleLayerSwitcherMenu(evt, targetElement, map, layerSwitcher, context
           if (filterWert === null) return; // Abbrechen gedrückt
           const bereinigterFilter = filterWert.trim().toLowerCase();
           clickedLayer.set('currentFilter', bereinigterFilter);
+          updateLayerFilterVisualState(clickedLayer, labelElement);
   
           // 3. Den Style-Funktion des Layers anpassen
           // Wir merken uns den originalen Style, falls noch nicht geschehen
@@ -379,6 +406,9 @@ function handleLayerSwitcherMenu(evt, targetElement, map, layerSwitcher, context
           // Wenn der Filter leer ist, setzen wir den Original-Style zurück
           if (bereinigterFilter === '') {
             clickedLayer.setStyle(originalStyle);
+            clickedLayer.unset('currentFilter');
+            updateLayerFilterVisualState(clickedLayer, labelElement);
+            map.changed();
             return;
           }
 
@@ -421,6 +451,7 @@ function handleLayerSwitcherMenu(evt, targetElement, map, layerSwitcher, context
       
       // 2. Die Filter-Merker vom Layer löschen
       clickedLayer.unset('currentFilter');
+      updateLayerFilterVisualState(clickedLayer, labelElement);
       
       // Optional: Karte einmal explizit updaten, falls die Features nicht sofort erscheinen
       map.changed();

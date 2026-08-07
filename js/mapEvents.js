@@ -34,6 +34,7 @@ import { istZeichenleisteAktiv } from './myDraw.js';
 
 import GeoJSON from 'ol/format/GeoJSON';
 import KML from 'ol/format/KML';
+import GPX from 'ol/format/GPX';
 import shp from 'shpjs';
 import VectorSource from 'ol/source/Vector';
 import VectorLayer from 'ol/layer/Vector';
@@ -1145,7 +1146,7 @@ export function fileToggleInput(map) {
     fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.multiple = true;
-    fileInput.accept = '.geojson,.json,.kml,.gml,.zip,.tif,.tiff,.gpkg';
+    fileInput.accept = '.geojson,.json,.kml,.gml,.zip,.tif,.tiff,.gpkg,.gpx';
     fileInput.style.display = 'none';
     document.body.appendChild(fileInput);
   }
@@ -1316,6 +1317,11 @@ export function fileToggleInput(map) {
             sourceName = `GML:${zaehlerGML}_${fileName}`;
             zaehlerGML++;
             
+          } else if (fileEnd === 'gpx') {
+            // GPX-Dateien verarbeiten
+            format = new GPX();
+            sourceName = `GPX:${zaehlerGeojson}_${fileName}`;
+            zaehlerGeojson++;
           } else {
             if (fileName === 'exp_allgm_fsk') {
               format = new GeoJSON();

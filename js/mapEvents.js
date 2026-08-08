@@ -1669,7 +1669,7 @@ function showDataInModal(daten, layerName) {
     }
   };
 
-  let tableHtml = `<table style="width: 100%; border-collapse: collapse; text-align: left;">`;
+  let tableHtml = `<table class="modal-table" style="width: 100%; border-collapse: collapse; text-align: left;">`;
   
   tableHtml += `<thead><tr><th style="width: 30%;">Attribut</th> <th style="width: 70%;">Wert</th></tr></thead><tbody>`;
   

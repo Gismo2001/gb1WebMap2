@@ -678,7 +678,7 @@ export function createGewWmsFgLayer() {
   title: 'gewWms',
   name: 'Gewaesser',
   permalink:'Gewaesser',
-  visible: false,
+  visible: true,
   opacity: 1,
 });
 }
@@ -698,7 +698,7 @@ export function createWmsWrrlFgLayer() {
   title: 'Fließgew.',
   name: 'Fließgew',
   permalink:'Fließgew',
-  visible: true,
+  visible: false,
   opacity: 1,
 });
 

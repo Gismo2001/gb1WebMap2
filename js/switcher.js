@@ -1,6 +1,7 @@
 
 import ContextMenu from 'ol-contextmenu';
 import { transform } from 'ol/proj';
+import { Style, Text, Fill, Stroke } from 'ol/style';
 import { createNewGroupFromLayers } from './layers.js';
 import { convertToDMS } from './utils.js';
 import { isDrawingActive } from './myDraw.js';
@@ -57,6 +58,73 @@ function cancelTargetingMode(layerSwitcher) {
   window.layerToMove = null;
   const switcherEl = layerSwitcher && layerSwitcher.element;
   if (switcherEl) switcherEl.classList.remove('targeting-group-mode');
+}
+
+const BAUW_P_LAYER_NAMES = ['son_pun', 'ein', 'que', 'due', 'bru_nlwkn', 'bru_andere', 'weh', 'sle'];
+const BAUW_P_LABEL_MIN_ZOOM = 12;
+
+function isBauwPVectorLayer(layer) {
+  if (!layer) return false;
+  const name = (layer.get('name') || '').toString().toLowerCase();
+  return BAUW_P_LAYER_NAMES.includes(name);
+}
+
+function getBauwPFeatureAtPixel(map, evt) {
+  const originalEvent = evt.originalEvent || evt;
+  const pixel = map.getEventPixel(originalEvent);
+  let result = null;
+
+  map.forEachFeatureAtPixel(pixel, (feature, layer) => {
+    if (layer && isBauwPVectorLayer(layer)) {
+      result = { feature, layer };
+      return true;
+    }
+    return false;
+  });
+
+  return result;
+}
+
+function applyBauwPNameLabelStyle(map, layer) {
+  if (!layer) return;
+
+  const originalStyle = layer.get('bauwPNameOriginalStyle') || layer.getStyle();
+  if (!layer.get('bauwPNameOriginalStyle')) {
+    layer.set('bauwPNameOriginalStyle', originalStyle);
+  }
+
+  layer.set('bauwPNameLabelEnabled', true);
+  layer.setStyle((feature, resolution) => {
+    const baseStyle = typeof originalStyle === 'function' ? originalStyle(feature, resolution) : originalStyle;
+    const zoom = map.getView().getZoom();
+    const nameText = feature.get('Name') || feature.get('name');
+
+    if (!nameText || zoom < BAUW_P_LABEL_MIN_ZOOM) {
+      return baseStyle;
+    }
+
+    const labelStyle = new Style({
+      text: new Text({
+        text: String(nameText),
+        font: 'bold 12px Arial, sans-serif',
+        fill: new Fill({ color: '#000' }),
+        stroke: new Stroke({ color: '#fff', width: 3 }),
+        overflow: true,
+        offsetY: -16
+      })
+    });
+
+    if (!baseStyle) return labelStyle;
+    return Array.isArray(baseStyle) ? baseStyle.concat(labelStyle) : [baseStyle, labelStyle];
+  });
+}
+
+function clearBauwPNameLabelStyle(layer) {
+  const originalStyle = layer.get('bauwPNameOriginalStyle');
+  if (!originalStyle) return;
+
+  layer.setStyle(originalStyle);
+  layer.set('bauwPNameLabelEnabled', false);
 }
 
 export function switcherToggle(layerSwitcher) {
@@ -342,9 +410,28 @@ function handleLayerSwitcherMenu(evt, targetElement, map, layerSwitcher, context
     const istImSplit = swipeControl && 
                    typeof swipeControl.getLayers === 'function' && 
                    swipeControl.getLayers().includes(clickedLayer);
+    const isBauwPLayer = isBauwPVectorLayer(clickedLayer);
+    const isBauwPLabelActive = clickedLayer.get('bauwPNameLabelEnabled');
+    const bauwPContextActions = isBauwPLayer ? [
+      {
+        text: isBauwPLabelActive ? 'Beschriftung aus' : 'Beschriftung an',
+        icon: '/data/label.svg',
+        callback: () => {
+          if (isBauwPLabelActive) {
+            clearBauwPNameLabelStyle(clickedLayer);
+            showSwitcherInfo(`Beschriftung "Name" abgeschaltet für Layer "${clickedLayer.get('title') || clickedLayer.get('name')}".`);
+          } else {
+            applyBauwPNameLabelStyle(map, clickedLayer);
+            showSwitcherInfo(`Beschriftung "Name" aktiviert (ab Zoom ${BAUW_P_LABEL_MIN_ZOOM}).`);
+          }
+        }
+      },
+      '-'
+    ] : [];
     contextMenu.extend([
       renameAction,
       '-',
+      ...bauwPContextActions,
       // Legende anzeigen (nur bei WMS-Layern)
       ...(isWms ? 
         [{
@@ -468,8 +555,11 @@ function handleLayerSwitcherMenu(evt, targetElement, map, layerSwitcher, context
           }
         }
       },
-      { text: 'Transparenz: 50%', icon: '/data/transparenz.svg', callback: () => clickedLayer.setOpacity(0.5) },
-      { text: 'Voll sichtbar (100%)', icon: '/data/untransparenz.svg', callback: () => clickedLayer.setOpacity(1.0) }
+      {
+        text: 'Transparenz: 50%',
+        icon: '/data/transparenz.svg',
+        callback: () => clickedLayer.setOpacity(0.5)
+      }
     ]);
   }
 }

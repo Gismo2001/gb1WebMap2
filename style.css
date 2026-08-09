@@ -10,8 +10,13 @@
 
 html, body {
   margin: 0;
-  height: 100dvh;
+  
   padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden; /* Die Karte/App verwaltet ihr eigenes Scrollen */
+  
+  
 }
 
 #map {
@@ -900,6 +905,7 @@ div.ol-ctx-menu-container li.ol-ctx-menu-submenu > .ol-ctx-menu-container {
     box-shadow: 2px 0 10px rgba(0,0,0,0.2);
     display: flex;
     flex-direction: column;
+    
   }
 
   /* Zustand, wenn die Seitenleiste geöffnet ist */

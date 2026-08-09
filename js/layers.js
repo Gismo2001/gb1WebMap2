@@ -627,7 +627,7 @@ export function createExpBwSonLinLayer() {
     name: 'son_lin', 
     permalink:'son_lin', 
     style: getStyleForArtSonLin,
-    visible: true 
+    visible: false 
   });
 }
 export function createExpGewInfoLayer() {

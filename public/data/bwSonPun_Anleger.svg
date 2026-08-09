@@ -1,15 +1,62 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<!-- Creator: CorelDRAW -->
-<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="20px" height="20px" version="1.1" shape-rendering="geometricPrecision" text-rendering="geometricPrecision" image-rendering="optimizeQuality" fill-rule="evenodd" clip-rule="evenodd"
-viewBox="0 0 1.75 1.74"
- xmlns:xlink="http://www.w3.org/1999/xlink"
- xmlns:xodm="http://www.corel.com/coreldraw/odm/2003">
- <g id="Ebene_x0020_1">
-  <metadata id="CorelCorpID_0Corel-Layer"/>
-  <polygon fill="white" fill-opacity="0.501961" points="0.01,0 1.75,0 1.75,1.74 0.01,1.74 "/>
-  <rect fill="none" stroke="black" stroke-width="0.07" stroke-miterlimit="22.9256" x="0.04" y="0.23" width="1.65" height="1.25"/>
-  <line fill="none" stroke="black" stroke-width="0.07" stroke-miterlimit="22.9256" x1="0.04" y1="0.23" x2="1.69" y2= "1.48" />
-  <line fill="none" stroke="black" stroke-width="0.07" stroke-miterlimit="22.9256" x1="0.04" y1="1.48" x2="1.69" y2= "0.23" />
- </g>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools -->
+
+<svg
+   fill="#000000"
+   width="20"
+   height="20"
+   viewBox="0 0 0.6 0.6"
+   version="1.1"
+   id="svg1"
+   sodipodi:docname="bwSonPun_Anleger.svg"
+   inkscape:version="1.3.2 (091e20e, 2023-11-25, custom)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <title
+     id="title1">bru</title>
+  <defs
+     id="defs1" />
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="14.914651"
+     inkscape:cx="10.124273"
+     inkscape:cy="2.9836434"
+     inkscape:window-width="1600"
+     inkscape:window-height="953"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg1" />
+  <metadata
+     id="metadata1">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:title>bru</dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <rect
+     style="fill:#0000ff;fill-rule:evenodd;stroke-width:0.03;opacity:0.5"
+     id="rect1"
+     width="0.57929611"
+     height="0.58533055"
+     x="0.010057224"
+     y="0.0060343384" />
+  <path
+     d="M 0.53102345,0.30731866 H 0.31454971 V 0.28036192 H 0.43481286 A 0.02405263,0.02695684 0 0 0 0.45886535,0.25340518 0.15920435,0.17842734 0 0 0 0.31454957,0.0667021 v -0.001996 a 0.02405265,0.02695686 0 0 0 -0.0481053,0 V 0.3073177 H 0.04997079 a 0.02405263,0.02695684 0 0 0 -0.02405282,0.0269569 0.21673825,0.2429081 0 0 0 0.21647368,0.24261158 h 0.0962105 A 0.21673825,0.2429081 0 0 0 0.55507585,0.33427458 0.02405263,0.02695684 0 0 0 0.53102335,0.30731784 Z M 0.31454971,0.12153208 a 0.10879004,0.1219258 0 0 1 0.0945028,0.10491605 h -0.0945028 z m 0.0240525,0.40144128 H 0.24239182 A 0.16863299,0.18899442 0 0 1 0.07573115,0.36123233 h 0.4295318 A 0.16863299,0.18899442 0 0 1 0.33860219,0.52297336 Z"
+     id="path1"
+     style="opacity:1;stroke-width:0.999999" />
 </svg>

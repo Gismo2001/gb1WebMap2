@@ -53,7 +53,7 @@ export function handleCRSChange() {
 }
  function askForCoordinates() {
     const selectElement = document.getElementById('coord_select');
-    const systemLabel = selectElement.value.toUpperCase();
+    const systemLabel = (selectElement && selectElement.value ? selectElement.value : '').trim().toUpperCase();
 
     const coordInputDiv = document.getElementById('coordinate_selection');
     if (coordInputDiv) {
@@ -71,6 +71,7 @@ export function handleCRSChange() {
     
     
     const parts = input.split(';').map(str => str.trim());
+    console.log('askForCoordinates:', { systemLabel, parts });
     if (parts.length !== 2) {
         alert('❌ Format "x;y" (mit Semikolon) erforderlich.');
         return;
@@ -82,7 +83,11 @@ export function handleCRSChange() {
     let x, y, transformed;
 
     try {
-        if (systemLabel === 'EPSG:4326') {
+        // Versuche EPSG-Code aus dem Label zu extrahieren (z.B. "EPSG:4326 (BREITE,LÄNGE!)")
+        const epsgMatch = systemLabel.match(/EPSG[:]?\s*(\d{3,5})/i);
+        const epsgCode = epsgMatch ? epsgMatch[1] : null;
+
+        if (epsgCode === '4326') {
             // Breitengrad (Y) zuerst eingegeben? In OpenLayers ist fromLonLat([lon, lat])
             y = cleanNum(parts[0]); // Lat
             x = cleanNum(parts[1]); // Lon
@@ -90,8 +95,11 @@ export function handleCRSChange() {
         } else {
             x = cleanNum(parts[0]);
             y = cleanNum(parts[1]);
+            // Wenn wir einen EPSG-Code extrahiert haben, verwenden wir ihn sauber formatiert
+            const srcCrs = epsgCode ? `EPSG:${epsgCode}` : systemLabel;
+            console.log('askForCoordinates: transforming from', srcCrs, 'coords', [x, y]);
             // Universelle Transformation nach WebMercator
-            transformed = transform([x, y], systemLabel, 'EPSG:3857');
+            transformed = transform([x, y], srcCrs, 'EPSG:3857');
         }
 
         if (isNaN(transformed[0]) || isNaN(transformed[1])) throw new Error();

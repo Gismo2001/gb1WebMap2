@@ -26,7 +26,7 @@ import { Style, Circle, Fill, Stroke } from 'ol/style';
 
 import Layer from 'ol/layer/Layer.js';
 
-import { getStyleForArtFSK } from './utils.js';
+import { getStyleForArtFSK, arrowStyle, geojsonStyle } from './utils.js';
 
 import {  createEmpty,  extend,  containsCoordinate} from 'ol/extent.js';
 import { istZeichenleisteAktiv } from './myDraw.js';
@@ -1153,8 +1153,11 @@ export function fileToggleInput(map) {
 
   fileInput.onchange = (event) => {
     const files = event.target.files;
-    console.log(files)
-    if (!files.length) return;
+    
+    if (!files?.length) {
+      fileInput.value = '';
+      return;
+    }
 
     Array.from(files).forEach(file => {
       const fileName = file.name.replace(/\.[^/.]+$/, "");
@@ -1210,6 +1213,9 @@ export function fileToggleInput(map) {
             tiffLayer.getSource().refresh();
             
             if (typeof layerSwitcher !== 'undefined') layerSwitcher.render();
+        }).catch((err) => {
+          console.error("Fehler beim Laden des GeoTIFFs:", err);
+          alert(`Fehler beim Laden von ${file.name}`);
         });
       }  
       
@@ -1242,7 +1248,7 @@ export function fileToggleInput(map) {
       // =========================================================================
       // 🎯 KORRIGIERT: GEOPACKAGE-LOGIK MIT DIREKTER FILE-ÜBERGABE
       // =========================================================================
-      if (fileEnd === 'gpkg') {
+      else if (fileEnd === 'gpkg') {
         // HIER DIE ÄNDERUNG: Kein FileReader nötig, wir starten direkt async!
         (async () => {
           try {
@@ -1252,7 +1258,7 @@ export function fileToggleInput(map) {
 
             // Falls die Projektion nicht geladen werden konnte, Fallback auf Standard
             if (!zielProjektion) {
-              console.error("Projektion EPSG:25832 konnte nicht ermittelt werden.");
+              console.error("Projektion EPSG:3857 konnte nicht ermittelt werden.");
               return;
             }
 
@@ -1326,7 +1332,12 @@ export function fileToggleInput(map) {
             if (fileName === 'exp_allgm_fsk') {
               format = new GeoJSON();
               sourceName = `fsk`;
+            } else if (fileName === 'fot') {
+              format = new GeoJSON();
+              sourceName = "fot";
+              console.log("Fotodatei erkannt");
             } else  {
+            
               format = new GeoJSON();
               sourceName = `GeoJson:${zaehlerGeojson}_${fileName}`;
               zaehlerGeojson++;
@@ -1422,17 +1433,18 @@ function addVectorLayerToMap(map, features, sourceName, options = {}) {
     features: features
   });
 
-  // 👉 Style abhängig vom sourceName auswählen
-  const style = sourceName === 'fsk'
-    ? getStyleForArtFSK
-    : uploadStyle;
+  const layerStyle = sourceName === 'fot'
+    ? arrowStyle
+    : sourceName === 'fsk'
+      ? getStyleForArtFSK
+      : geojsonStyle;
 
   const vectorLayer = new VectorLayer({
     source: vectorSource,
     title: sourceName,
     name: sourceName,
     isUserGeoJSON: true, // 💡 DAS FLAG: Hieran erkennen wir den Layer gleich!
-    style: style
+    style: layerStyle
   });
 
   map.addLayer(vectorLayer);
@@ -1447,31 +1459,6 @@ function addVectorLayerToMap(map, features, sourceName, options = {}) {
 
   return vectorLayer;
 }
-
-// Wir definieren den Style einmal außerhalb, damit er nicht bei jedem 
-// Feature-Upload neu erstellt werden muss (besser für die Performance).
-const uploadStyle = new Style({
-  // Style für Polygone und die Füllung von Kreisen
-  fill: new Fill({
-    color: 'rgba(46, 32, 243, 0.2)', // Rot mit 20% Deckkraft
-  }),
-  // Style für Linien und die Umrandung von Kreisen/Polygonen
-  stroke: new Stroke({
-    color: '#ff0000', // Kräftiges Rot
-    width: 2,
-  }),
-  // Spezieller Style für Punkt-Geometrien
-  image: new Circle({
-    radius: 6,
-    fill: new Fill({
-      color: 'rgba(255, 0, 0, 0.5)', // Punkt-Füllung etwas kräftiger (50%)
-    }),
-    stroke: new Stroke({
-      color: '#ff0000',
-      width: 2,
-    }),
-  }),
-});
 
 function shouldShowPopup(layer) {
 

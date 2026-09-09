@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="20"
+   height="15"
+   style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
+   version="1.1"
+   viewBox="0 0 1.74 1.305"
+   xml:space="preserve"
+   id="svg1"
+   sodipodi:docname="arrow.svg"
+   inkscape:version="1.3.2 (091e20e, 2023-11-25, custom)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:dc="http://purl.org/dc/elements/1.1/"><sodipodi:namedview
+   id="namedview1"
+   pagecolor="#ffffff"
+   bordercolor="#000000"
+   borderopacity="0.25"
+   inkscape:showpageshadow="2"
+   inkscape:pageopacity="0.0"
+   inkscape:pagecheckerboard="0"
+   inkscape:deskcolor="#d1d1d1"
+   inkscape:zoom="27.3"
+   inkscape:cx="9.981685"
+   inkscape:cy="10.018315"
+   inkscape:window-width="1600"
+   inkscape:window-height="953"
+   inkscape:window-x="-8"
+   inkscape:window-y="-8"
+   inkscape:window-maximized="1"
+   inkscape:current-layer="svg1" /><title
+   id="title1">dritter Ordnung</title>
+ <defs
+   id="defs1">
+  <style
+   type="text/css"
+   id="style1">
+   <![CDATA[
+    .str0 {stroke:#000CB5;stroke-width:0.17;stroke-miterlimit:22.9256}
+    .fil0 {fill:none}
+    .fil1 {fill:#000CB5}
+   ]]>
+  </style>
+ </defs>
+ <g
+   id="g1"
+   transform="matrix(1,0,0,1.0848872,0,-4.5602739e-4)"
+   style="stroke-width:0.960081"><g
+     id="a"
+     transform="matrix(1.1753937,0,0,1.5,-7.1581476e-4,-0.69599999)"
+     style="stroke-width:0.723054">
+  
+  
+  <rect
+   class="fil1"
+   x="0.00060899998"
+   y="0.78299999"
+   width="1.479"
+   height="0.17399999"
+   id="rect1"
+   inkscape:label="rect1"
+   style="stroke-width:0.723054;fill:#ff0000" />
+  <script
+   type="text/javascript"
+   src="https://code.jquery.com/jquery-1.11.0.min.js"
+   id="script1" />
+ </g><g
+     id="a-4"
+     style="clip-rule:evenodd;fill-rule:evenodd;stroke-width:1.02642;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
+     transform="matrix(0.49065142,0.31721984,-0.7840066,1.276214,1.6236397,-0.99409658)">
+  
+  
+  <rect
+   class="fil1"
+   x="0.00060899998"
+   y="0.78299999"
+   width="1.479"
+   height="0.17399999"
+   id="rect1-6"
+   inkscape:label="rect1"
+   style="fill:#ff0000;stroke-width:1.02642" />
+  <script
+   type="text/javascript"
+   src="https://code.jquery.com/jquery-1.11.0.min.js"
+   id="script1-6" />
+ </g><g
+     id="a-4-5"
+     style="clip-rule:evenodd;fill-rule:evenodd;stroke-width:1.02642;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
+     transform="matrix(0.49454349,-0.3111173,0.82656755,1.2490695,0.21336144,0.0130922)">
+  
+  
+  <rect
+   class="fil1"
+   x="0.00060899998"
+   y="0.78299999"
+   width="1.479"
+   height="0.17399999"
+   id="rect1-6-2"
+   inkscape:label="rect1"
+   style="fill:#ff0000;stroke-width:1.02642" />
+  <script
+   type="text/javascript"
+   src="https://code.jquery.com/jquery-1.11.0.min.js"
+   id="script1-6-9" />
+ </g></g>
+<metadata
+   id="metadata1"><rdf:RDF><cc:Work
+       rdf:about=""><dc:title>dritter Ordnung</dc:title></cc:Work></rdf:RDF></metadata><circle
+   style="opacity:1;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0"
+   id="path1"
+   cx="0.90107143"
+   cy="0.68357146"
+   r="0.24857144" /></svg>

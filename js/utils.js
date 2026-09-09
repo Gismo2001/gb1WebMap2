@@ -326,6 +326,52 @@ function getStyleForArtFSK(feature) {
     });
 };
 
+function arrowStyle(feature) {
+    const directionValue = feature.get('Direction') || 0;
+
+    return new Style({
+        image: new Icon({
+            src: './data/arrow.svg',
+            anchor: [0.5, 0.5],
+            rotateWithView: true,
+            rotation: ((Math.PI / 180) * directionValue) - (Math.PI / 2)
+        })
+    });
+}
+
+function geojsonStyle(feature) {
+    const geometryType = feature.getGeometry().getType();
+
+    if (geometryType === 'Point' || geometryType === 'MultiPoint') {
+        return new Style({
+            image: new CircleStyle({
+                radius: 7,
+                fill: new Fill({ color: 'red' }),
+                stroke: new Stroke({ color: 'black', width: 2 })
+            })
+        });
+    }
+
+    if (geometryType === 'LineString' || geometryType === 'MultiLineString') {
+        return new Style({
+            stroke: new Stroke({
+                color: 'red',
+                width: 4
+            })
+        });
+    }
+
+    if (geometryType === 'Polygon' || geometryType === 'MultiPolygon') {
+        return new Style({
+            fill: new Fill({ color: 'red' }),
+            stroke: new Stroke({ color: 'black', width: 3 }),
+            opacity: 0.5
+        });
+    }
+
+    return new Style();
+}
+
 // Style für Kilomtrierung
 const Km10scalStyle = new Style({
     stroke: new Stroke({
@@ -421,6 +467,8 @@ export {
     Km100scalStyle,
     Km500scalStyle,
     getStyleForArtFSK,
+    arrowStyle,
+    geojsonStyle,
     getLayerByName,
 };
 

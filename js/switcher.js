@@ -60,13 +60,50 @@ function cancelTargetingMode(layerSwitcher) {
   if (switcherEl) switcherEl.classList.remove('targeting-group-mode');
 }
 
-const BAUW_P_LAYER_NAMES = ['son_pun', 'ein', 'que', 'due', 'bru_nlwkn', 'bru_andere', 'weh', 'sle'];
+const BAUW_P_LAYER_NAMES = ['son_pun', 'ein', 'que', 'due', 'bru_nlwkn', 'bru_andere', 'weh', 'sle', 'fsk'];
 const BAUW_P_LABEL_MIN_ZOOM = 12;
 
 function isBauwPVectorLayer(layer) {
   if (!layer) return false;
   const name = (layer.get('name') || '').toString().toLowerCase();
   return BAUW_P_LAYER_NAMES.includes(name);
+}
+
+function getPropertyValue(feature, candidateNames) {
+  for (const propertyName of candidateNames) {
+    const value = feature.get(propertyName);
+    if (value !== undefined && value !== null && String(value).trim() !== '') {
+      return value;
+    }
+  }
+  return null;
+}
+
+function getBauwPFeatureLabelText(feature) {
+  const nameText = getPropertyValue(feature, ['Name', 'name', 'NAME']);
+  if (nameText !== null) {
+    return String(nameText).trim();
+  }
+
+  const flur = getPropertyValue(feature, ['Flur', 'flur', 'FLUR']);
+  const zahler = getPropertyValue(feature, ['Zaehler', 'zaehler', 'Zahler', 'zahler', 'ZAHLER']);
+  const nenner = getPropertyValue(feature, ['Nenner', 'nenner', 'NENNER']);
+
+  if (flur !== null || zahler !== null || nenner !== null) {
+    const flurText = flur !== null ? String(flur).trim() : '';
+    const zahlerText = zahler !== null ? String(zahler).trim() : '';
+    const nennerText = nenner !== null ? String(nenner).trim() : '';
+
+    if (!flurText && !zahlerText && !nennerText) return '';
+
+    const formattedZahler = zahlerText ? `${zahlerText}` : '';
+    const formattedNenner = nennerText ? `${nennerText}` : '';
+    const separator = formattedZahler && formattedNenner ? '/' : '';
+
+    return `${flurText} ${formattedZahler}${separator}${formattedNenner}`.trim();
+  }
+
+  return '';
 }
 
 function getBauwPFeatureAtPixel(map, evt) {
@@ -97,7 +134,7 @@ function applyBauwPNameLabelStyle(map, layer) {
   layer.setStyle((feature, resolution) => {
     const baseStyle = typeof originalStyle === 'function' ? originalStyle(feature, resolution) : originalStyle;
     const zoom = map.getView().getZoom();
-    const nameText = feature.get('Name') || feature.get('name');
+    const nameText = getBauwPFeatureLabelText(feature);
 
     if (!nameText || zoom < BAUW_P_LABEL_MIN_ZOOM) {
       return baseStyle;
@@ -417,12 +454,13 @@ function handleLayerSwitcherMenu(evt, targetElement, map, layerSwitcher, context
         text: isBauwPLabelActive ? 'Beschriftung aus' : 'Beschriftung an',
         icon: '/data/label.svg',
         callback: () => {
+          const layerName = clickedLayer.get('title') || clickedLayer.get('name') || 'Unbekannter Layer';
           if (isBauwPLabelActive) {
             clearBauwPNameLabelStyle(clickedLayer);
-            showSwitcherInfo(`Beschriftung "Name" abgeschaltet für Layer "${clickedLayer.get('title') || clickedLayer.get('name')}".`);
+            showSwitcherInfo(`Beschriftung für Layer: "${layerName}" deaktiviert.`);
           } else {
             applyBauwPNameLabelStyle(map, clickedLayer);
-            showSwitcherInfo(`Beschriftung "Name" aktiviert (ab Zoom ${BAUW_P_LABEL_MIN_ZOOM}).`);
+            showSwitcherInfo(`Beschriftung für Layer: "${layerName}" aktiviert (ab Zoom ${BAUW_P_LABEL_MIN_ZOOM}).`);
           }
         }
       },

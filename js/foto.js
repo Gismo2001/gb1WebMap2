@@ -93,6 +93,7 @@ export function initPhotoCapture(map) {
       encodedTitle[index * 2] = code & 0xff;
       encodedTitle[index * 2 + 1] = code >> 8;
     }
+    console.log('Encoded title:', Array.from(encodedTitle));
     return Array.from(encodedTitle);
   }
 
@@ -132,6 +133,88 @@ export function initPhotoCapture(map) {
     return new File([imageBlob], file.name, { type: 'image/jpeg', lastModified: file.lastModified });
   }
 
+  function createXmpPacket(title) {
+    const escapedTitle = document.createElement('div');
+    escapedTitle.textContent = title;
+    return `<?xpacket begin="﻿" id="W5M0MpCehiHzreSzNTczkc9d"?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="gb1WebMap2">
+  <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+    <rdf:Description xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xmp="http://ns.adobe.com/xap/1.0/">
+      <dc:title><rdf:Alt><rdf:li xml:lang="x-default">${escapedTitle.innerHTML}</rdf:li></rdf:Alt></dc:title>
+      <xmp:Title>${escapedTitle.innerHTML}</xmp:Title>
+    </rdf:Description>
+  </rdf:RDF>
+</x:xmpmeta>
+<?xpacket end="w"?>`;
+  }
+
+  function updateXmpTitle(xmpXml, title) {
+    const xmlDocument = new DOMParser().parseFromString(xmpXml, 'application/xml');
+    if (xmlDocument.querySelector('parsererror')) return null;
+
+    const dcNamespace = 'http://purl.org/dc/elements/1.1/';
+    const xmpNamespace = 'http://ns.adobe.com/xap/1.0/';
+    const rdfNamespace = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#';
+    const dcTitles = xmlDocument.getElementsByTagNameNS(dcNamespace, 'title');
+    const xmpTitles = xmlDocument.getElementsByTagNameNS(xmpNamespace, 'Title');
+
+    Array.from(dcTitles).forEach((dcTitle) => {
+      const defaultTitle = Array.from(dcTitle.getElementsByTagNameNS(rdfNamespace, 'li'))
+        .find((item) => item.getAttribute('xml:lang') === 'x-default');
+      (defaultTitle || dcTitle).textContent = title;
+    });
+    Array.from(xmpTitles).forEach((xmpTitle) => { xmpTitle.textContent = title; });
+
+    if (!dcTitles.length || !xmpTitles.length) return null;
+    return new XMLSerializer().serializeToString(xmlDocument);
+  }
+
+  async function addXmpTitle(file, title) {
+    if ((file.type !== 'image/jpeg' && file.type !== 'image/jpg') || !title) return file;
+
+    const imageBytes = new Uint8Array(await file.arrayBuffer());
+    const xmpSignature = new TextEncoder().encode('http://ns.adobe.com/xap/1.0/\0');
+    let offset = 2;
+    let xmpSegmentStart = -1;
+    let xmpSegmentEnd = -1;
+    while (offset + 4 <= imageBytes.length && imageBytes[offset] === 0xff) {
+      const marker = imageBytes[offset + 1];
+      if (marker === 0xda || marker === 0xd9) break;
+      const segmentLength = (imageBytes[offset + 2] << 8) | imageBytes[offset + 3];
+      const segmentEnd = offset + 2 + segmentLength;
+      if (marker === 0xe1 && segmentEnd <= imageBytes.length) {
+        const segmentData = imageBytes.subarray(offset + 4, segmentEnd);
+        if (segmentData.length >= xmpSignature.length
+          && xmpSignature.every((byte, index) => segmentData[index] === byte)) {
+          xmpSegmentStart = offset;
+          xmpSegmentEnd = segmentEnd;
+          break;
+        }
+      }
+      offset = segmentEnd;
+    }
+
+    const xmpXml = xmpSegmentStart >= 0
+      ? new TextDecoder().decode(imageBytes.subarray(xmpSegmentStart + 4 + xmpSignature.length, xmpSegmentEnd))
+      : createXmpPacket(title);
+    const updatedXml = xmpSegmentStart >= 0 ? updateXmpTitle(xmpXml, title) : xmpXml;
+    const replacementXml = updatedXml || createXmpPacket(title);
+    const replacementData = new Uint8Array(xmpSignature.length + new TextEncoder().encode(replacementXml).length);
+    replacementData.set(xmpSignature);
+    replacementData.set(new TextEncoder().encode(replacementXml), xmpSignature.length);
+    const replacementSegment = new Uint8Array(4 + replacementData.length);
+    replacementSegment.set([0xff, 0xe1, (replacementData.length + 2) >> 8, (replacementData.length + 2) & 0xff]);
+    replacementSegment.set(replacementData, 4);
+
+    const insertAt = xmpSegmentStart >= 0 ? xmpSegmentStart : 2;
+    const removeLength = xmpSegmentStart >= 0 ? xmpSegmentEnd - xmpSegmentStart : 0;
+    const result = new Uint8Array(imageBytes.length - removeLength + replacementSegment.length);
+    result.set(imageBytes.subarray(0, insertAt));
+    result.set(replacementSegment, insertAt);
+    result.set(imageBytes.subarray(insertAt + removeLength), insertAt + replacementSegment.length);
+    return new File([result], file.name, { type: 'image/jpeg', lastModified: file.lastModified });
+  }
+
   function createIptcDataset(record, dataset, value) {
     const valueBytes = new TextEncoder().encode(value);
     const datasetBytes = new Uint8Array(5 + valueBytes.length);
@@ -140,10 +223,10 @@ export function initPhotoCapture(map) {
     return datasetBytes;
   }
 
-  function createIptcResource(title, description) {
+  function createIptcResource(title, captionAbstract) {
     const datasets = [createIptcDataset(1, 90, '\u001b%G')];
     if (title) datasets.push(createIptcDataset(2, 5, title));
-    if (description) datasets.push(createIptcDataset(2, 120, description));
+    if (captionAbstract) datasets.push(createIptcDataset(2, 120, captionAbstract));
 
     const iptcDataLength = datasets.reduce((total, dataset) => total + dataset.length, 0);
     const iptcData = new Uint8Array(iptcDataLength);
@@ -164,12 +247,12 @@ export function initPhotoCapture(map) {
     return resource;
   }
 
-  async function addIptcMetadata(file, title, description) {
+  async function addIptcMetadata(file, title, captionAbstract) {
     if (file.type !== 'image/jpeg' && file.type !== 'image/jpg') return file;
-    if (!title && !description) return file;
+    if (!title && !captionAbstract) return file;
 
     const imageBytes = new Uint8Array(await file.arrayBuffer());
-    const resource = createIptcResource(title, description);
+    const resource = createIptcResource(title, captionAbstract);
     const photoshopHeader = new TextEncoder().encode('Photoshop 3.0\0');
     const app13Payload = new Uint8Array(photoshopHeader.length + resource.length);
     app13Payload.set(photoshopHeader);
@@ -254,8 +337,9 @@ export function initPhotoCapture(map) {
         pendingPhoto.title,
         capturedAt
       );
+      const photoWithXmp = await addXmpTitle(photoWithExif, pendingPhoto.title);
       const photoWithMetadata = await addIptcMetadata(
-        photoWithExif,
+        photoWithXmp,
         pendingPhoto.title,
         pendingPhoto.description
       );

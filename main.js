@@ -129,6 +129,7 @@ const sidebar = document.getElementById('mobile-sidebar');
 const overlay = document.getElementById('sidebar-overlay');
 const takePhotoBtn = document.getElementById('take-photo-btn');
 const cameraInput = document.getElementById('camera-input');
+const photoTitle = document.getElementById('photo-title');
 const photoDescription = document.getElementById('photo-description');
 const photoStorageStatus = document.getElementById('photo-storage-status');
 const cancelPhotoLocationBtn = document.getElementById('cancel-photo-location-btn');
@@ -203,11 +204,25 @@ function fileToDataUrl(file) {
   });
 }
 
-async function addGpsExif(file, latitude, longitude, direction) {
+function encodeExifTitle(title) {
+  const encodedTitle = new Uint8Array((title.length + 1) * 2);
+  for (let index = 0; index < title.length; index += 1) {
+    const code = title.charCodeAt(index);
+    encodedTitle[index * 2] = code & 0xff;
+    encodedTitle[index * 2 + 1] = code >> 8;
+  }
+  return Array.from(encodedTitle);
+}
+
+async function addGpsExif(file, latitude, longitude, direction, title) {
   if (file.type !== 'image/jpeg' && file.type !== 'image/jpg') return file;
 
   const dataUrl = await fileToDataUrl(file);
   const exifData = {
+    '0th': {
+      [piexif.ImageIFD.ImageDescription]: title,
+      [piexif.ImageIFD.XPTitle]: encodeExifTitle(title)
+    },
     GPS: {
       [piexif.GPSIFD.GPSVersionID]: [2, 3, 0, 0],
       [piexif.GPSIFD.GPSLatitudeRef]: latitude >= 0 ? 'N' : 'S',
@@ -224,6 +239,63 @@ async function addGpsExif(file, latitude, longitude, direction) {
   return new File([imageBlob], file.name, { type: 'image/jpeg', lastModified: file.lastModified });
 }
 
+function createIptcDataset(record, dataset, value) {
+  const valueBytes = new TextEncoder().encode(value);
+  const datasetBytes = new Uint8Array(5 + valueBytes.length);
+  datasetBytes.set([0x1c, record, dataset, valueBytes.length >> 8, valueBytes.length & 0xff]);
+  datasetBytes.set(valueBytes, 5);
+  return datasetBytes;
+}
+
+function createIptcResource(title, description) {
+  const datasets = [
+    // IPTC record 1:90 declares UTF-8 for the following text values.
+    createIptcDataset(1, 90, '\u001b%G')
+  ];
+  if (title) datasets.push(createIptcDataset(2, 5, title));
+  if (description) datasets.push(createIptcDataset(2, 120, description));
+
+  const iptcDataLength = datasets.reduce((total, dataset) => total + dataset.length, 0);
+  const iptcData = new Uint8Array(iptcDataLength);
+  let offset = 0;
+  datasets.forEach((dataset) => {
+    iptcData.set(dataset, offset);
+    offset += dataset.length;
+  });
+
+  const resourceName = new Uint8Array([0]);
+  const paddedNameLength = 2;
+  const paddedDataLength = iptcData.length + (iptcData.length % 2);
+  const resource = new Uint8Array(4 + 2 + paddedNameLength + 4 + paddedDataLength);
+  resource.set([0x38, 0x42, 0x49, 0x4d, 0x04, 0x04], 0); // 8BIM + IPTC-NAA
+  resource.set(resourceName, 6);
+  new DataView(resource.buffer).setUint32(8, iptcData.length);
+  resource.set(iptcData, 12);
+  return resource;
+}
+
+async function addIptcMetadata(file, title, description) {
+  if (file.type !== 'image/jpeg' && file.type !== 'image/jpg') return file;
+  if (!title && !description) return file;
+
+  const imageBytes = new Uint8Array(await file.arrayBuffer());
+  const resource = createIptcResource(title, description);
+  const photoshopHeader = new TextEncoder().encode('Photoshop 3.0\0');
+  const app13Payload = new Uint8Array(photoshopHeader.length + resource.length);
+  app13Payload.set(photoshopHeader);
+  app13Payload.set(resource, photoshopHeader.length);
+
+  const app13Segment = new Uint8Array(4 + app13Payload.length);
+  app13Segment.set([0xff, 0xed, (app13Payload.length + 2) >> 8, (app13Payload.length + 2) & 0xff]);
+  app13Segment.set(app13Payload, 4);
+
+  const result = new Uint8Array(imageBytes.length + app13Segment.length);
+  result.set(imageBytes.subarray(0, 2));
+  result.set(app13Segment, 2);
+  result.set(imageBytes.subarray(2), 2 + app13Segment.length);
+  return new File([result], file.name, { type: 'image/jpeg', lastModified: file.lastModified });
+}
+
 async function finishPhotoLocationSelection() {
   const directionPoint = map.getCoordinateFromPixel(photoLocation.directionPixel);
   const dx = directionPoint[0] - photoLocation.mapCoordinate[0];
@@ -235,17 +307,25 @@ async function finishPhotoLocationSelection() {
       pendingPhoto.file,
       photoLocation.latitude,
       photoLocation.longitude,
-      direction
+      direction,
+      pendingPhoto.title
     );
-    downloadPhoto(photoWithExif);
-    await savePhoto(photoWithExif, pendingPhoto.description, {
+    const photoWithMetadata = await addIptcMetadata(
+      photoWithExif,
+      pendingPhoto.title,
+      pendingPhoto.description
+    );
+    downloadPhoto(photoWithMetadata);
+    await savePhoto(photoWithMetadata, pendingPhoto.description, {
+      title: pendingPhoto.title,
       latitude: photoLocation.latitude,
       longitude: photoLocation.longitude,
       direction
     });
-    photoStorageStatus.textContent = photoWithExif.type === 'image/jpeg'
-      ? 'Foto mit GPS-EXIF-Daten gespeichert.'
-      : 'Foto gespeichert. GPS-Daten liegen separat vor; EXIF wird nur für JPEG geschrieben.';
+    photoStorageStatus.textContent = photoWithMetadata.type === 'image/jpeg'
+      ? 'Foto mit EXIF- und IPTC-Daten gespeichert.'
+      : 'Foto gespeichert. Metadaten liegen separat vor; EXIF/IPTC werden nur für JPEG geschrieben.';
+    photoTitle.value = '';
     photoDescription.value = '';
   } catch (error) {
     console.error('Foto konnte nicht gespeichert werden:', error);
@@ -381,7 +461,11 @@ cameraInput.addEventListener('change', async () => {
   const [file] = cameraInput.files;
   if (!file) return;
 
-  pendingPhoto = { file, description: photoDescription.value.trim() };
+  pendingPhoto = {
+    file,
+    title: photoTitle.value.trim(),
+    description: photoDescription.value.trim()
+  };
   photoLocation = null;
   photoSelectionStage = 'location';
   setPhotoLocationMode(true);

@@ -242,6 +242,8 @@ export function initMapClick(map) {
   initMapContextMenu(map, layerSwitcher);
 
   map.on('singleclick', function (evt) {
+    if (window.photoLocationSelectionActive) return;
+
     // 1. Wenn im Zeichenmodus: abbrechen
     if (isDrawingActive()) {
         //console.log("Karten-Klick ignoriert, da Zeichenmodus aktiv ist.");

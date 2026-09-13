@@ -50,6 +50,14 @@ import { createProfilLayer } from './js/layers.js';
 import { profileMode } from './js/chart.js';
 
 import { fromArrayBuffer } from 'geotiff';
+import { toLonLat } from 'ol/proj';
+import Feature from 'ol/Feature';
+import VectorSource from 'ol/source/Vector';
+import VectorLayer from 'ol/layer/Vector';
+import Point from 'ol/geom/Point';
+import LineString from 'ol/geom/LineString';
+import { Circle as CircleStyle, Fill, Stroke, Style } from 'ol/style';
+import piexif from 'piexifjs';
 
 import { loadedDgms, loadedDoms } from './js/dgmdom.js';  
 
@@ -119,6 +127,213 @@ const menuBtn = document.getElementById('mobile-menu-btn');
 const closeBtn = document.getElementById('close-sidebar-btn');
 const sidebar = document.getElementById('mobile-sidebar');
 const overlay = document.getElementById('sidebar-overlay');
+const takePhotoBtn = document.getElementById('take-photo-btn');
+const cameraInput = document.getElementById('camera-input');
+const photoDescription = document.getElementById('photo-description');
+const photoStorageStatus = document.getElementById('photo-storage-status');
+const cancelPhotoLocationBtn = document.getElementById('cancel-photo-location-btn');
+const photoLocationActions = document.getElementById('photo-location-actions');
+const choosePhotoLocationBtn = document.getElementById('choose-photo-location-btn');
+const choosePhotoDirectionBtn = document.getElementById('choose-photo-direction-btn');
+const savePhotoBtn = document.getElementById('save-photo-btn');
+let pendingPhoto = null;
+let photoLocation = null;
+let photoSelectionStage = 'location';
+
+const photoSelectionSource = new VectorSource();
+const photoSelectionLayer = new VectorLayer({
+  source: photoSelectionSource,
+  zIndex: 1001,
+  style: (feature) => feature.get('selectionType') === 'direction'
+    ? new Style({
+      stroke: new Stroke({ color: '#d62f2f', width: 4 }),
+      image: new CircleStyle({ radius: 7, fill: new Fill({ color: '#d62f2f' }), stroke: new Stroke({ color: '#fff', width: 2 }) })
+    })
+    : new Style({
+      image: new CircleStyle({ radius: 9, fill: new Fill({ color: '#1976d2' }), stroke: new Stroke({ color: '#fff', width: 3 }) })
+    })
+});
+map.addLayer(photoSelectionLayer);
+
+function setPhotoLocationMode(active) {
+  window.photoLocationSelectionActive = active;
+  cancelPhotoLocationBtn.hidden = !active;
+  photoLocationActions.hidden = !active;
+  if (!active) photoSelectionSource.clear();
+}
+
+function updatePhotoSelectionDisplay() {
+  photoSelectionSource.clear();
+  if (!photoLocation) return;
+
+  photoSelectionSource.addFeature(new Feature({
+    geometry: new Point(photoLocation.mapCoordinate),
+    selectionType: 'location'
+  }));
+
+  if (photoLocation.directionCoordinate) {
+    photoSelectionSource.addFeature(new Feature({
+      geometry: new LineString([photoLocation.mapCoordinate, photoLocation.directionCoordinate]),
+      selectionType: 'direction'
+    }));
+  }
+}
+
+function updatePhotoSelectionControls() {
+  savePhotoBtn.disabled = !photoLocation?.directionCoordinate;
+  choosePhotoLocationBtn.classList.toggle('active', photoSelectionStage === 'location');
+  choosePhotoDirectionBtn.classList.toggle('active', photoSelectionStage === 'direction');
+}
+
+function decimalToExifCoordinate(value) {
+  const absoluteValue = Math.abs(value);
+  const degrees = Math.floor(absoluteValue);
+  const minutesValue = (absoluteValue - degrees) * 60;
+  const minutes = Math.floor(minutesValue);
+  const seconds = Math.round((minutesValue - minutes) * 60000);
+  return [[degrees, 1], [minutes, 1], [seconds, 1000]];
+}
+
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
+async function addGpsExif(file, latitude, longitude, direction) {
+  if (file.type !== 'image/jpeg' && file.type !== 'image/jpg') return file;
+
+  const dataUrl = await fileToDataUrl(file);
+  const exifData = {
+    GPS: {
+      [piexif.GPSIFD.GPSVersionID]: [2, 3, 0, 0],
+      [piexif.GPSIFD.GPSLatitudeRef]: latitude >= 0 ? 'N' : 'S',
+      [piexif.GPSIFD.GPSLatitude]: decimalToExifCoordinate(latitude),
+      [piexif.GPSIFD.GPSLongitudeRef]: longitude >= 0 ? 'E' : 'W',
+      [piexif.GPSIFD.GPSLongitude]: decimalToExifCoordinate(longitude),
+      [piexif.GPSIFD.GPSImgDirectionRef]: 'T',
+      [piexif.GPSIFD.GPSImgDirection]: [Math.round(direction * 100), 100]
+    }
+  };
+  const exifBytes = piexif.dump(exifData);
+  const imageWithExif = piexif.insert(exifBytes, dataUrl);
+  const imageBlob = await fetch(imageWithExif).then((response) => response.blob());
+  return new File([imageBlob], file.name, { type: 'image/jpeg', lastModified: file.lastModified });
+}
+
+async function finishPhotoLocationSelection() {
+  const directionPoint = map.getCoordinateFromPixel(photoLocation.directionPixel);
+  const dx = directionPoint[0] - photoLocation.mapCoordinate[0];
+  const dy = directionPoint[1] - photoLocation.mapCoordinate[1];
+  const direction = (Math.atan2(dx, dy) * 180 / Math.PI + 360) % 360;
+
+  try {
+    const photoWithExif = await addGpsExif(
+      pendingPhoto.file,
+      photoLocation.latitude,
+      photoLocation.longitude,
+      direction
+    );
+    downloadPhoto(photoWithExif);
+    await savePhoto(photoWithExif, pendingPhoto.description, {
+      latitude: photoLocation.latitude,
+      longitude: photoLocation.longitude,
+      direction
+    });
+    photoStorageStatus.textContent = photoWithExif.type === 'image/jpeg'
+      ? 'Foto mit GPS-EXIF-Daten gespeichert.'
+      : 'Foto gespeichert. GPS-Daten liegen separat vor; EXIF wird nur für JPEG geschrieben.';
+    photoDescription.value = '';
+  } catch (error) {
+    console.error('Foto konnte nicht gespeichert werden:', error);
+    photoStorageStatus.textContent = 'Foto konnte nicht gespeichert werden.';
+  } finally {
+    pendingPhoto = null;
+    photoLocation = null;
+    setPhotoLocationMode(false);
+  }
+}
+
+map.on('singleclick', (event) => {
+  if (!pendingPhoto) return;
+
+  if (photoSelectionStage === 'location') {
+    const [longitude, latitude] = toLonLat(event.coordinate);
+    photoLocation = {
+      mapCoordinate: event.coordinate,
+      latitude,
+      longitude,
+      directionPixel: null,
+      directionCoordinate: null
+    };
+    photoSelectionStage = 'direction';
+    updatePhotoSelectionDisplay();
+    updatePhotoSelectionControls();
+    photoStorageStatus.textContent = 'Standort markiert. Klicke jetzt in die Blickrichtung.';
+    return;
+  }
+
+  if (photoLocation) {
+    photoLocation.directionPixel = event.pixel;
+    photoLocation.directionCoordinate = event.coordinate;
+    updatePhotoSelectionDisplay();
+    updatePhotoSelectionControls();
+    photoStorageStatus.textContent = 'Standort und Richtung markiert. Du kannst die Auswahl ändern oder das Foto speichern.';
+  }
+});
+
+function openPhotoDatabase() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('gb1WebMap2', 1);
+
+    request.onupgradeneeded = () => {
+      request.result.createObjectStore('photos', { keyPath: 'id', autoIncrement: true });
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function savePhoto(file, description, location = {}) {
+  const database = await openPhotoDatabase();
+
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction('photos', 'readwrite');
+    transaction.objectStore('photos').add({
+      photo: file,
+      description,
+      originalName: file.name,
+      type: file.type,
+      capturedAt: new Date().toISOString(),
+      ...location
+    });
+    transaction.oncomplete = () => {
+      database.close();
+      resolve();
+    };
+    transaction.onerror = () => {
+      database.close();
+      reject(transaction.error);
+    };
+  });
+}
+
+function downloadPhoto(file) {
+  const timestamp = new Date().toISOString().replace(/[.:]/g, '-');
+  const extension = file.type.split('/')[1] || 'jpg';
+  const downloadUrl = URL.createObjectURL(file);
+  const downloadLink = document.createElement('a');
+
+  downloadLink.href = downloadUrl;
+  downloadLink.download = `foto-${timestamp}.${extension}`;
+  document.body.appendChild(downloadLink);
+  downloadLink.click();
+  downloadLink.remove();
+  URL.revokeObjectURL(downloadUrl);
+}
 
 function openSidebar() {
   sidebar.classList.add('open');
@@ -142,6 +357,38 @@ menuBtn.addEventListener('click', (e) => {
 
 closeBtn.addEventListener('click', closeSidebar);
 overlay.addEventListener('click', closeSidebar);
+takePhotoBtn.addEventListener('click', () => cameraInput.click());
+choosePhotoLocationBtn.addEventListener('click', () => {
+  photoSelectionStage = 'location';
+  photoStorageStatus.textContent = 'Klicke auf der Karte auf den Aufnahmestandort.';
+  updatePhotoSelectionControls();
+});
+choosePhotoDirectionBtn.addEventListener('click', () => {
+  if (!photoLocation) return;
+  photoSelectionStage = 'direction';
+  photoStorageStatus.textContent = 'Klicke auf der Karte in die Blickrichtung.';
+  updatePhotoSelectionControls();
+});
+savePhotoBtn.addEventListener('click', finishPhotoLocationSelection);
+cancelPhotoLocationBtn.addEventListener('click', () => {
+  pendingPhoto = null;
+  photoLocation = null;
+  setPhotoLocationMode(false);
+  updatePhotoSelectionControls();
+  photoStorageStatus.textContent = 'Standortauswahl abgebrochen.';
+});
+cameraInput.addEventListener('change', async () => {
+  const [file] = cameraInput.files;
+  if (!file) return;
+
+  pendingPhoto = { file, description: photoDescription.value.trim() };
+  photoLocation = null;
+  photoSelectionStage = 'location';
+  setPhotoLocationMode(true);
+  updatePhotoSelectionControls();
+  photoStorageStatus.textContent = 'Klicke auf die Karte, um den Aufnahmestandort zu wählen.';
+  cameraInput.value = '';
+});
 
 /**
  * Generiert das Accordion-Menü für die Legenden der Gruppe "Bauw.(P)"

@@ -107,15 +107,32 @@
 <!-- Die mobile Seitenleiste & Overlay (bleiben wie gehabt) -->
 <div id="mobile-sidebar" class="sidebar">
   <div class="sidebar-header">
-    <h3>Layer & Werkzeuge</h3>
+    <h3>Werkzeuge</h3>
     <button id="close-sidebar-btn" class="close-btn">&times;</button>
   </div>
   <div class="sidebar-content">
+    <ul class="sidebar-actions">
+      <li>
+        <label for="photo-description">Beschreibung (optional)</label>
+        <input id="photo-description" type="text" maxlength="200" placeholder="Beschreibung zum Foto">
+        <button id="take-photo-btn" type="button">📷 Foto aufnehmen</button>
+      </li>
+    </ul>
+    <p id="photo-storage-status" class="photo-storage-status" role="status"></p>
+    <div id="photo-location-actions" class="photo-location-actions" hidden>
+      <button id="choose-photo-location-btn" type="button">Standort neu wählen</button>
+      <button id="choose-photo-direction-btn" type="button">Richtung neu wählen</button>
+      <button id="save-photo-btn" type="button" disabled>Foto speichern</button>
+    </div>
+    <button id="cancel-photo-location-btn" class="cancel-photo-location-btn" type="button" hidden>
+      Auswahl abbrechen
+    </button>
     <div id="sidebar-layer-switcher"></div>
   </div>
 </div>
 
 <div id="sidebar-overlay" class="sidebar-overlay"></div>
+<input type="file" id="camera-input" accept="image/*" capture="environment" hidden>
 <div class="sidebar-section">
   <h4 class="sidebar-section-title">Legenden: Bauwerke</h4>
   <!-- Hier werden die Accordion-Einträge dynamisch hineingeneriert -->

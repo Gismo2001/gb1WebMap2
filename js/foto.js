@@ -26,7 +26,7 @@ export function initPhotoCapture(map) {
   const photoSelectionLayer = new VectorLayer({
     source: photoSelectionSource,
     zIndex: 1001,
-    displayInLayerSwitcher: false,
+    displayInLayerSwitcher: true,
     style: (feature) => feature.get('selectionType') === 'direction'
       ? new Style({
         stroke: new Stroke({ color: '#d62f2f', width: 4 }),
@@ -34,7 +34,9 @@ export function initPhotoCapture(map) {
       })
       : new Style({
         image: new CircleStyle({ radius: 9, fill: new Fill({ color: '#1976d2' }), stroke: new Stroke({ color: '#fff', width: 3 }) })
-      })
+      }),
+    title: 'Foto',
+    name: 'Foto'
   });
   map.addLayer(photoSelectionLayer);
 

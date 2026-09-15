@@ -412,16 +412,20 @@ export function initPhotoCapture(map) {
     });
   }
 
-  function downloadPhoto(file) {
-    const timestamp = new Date().toISOString().replace(/[.:]/g, '-');
+  function getPhotoDownloadName(file) {
     const extension = file.type === 'image/jpeg' || file.type === 'image/jpg'
       ? 'jpg'
       : file.type.split('/')[1] || 'jpg';
+    const timestamp = new Date().toISOString().replace(/[.:]/g, '-');
+    return `foto-${timestamp}.${extension}`;
+  }
+
+  function downloadPhoto(file, fileName = getPhotoDownloadName(file)) {
     const downloadUrl = URL.createObjectURL(file);
     const downloadLink = document.createElement('a');
 
     downloadLink.href = downloadUrl;
-    downloadLink.download = `foto-${timestamp}.${extension}`;
+    downloadLink.download = fileName;
     document.body.appendChild(downloadLink);
     downloadLink.click();
     downloadLink.remove();
@@ -450,8 +454,13 @@ export function initPhotoCapture(map) {
         pendingPhoto.title,
         pendingPhoto.description
       );
-      downloadPhoto(photoWithMetadata);
-      await savePhoto(photoWithMetadata, pendingPhoto.description, {
+      const photoFileName = getPhotoDownloadName(photoWithMetadata);
+      const photoForStorage = new File([photoWithMetadata], photoFileName, {
+        type: photoWithMetadata.type,
+        lastModified: photoWithMetadata.lastModified
+      });
+      downloadPhoto(photoForStorage, photoFileName);
+      await savePhoto(photoForStorage, pendingPhoto.description, {
         title: pendingPhoto.title,
         latitude: photoLocation.latitude,
         longitude: photoLocation.longitude,

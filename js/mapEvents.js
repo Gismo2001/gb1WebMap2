@@ -1706,12 +1706,14 @@ function showDataInModal(daten, layerName) {
         const formalUrl = stringValue.toLowerCase().startsWith('www.') ? `https://${stringValue}` : stringValue;
         displayValue = createDatenLink(formalUrl, "Link öffnen 🌐");
       } 
-      // 💡 NEU: Bedingung für Zahlen (prüft Nummern und Zahlen-Strings)
+      // Koordinaten mit vier, übrige Dezimalwerte mit zwei Nachkommastellen anzeigen.
       else if (!isNaN(stringValue) && !isNaN(parseFloat(stringValue))) {
         const num = parseFloat(stringValue);
-        // Prüfen, ob die Zahl Nachkommastellen besitzt
-        if (num % 1 !== 0) {
-          displayValue = num.toFixed(2); // Auf 2 Nachkommastellen runden
+        const isCoordinate = ['longitude', 'latitude'].includes(key.toLowerCase());
+        if (isCoordinate) {
+          displayValue = num.toFixed(4);
+        } else if (num % 1 !== 0) {
+          displayValue = num.toFixed(2);
         } else {
           displayValue = num; // Ganze Zahl so belassen
         }

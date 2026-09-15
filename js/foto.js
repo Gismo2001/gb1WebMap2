@@ -1,4 +1,4 @@
-import { toLonLat } from 'ol/proj';
+import { toLonLat, transform } from 'ol/proj';
 import Feature from 'ol/Feature';
 import VectorSource from 'ol/source/Vector';
 import VectorLayer from 'ol/layer/Vector';
@@ -13,6 +13,8 @@ export function initPhotoCapture(map) {
   const photoTitle = document.getElementById('photo-title');
   const photoDescription = document.getElementById('photo-description');
   const photoStorageStatus = document.getElementById('photo-storage-status');
+  const exportPhotoGeojsonBtn = document.getElementById('export-photo-geojson-btn');
+  const clearPhotoDatabaseBtn = document.getElementById('clear-photo-database-btn');
   const cancelPhotoLocationBtn = document.getElementById('cancel-photo-location-btn');
   const photoLocationActions = document.getElementById('photo-location-actions');
   const choosePhotoLocationBtn = document.getElementById('choose-photo-location-btn');
@@ -283,6 +285,109 @@ export function initPhotoCapture(map) {
     });
   }
 
+  function getSavedPhotos() {
+    return openPhotoDatabase().then((database) => new Promise((resolve, reject) => {
+      const transaction = database.transaction('photos', 'readonly');
+      const request = transaction.objectStore('photos').getAll();
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+      transaction.oncomplete = () => database.close();
+      transaction.onerror = () => reject(transaction.error);
+    }));
+  }
+
+  function formatGeoJsonDate(value) {
+    const date = new Date(value);
+    const pad = (number) => String(number).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} `
+      + `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+  }
+
+  function downloadPhotoGeoJson(features) {
+    const geoJson = {
+      type: 'FeatureCollection',
+      name: 'Fotostandorte',
+      crs: {
+        type: 'name',
+        properties: { name: 'EPSG:25832' }
+      },
+      features
+    };
+    const blob = new Blob([JSON.stringify(geoJson, null, 2)], { type: 'application/geo+json' });
+    const downloadUrl = URL.createObjectURL(blob);
+    const downloadLink = document.createElement('a');
+    const timestamp = new Date().toISOString().replace(/[.:]/g, '-');
+    downloadLink.href = downloadUrl;
+    downloadLink.download = `fotostandorte-${timestamp}.geojson`;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    downloadLink.remove();
+    URL.revokeObjectURL(downloadUrl);
+  }
+
+  async function exportPhotoGeoJson() {
+    try {
+      const photos = await getSavedPhotos();
+      if (!photos.length) {
+        photoStorageStatus.textContent = 'Keine gespeicherten Fotostandorte vorhanden.';
+        return;
+      }
+
+      const features = photos.map((photo) => {
+        const [rwert, hwert] = transform(
+          [photo.longitude, photo.latitude],
+          'EPSG:4326',
+          'EPSG:25832'
+        );
+        return {
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [rwert, hwert] },
+          properties: {
+            ID: photo.id,
+            Path: '',
+            BName: photo.originalName || '',
+            Direction: photo.direction,
+            Longitude: Number(Number(photo.longitude).toFixed(6)),
+            Latitude: Number(Number(photo.latitude).toFixed(6)),
+            DateTime: formatGeoJsonDate(photo.capturedAt),
+            RWert: Number(rwert.toFixed(2)),
+            HWert: Number(hwert.toFixed(2)),
+            GEW: '',
+            Stat_von: '',
+            GEW_Seite: '',
+            GEW_Ri: ''
+          }
+        };
+      });
+
+      downloadPhotoGeoJson(features);
+      photoStorageStatus.textContent = `${features.length} Fotostandort(e) als GeoJSON exportiert.`;
+    } catch (error) {
+      console.error('Fotostandorte konnten nicht exportiert werden:', error);
+      photoStorageStatus.textContent = 'Fotostandorte konnten nicht exportiert werden.';
+    }
+  }
+
+  async function clearPhotoDatabase() {
+    if (!window.confirm('Alle gespeicherten Fotodaten aus der IndexedDB löschen?')) return;
+
+    try {
+      const database = await openPhotoDatabase();
+      await new Promise((resolve, reject) => {
+        const transaction = database.transaction('photos', 'readwrite');
+        transaction.objectStore('photos').clear();
+        transaction.oncomplete = resolve;
+        transaction.onerror = () => reject(transaction.error);
+        transaction.onabort = () => reject(transaction.error || new Error('Transaktion abgebrochen'));
+      });
+      database.close();
+      photoStorageStatus.textContent = 'Fotodatenbank wurde bereinigt.';
+    } catch (error) {
+      console.error('Fotodatenbank konnte nicht bereinigt werden:', error);
+      photoStorageStatus.textContent = 'Fotodatenbank konnte nicht bereinigt werden.';
+    }
+  }
+
   async function savePhoto(file, description, location = {}) {
     const database = await openPhotoDatabase();
 
@@ -356,8 +461,6 @@ export function initPhotoCapture(map) {
       photoStorageStatus.textContent = photoWithMetadata.type === 'image/jpeg'
         ? 'Foto mit EXIF- und IPTC-Daten gespeichert.'
         : 'Foto gespeichert. Metadaten liegen separat vor; EXIF/IPTC werden nur für JPEG geschrieben.';
-      photoTitle.value = '';
-      photoDescription.value = '';
     } catch (error) {
       console.error('Foto konnte nicht gespeichert werden:', error);
       photoStorageStatus.textContent = 'Foto konnte nicht gespeichert werden.';
@@ -409,6 +512,8 @@ export function initPhotoCapture(map) {
     updatePhotoSelectionControls();
   });
   savePhotoBtn.addEventListener('click', finishPhotoLocationSelection);
+  exportPhotoGeojsonBtn.addEventListener('click', exportPhotoGeoJson);
+  clearPhotoDatabaseBtn.addEventListener('click', clearPhotoDatabase);
   cancelPhotoLocationBtn.addEventListener('click', () => {
     pendingPhoto = null;
     photoLocation = null;

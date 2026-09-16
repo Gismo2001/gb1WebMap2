@@ -874,8 +874,7 @@ div.ol-ctx-menu-container li.ol-ctx-menu-submenu > .ol-ctx-menu-container {
 }
 
 
-/* Standardmäßig für kleine Bildschirme reserviert */
-@media (max-width: 768px) {
+/* Foto-Sidebar und zugehörige Bedienelemente */
   /* Der Öffnen-Button */
   .mobile-only-btn {
     position: absolute;
@@ -1026,9 +1025,7 @@ div.ol-ctx-menu-container li.ol-ctx-menu-submenu > .ol-ctx-menu-container {
     cursor: pointer;
     font-size: 12px;
   }
-}
-
-/* Auf großen Bildschirmen (Desktop) den Mobile-Button ausblenden */
+/* Auf großen Bildschirmen den Menü-Button ebenfalls anzeigen */
 @media (min-width: 769px) {
   .mobile-only-btn {
     display: none;
@@ -1051,10 +1048,10 @@ div.ol-ctx-menu-container li.ol-ctx-menu-submenu > .ol-ctx-menu-container {
   }
 }
 
-/* Auf Desktop-Bildschirmen das mobile Control komplett verbergen */
+/* Das Sidebar-Control ist auf allen Bildschirmgrößen verfügbar */
 @media (min-width: 769px) {
   .mobile-sidebar-control {
-    display: none;
+    display: block;
   }
 }
 

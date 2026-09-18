@@ -90,10 +90,12 @@ export function initPhotoCapture(map) {
 
   function readPhotoMetadata() {
     const kilometerValue = Number.parseInt(photoKilometer.value, 10);
+    const descriptionValue = photoDescription.value.trim().slice(0, 255);
     return {
       kilometer: Number.isInteger(kilometerValue) && kilometerValue >= 0 ? kilometerValue : '',
       gewSeite: normalizeGewSeite(photoGewSeite.value),
-      gewRi: normalizeGewRi(photoGewRi.value)
+      gewRi: normalizeGewRi(photoGewRi.value),
+      bbeschreib1: descriptionValue
     };
   }
 
@@ -450,7 +452,8 @@ export function initPhotoCapture(map) {
             GEW: photo.gew || photo.title || '',
             Stat_von: photo.statVon ?? photo.kilometer ?? '',
             GEW_Seite: photo.gewSeite || '',
-            GEW_Ri: photo.gewRi || ''
+            GEW_Ri: photo.gewRi || '',
+            BBeschreib1: photo.BBeschreib1 || photo.bbBeschreib1 || photo.description || ''
           }
         };
       });
@@ -495,6 +498,7 @@ export function initPhotoCapture(map) {
         type: file.type,
         capturedAt: new Date().toISOString(),
         gew: location.gew || location.title || '',
+        BBeschreib1: location.BBeschreib1 || location.bbBeschreib1 || description || '',
         ...location
       });
       transaction.oncomplete = () => {
@@ -562,6 +566,7 @@ export function initPhotoCapture(map) {
         statVon: pendingPhoto.kilometer,
         gewSeite: pendingPhoto.gewSeite,
         gewRi: pendingPhoto.gewRi,
+        BBeschreib1: pendingPhoto.bbBeschreib1 || pendingPhoto.description || '',
         latitude: photoLocation.latitude,
         longitude: photoLocation.longitude,
         direction,
@@ -638,10 +643,11 @@ export function initPhotoCapture(map) {
     pendingPhoto = {
       file,
       title: photoTitle.value.trim(),
-      description: photoDescription.value.trim(),
+      description: photoDescription.value.trim().slice(0, 255),
       kilometer: metadata.kilometer,
       gewSeite: metadata.gewSeite,
-      gewRi: metadata.gewRi
+      gewRi: metadata.gewRi,
+      bbBeschreib1: metadata.bbeschreib1
     };
     photoLocation = null;
     photoSelectionStage = 'location';

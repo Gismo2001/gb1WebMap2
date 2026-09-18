@@ -11,6 +11,9 @@ export function initPhotoCapture(map) {
   const takePhotoBtn = document.getElementById('take-photo-btn');
   const cameraInput = document.getElementById('camera-input');
   const photoTitle = document.getElementById('photo-title');
+  const photoKilometer = document.getElementById('photo-kilometer');
+  const photoGewSeite = document.getElementById('photo-gew-seite');
+  const photoGewRi = document.getElementById('photo-gew-ri');
   const photoDescription = document.getElementById('photo-description');
   const photoStorageStatus = document.getElementById('photo-storage-status');
   const exportPhotoGeojsonBtn = document.getElementById('export-photo-geojson-btn');
@@ -70,6 +73,28 @@ export function initPhotoCapture(map) {
     savePhotoBtn.disabled = !photoLocation?.directionCoordinate;
     choosePhotoLocationBtn.classList.toggle('active', photoSelectionStage === 'location');
     choosePhotoDirectionBtn.classList.toggle('active', photoSelectionStage === 'direction');
+  }
+
+  function normalizeGewSeite(value) {
+    const normalized = (value || '').trim().toUpperCase();
+    if (normalized === 'R' || normalized === 'L' || normalized === 'M') return normalized;
+    return '';
+  }
+
+  function normalizeGewRi(value) {
+    const normalized = (value || '').trim();
+    if (/^gF$/i.test(normalized)) return 'gF';
+    if (/^iF$/i.test(normalized)) return 'iF';
+    return '';
+  }
+
+  function readPhotoMetadata() {
+    const kilometerValue = Number.parseInt(photoKilometer.value, 10);
+    return {
+      kilometer: Number.isInteger(kilometerValue) && kilometerValue >= 0 ? kilometerValue : '',
+      gewSeite: normalizeGewSeite(photoGewSeite.value),
+      gewRi: normalizeGewRi(photoGewRi.value)
+    };
   }
 
   function decimalToExifCoordinate(value) {
@@ -422,10 +447,10 @@ export function initPhotoCapture(map) {
             DateTime: formatGeoJsonDate(photo.capturedAt),
             RWert: Number(rwert.toFixed(2)),
             HWert: Number(hwert.toFixed(2)),
-            GEW: '',
-            Stat_von: '',
-            GEW_Seite: '',
-            GEW_Ri: ''
+            GEW: photo.gew || photo.title || '',
+            Stat_von: photo.statVon ?? photo.kilometer ?? '',
+            GEW_Seite: photo.gewSeite || '',
+            GEW_Ri: photo.gewRi || ''
           }
         };
       });
@@ -469,6 +494,7 @@ export function initPhotoCapture(map) {
         originalName: file.name,
         type: file.type,
         capturedAt: new Date().toISOString(),
+        gew: location.gew || location.title || '',
         ...location
       });
       transaction.oncomplete = () => {
@@ -532,6 +558,10 @@ export function initPhotoCapture(map) {
       downloadPhoto(photoForStorage, photoFileName);
       await savePhoto(photoForStorage, pendingPhoto.description, {
         title: pendingPhoto.title,
+        gew: pendingPhoto.title,
+        statVon: pendingPhoto.kilometer,
+        gewSeite: pendingPhoto.gewSeite,
+        gewRi: pendingPhoto.gewRi,
         latitude: photoLocation.latitude,
         longitude: photoLocation.longitude,
         direction,
@@ -604,10 +634,14 @@ export function initPhotoCapture(map) {
     const [file] = cameraInput.files;
     if (!file) return;
 
+    const metadata = readPhotoMetadata();
     pendingPhoto = {
       file,
       title: photoTitle.value.trim(),
-      description: photoDescription.value.trim()
+      description: photoDescription.value.trim(),
+      kilometer: metadata.kilometer,
+      gewSeite: metadata.gewSeite,
+      gewRi: metadata.gewRi
     };
     photoLocation = null;
     photoSelectionStage = 'location';

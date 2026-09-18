@@ -89,6 +89,74 @@ export function initPhotoCapture(map) {
       reader.readAsDataURL(file);
     });
   }
+  function exifRationalToNumber(value) {
+    if (Array.isArray(value)) {
+      if (value.length === 2 && typeof value[0] === 'number' && typeof value[1] === 'number') {
+        return value[1] ? value[0] / value[1] : NaN;
+      }
+      return value.map(exifRationalToNumber);
+    }
+    return Number(value);
+  }
+
+  async function readGpsExif(file) {
+    if (file.type !== 'image/jpeg' && file.type !== 'image/jpg') return null;
+
+    try {
+      const exif = piexif.load(await fileToDataUrl(file));
+      const gps = exif.GPS || {};
+      const latitude = exifRationalToNumber(gps[piexif.GPSIFD.GPSLatitude]);
+      const longitude = exifRationalToNumber(gps[piexif.GPSIFD.GPSLongitude]);
+      const latitudeRef = gps[piexif.GPSIFD.GPSLatitudeRef];
+      const longitudeRef = gps[piexif.GPSIFD.GPSLongitudeRef];
+      const hasPosition = Array.isArray(latitude) && Array.isArray(longitude)
+        && latitude.length === 3 && longitude.length === 3;
+      if (!hasPosition) return null;
+
+      const signedLatitude = (latitude[0] + latitude[1] / 60 + latitude[2] / 3600)
+        * (latitudeRef === 'S' ? -1 : 1);
+      const signedLongitude = (longitude[0] + longitude[1] / 60 + longitude[2] / 3600)
+        * (longitudeRef === 'W' ? -1 : 1);
+      if (!Number.isFinite(signedLatitude) || !Number.isFinite(signedLongitude)
+        || Math.abs(signedLatitude) > 90 || Math.abs(signedLongitude) > 180) return null;
+
+      const directionValue = exifRationalToNumber(gps[piexif.GPSIFD.GPSImgDirection]);
+      return {
+        latitude: signedLatitude,
+        longitude: signedLongitude,
+        direction: Number.isFinite(directionValue) ? (directionValue + 360) % 360 : null
+      };
+    } catch (error) {
+      console.warn('GPS-Daten des Fotos konnten nicht gelesen werden:', error);
+      return null;
+    }
+  }
+
+  function createDefaultPhotoLocation(gps) {
+    const mapCoordinate = transform(
+      [gps.longitude, gps.latitude],
+      'EPSG:4326',
+      map.getView().getProjection()
+    );
+    const location = {
+      mapCoordinate,
+      latitude: gps.latitude,
+      longitude: gps.longitude,
+      directionPixel: null,
+      directionCoordinate: null
+    };
+
+    if (gps.direction !== null) {
+      const locationPixel = map.getPixelFromCoordinate(mapCoordinate);
+      const directionPixel = [
+        locationPixel[0] + Math.sin(gps.direction * Math.PI / 180) * 80,
+        locationPixel[1] - Math.cos(gps.direction * Math.PI / 180) * 80
+      ];
+      location.directionPixel = directionPixel;
+      location.directionCoordinate = map.getCoordinateFromPixel(directionPixel);
+    }
+    return location;
+  }
 
   function encodeExifTitle(title) {
     const encodedTitle = new Uint8Array((title.length + 1) * 2);
@@ -346,6 +414,8 @@ export function initPhotoCapture(map) {
             ID: photo.id,
             Path: '',
             BName: photo.originalName || '',
+            BOrdner: '',
+            Altitude: Number(Number(photo.altitude || 0).toFixed(2)),
             Direction: photo.direction,
             Longitude: Number(Number(photo.longitude).toFixed(6)),
             Latitude: Number(Number(photo.latitude).toFixed(6)),
@@ -530,7 +600,7 @@ export function initPhotoCapture(map) {
     updatePhotoSelectionControls();
     photoStorageStatus.textContent = 'Standortauswahl abgebrochen.';
   });
-  cameraInput.addEventListener('change', () => {
+  cameraInput.addEventListener('change', async () => {
     const [file] = cameraInput.files;
     if (!file) return;
 
@@ -541,9 +611,20 @@ export function initPhotoCapture(map) {
     };
     photoLocation = null;
     photoSelectionStage = 'location';
+    const gps = await readGpsExif(file);
+    photoLocation = gps ? createDefaultPhotoLocation(gps) : null;
+    photoSelectionStage = photoLocation ? 'direction' : 'location';
     setPhotoLocationMode(true);
     updatePhotoSelectionControls();
-    photoStorageStatus.textContent = 'Klicke auf die Karte, um den Aufnahmestandort zu wählen.';
+    if (photoLocation) {
+      map.getView().animate({ center: photoLocation.mapCoordinate, duration: 400 });
+      updatePhotoSelectionDisplay();
+      photoStorageStatus.textContent = photoLocation.directionCoordinate
+        ? 'GPS-Standort und Blickrichtung übernommen. Du kannst die Auswahl ändern oder das Foto speichern.'
+        : 'GPS-Standort übernommen. Klicke jetzt in die Blickrichtung.';
+    } else {
+      photoStorageStatus.textContent = 'Klicke auf die Karte, um den Aufnahmestandort zu wählen.';
+    }
     cameraInput.value = '';
   });
 }

@@ -16,6 +16,7 @@ export function initPhotoCapture(map) {
   const photoGewRi = document.getElementById('photo-gew-ri');
   const photoDescription = document.getElementById('photo-description');
   const photoStorageStatus = document.getElementById('photo-storage-status');
+  const exportPhotoCsvBtn = document.getElementById('export-photo-csv-btn');
   const exportPhotoGeojsonBtn = document.getElementById('export-photo-geojson-btn');
   const clearPhotoDatabaseBtn = document.getElementById('clear-photo-database-btn');
   const cancelPhotoLocationBtn = document.getElementById('cancel-photo-location-btn');
@@ -392,7 +393,11 @@ export function initPhotoCapture(map) {
   }
 
   function formatGeoJsonDate(value) {
+    if (!value) return '';
+
     const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+
     const pad = (number) => String(number).padStart(2, '0');
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} `
       + `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
@@ -418,6 +423,102 @@ export function initPhotoCapture(map) {
     downloadLink.click();
     downloadLink.remove();
     URL.revokeObjectURL(downloadUrl);
+  }
+
+  function escapeCsvValue(value) {
+    const stringValue = value == null ? '' : String(value);
+    return /["\t\n\r]/.test(stringValue)
+      ? `"${stringValue.replace(/"/g, '""')}"`
+      : stringValue;
+  }
+
+  function formatCsvNumber(value) {
+    if (value === '' || value === null || value === undefined) return '';
+    const number = Number(value);
+    if (!Number.isFinite(number)) return '';
+    return number.toString().replace('.', ',');
+  }
+
+  function downloadCsvFile(rows, fileName) {
+    const headers = [
+      'BName',
+      'BOrdner',
+      'Altitude',
+      'Direction',
+      'Longitude',
+      'Latitude',
+      'DateTime',
+      'RWert',
+      'HWert',  
+      'GEW',
+      'Stat_von',
+      'GEW_Seite',
+      'GEW_Ri',
+      'title',
+      'BBeschreib1'
+    ];
+
+    const csvContent = [
+      headers.join('\t'),
+      ...rows.map((row) => headers.map((header) => {
+        const value = row[header];
+        if (typeof value === 'number') return escapeCsvValue(formatCsvNumber(value));
+        return escapeCsvValue(value);
+      }).join('\t'))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  async function exportPhotoCsv() {
+    try {
+      const photos = await getSavedPhotos();
+      if (!photos.length) {
+        photoStorageStatus.textContent = 'Keine gespeicherten Fotostandorte vorhanden.';
+        return;
+      }
+
+      const rows = photos.map((photo) => {
+        const [rwert, hwert] = transform(
+          [photo.longitude, photo.latitude],
+          'EPSG:4326',
+          'EPSG:25832'
+        );
+
+        return {
+          BName: photo.originalName || '',
+          BOrdner: '',
+          Altitude: Number(Number(photo.altitude || 0).toFixed(2)),
+          Direction: photo.direction ?? '',
+          Longitude: Number(Number(photo.longitude).toFixed(6)),
+          Latitude: Number(Number(photo.latitude).toFixed(6)),
+          DateTime: formatGeoJsonDate(photo.capturedAt),
+          RWert: Number(rwert.toFixed(2)),
+          HWert: Number(hwert.toFixed(2)),
+          GEW: photo.gew || photo.title || '',
+          Stat_von: photo.statVon ?? photo.kilometer ?? '',
+          GEW_Seite: photo.gewSeite || '',
+          GEW_Ri: photo.gewRi || '',
+          title: photo.title || '',
+          BBeschreib1: photo.BBeschreib1 || photo.bbBeschreib1 || photo.description || ''
+        };
+      });
+
+      const timestamp = new Date().toISOString().replace(/[.:]/g, '-');
+      downloadCsvFile(rows, `fotostandorte-${timestamp}.csv`);
+      photoStorageStatus.textContent = `${rows.length} Fotostandort(e) als CSV exportiert. Importierbar in PostgreSQL/pgAdmin.`;
+    } catch (error) {
+      console.error('Fotostandorte konnten nicht als CSV exportiert werden:', error);
+      photoStorageStatus.textContent = 'Fotostandorte konnten nicht als CSV exportiert werden.';
+    }
   }
 
   async function exportPhotoGeoJson() {
@@ -626,6 +727,7 @@ export function initPhotoCapture(map) {
     updatePhotoSelectionControls();
   });
   savePhotoBtn.addEventListener('click', finishPhotoLocationSelection);
+  exportPhotoCsvBtn.addEventListener('click', exportPhotoCsv);
   exportPhotoGeojsonBtn.addEventListener('click', exportPhotoGeoJson);
   clearPhotoDatabaseBtn.addEventListener('click', clearPhotoDatabase);
   cancelPhotoLocationBtn.addEventListener('click', () => {

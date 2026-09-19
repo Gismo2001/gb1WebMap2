@@ -127,11 +127,33 @@ export function initPhotoCapture(map) {
     return Number(value);
   }
 
-  async function readGpsExif(file) {
+  function parseExifDate(value) {
+    if (typeof value !== 'string') return null;
+
+    const match = value.match(/^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})$/);
+    if (!match) return null;
+
+    const [, year, month, day, hours, minutes, seconds] = match;
+    const date = new Date(
+      Number(year),
+      Number(month) - 1,
+      Number(day),
+      Number(hours),
+      Number(minutes),
+      Number(seconds)
+    );
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  async function readPhotoExif(file) {
     if (file.type !== 'image/jpeg' && file.type !== 'image/jpg') return null;
 
     try {
       const exif = piexif.load(await fileToDataUrl(file));
+      const capturedAt = parseExifDate(
+        exif.Exif?.[piexif.ExifIFD.DateTimeOriginal]
+        || exif['0th']?.[piexif.ImageIFD.DateTime]
+      );
       const gps = exif.GPS || {};
       const latitude = exifRationalToNumber(gps[piexif.GPSIFD.GPSLatitude]);
       const longitude = exifRationalToNumber(gps[piexif.GPSIFD.GPSLongitude]);
@@ -139,20 +161,23 @@ export function initPhotoCapture(map) {
       const longitudeRef = gps[piexif.GPSIFD.GPSLongitudeRef];
       const hasPosition = Array.isArray(latitude) && Array.isArray(longitude)
         && latitude.length === 3 && longitude.length === 3;
-      if (!hasPosition) return null;
+      if (!hasPosition) return { capturedAt };
 
       const signedLatitude = (latitude[0] + latitude[1] / 60 + latitude[2] / 3600)
         * (latitudeRef === 'S' ? -1 : 1);
       const signedLongitude = (longitude[0] + longitude[1] / 60 + longitude[2] / 3600)
         * (longitudeRef === 'W' ? -1 : 1);
       if (!Number.isFinite(signedLatitude) || !Number.isFinite(signedLongitude)
-        || Math.abs(signedLatitude) > 90 || Math.abs(signedLongitude) > 180) return null;
+        || Math.abs(signedLatitude) > 90 || Math.abs(signedLongitude) > 180) {
+        return { capturedAt };
+      }
 
       const directionValue = exifRationalToNumber(gps[piexif.GPSIFD.GPSImgDirection]);
       return {
         latitude: signedLatitude,
         longitude: signedLongitude,
-        direction: Number.isFinite(directionValue) ? (directionValue + 360) % 360 : null
+        direction: Number.isFinite(directionValue) ? (directionValue + 360) % 360 : null,
+        capturedAt
       };
     } catch (error) {
       console.warn('GPS-Daten des Fotos konnten nicht gelesen werden:', error);
@@ -613,11 +638,13 @@ export function initPhotoCapture(map) {
     });
   }
 
-  function getPhotoDownloadName(file) {
+  function getPhotoDownloadName(file, capturedAt = new Date()) {
     const extension = file.type === 'image/jpeg' || file.type === 'image/jpg'
       ? 'jpg'
       : file.type.split('/')[1] || 'jpg';
-    const timestamp = new Date().toISOString().replace(/[.:]/g, '-');
+    const pad = (value, length = 2) => String(value).padStart(length, '0');
+    const timestamp = `${capturedAt.getFullYear()}-${pad(capturedAt.getMonth() + 1)}-${pad(capturedAt.getDate())}`
+      + `_${pad(capturedAt.getHours())}_${pad(capturedAt.getMinutes())}_${pad(capturedAt.getSeconds(), 4)}`;
     return `foto-${timestamp}.${extension}`;
   }
 
@@ -638,7 +665,7 @@ export function initPhotoCapture(map) {
     const dx = directionPoint[0] - photoLocation.mapCoordinate[0];
     const dy = directionPoint[1] - photoLocation.mapCoordinate[1];
     const direction = (Math.atan2(dx, dy) * 180 / Math.PI + 360) % 360;
-    const capturedAt = new Date();
+    const capturedAt = pendingPhoto.capturedAt || new Date();
 
     try {
       const photoWithExif = await addGpsExif(
@@ -655,7 +682,7 @@ export function initPhotoCapture(map) {
         pendingPhoto.title,
         pendingPhoto.description
       );
-      const photoFileName = getPhotoDownloadName(photoWithMetadata);
+      const photoFileName = getPhotoDownloadName(photoWithMetadata, capturedAt);
       const photoForStorage = new File([photoWithMetadata], photoFileName, {
         type: photoWithMetadata.type,
         lastModified: photoWithMetadata.lastModified
@@ -753,8 +780,9 @@ export function initPhotoCapture(map) {
     };
     photoLocation = null;
     photoSelectionStage = 'location';
-    const gps = await readGpsExif(file);
-    photoLocation = gps ? createDefaultPhotoLocation(gps) : null;
+    const exif = await readPhotoExif(file);
+    pendingPhoto.capturedAt = exif?.capturedAt || new Date(file.lastModified);
+    photoLocation = exif?.latitude !== undefined ? createDefaultPhotoLocation(exif) : null;
     photoSelectionStage = photoLocation ? 'direction' : 'location';
     setPhotoLocationMode(true);
     updatePhotoSelectionControls();

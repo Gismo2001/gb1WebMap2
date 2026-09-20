@@ -1009,6 +1009,11 @@ div.ol-ctx-menu-container li.ol-ctx-menu-submenu > .ol-ctx-menu-container {
     background: #e8f1fb;
   }
 
+  .photo-location-actions #save-photo-btn:not(:disabled) {
+    border-color: #9ccc65;
+    background: #e8f5e9;
+  }
+
   .photo-location-actions button:disabled {
     cursor: not-allowed;
     opacity: 0.5;

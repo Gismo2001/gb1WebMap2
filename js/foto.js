@@ -86,6 +86,7 @@ export function initPhotoCapture(map) {
     const normalized = (value || '').trim();
     if (/^gF$/i.test(normalized)) return 'gF';
     if (/^iF$/i.test(normalized)) return 'iF';
+    if (/^re$/i.test(normalized)) return 're';
     return '';
   }
 

@@ -955,13 +955,21 @@ div.ol-ctx-menu-container li.ol-ctx-menu-submenu > .ol-ctx-menu-container {
     color: #444;
   }
 
-  .sidebar-actions input {
+  .sidebar-actions input,
+  .sidebar-actions textarea {
     width: 100%;
     margin-bottom: 8px;
     padding: 9px 10px;
     border: 1px solid #ccc;
     border-radius: 4px;
-    font-size: 14px;
+    font-size: 13px;
+    box-sizing: border-box;
+  }
+
+  .sidebar-actions textarea.photo-description-input {
+    min-height: 58px;
+    resize: vertical;
+    line-height: 1.35;
   }
 
   .sidebar-actions button {

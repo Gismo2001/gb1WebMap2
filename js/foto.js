@@ -46,6 +46,26 @@ export function initPhotoCapture(map) {
   });
   map.addLayer(photoSelectionLayer);
 
+  function resetPhotoForm() {
+    photoTitle.value = '';
+    photoKilometer.value = '';
+    photoGewSeite.value = '';
+    photoGewRi.value = '';
+    photoDescription.value = '';
+  }
+
+  function readCurrentPhotoForm() {
+    const metadata = readPhotoMetadata();
+    return {
+      title: photoTitle.value.trim(),
+      description: photoDescription.value.trim().slice(0, 255),
+      kilometer: metadata.kilometer,
+      gewSeite: metadata.gewSeite,
+      gewRi: metadata.gewRi,
+      bbBeschreib1: metadata.bbeschreib1
+    };
+  }
+
   function setPhotoLocationMode(active) {
     window.photoLocationSelectionActive = active;
     cancelPhotoLocationBtn.hidden = !active;
@@ -663,6 +683,19 @@ export function initPhotoCapture(map) {
   }
 
   async function finishPhotoLocationSelection() {
+    if (!pendingPhoto || !photoLocation) return;
+
+    const currentPhotoData = readCurrentPhotoForm();
+    pendingPhoto = {
+      ...pendingPhoto,
+      ...currentPhotoData
+    };
+
+    const descriptionForThisPhoto = pendingPhoto.description || pendingPhoto.bbBeschreib1 || '';
+    const titleForThisPhoto = pendingPhoto.title || '';
+    const kilometerForThisPhoto = pendingPhoto.kilometer || '';
+    const gewSeiteForThisPhoto = pendingPhoto.gewSeite || '';
+    const gewRiForThisPhoto = pendingPhoto.gewRi || '';
     const directionPoint = map.getCoordinateFromPixel(photoLocation.directionPixel);
     const dx = directionPoint[0] - photoLocation.mapCoordinate[0];
     const dy = directionPoint[1] - photoLocation.mapCoordinate[1];
@@ -675,14 +708,14 @@ export function initPhotoCapture(map) {
         photoLocation.latitude,
         photoLocation.longitude,
         direction,
-        pendingPhoto.title,
+        titleForThisPhoto,
         capturedAt
       );
-      const photoWithXmp = await addXmpTitle(photoWithExif, pendingPhoto.title);
+      const photoWithXmp = await addXmpTitle(photoWithExif, titleForThisPhoto);
       const photoWithMetadata = await addIptcMetadata(
         photoWithXmp,
-        pendingPhoto.title,
-        pendingPhoto.description
+        titleForThisPhoto,
+        descriptionForThisPhoto
       );
       const photoFileName = getPhotoDownloadName(photoWithMetadata, capturedAt);
       const photoForStorage = new File([photoWithMetadata], photoFileName, {
@@ -690,13 +723,13 @@ export function initPhotoCapture(map) {
         lastModified: photoWithMetadata.lastModified
       });
       downloadPhoto(photoForStorage, photoFileName);
-      await savePhoto(photoForStorage, pendingPhoto.description, {
-        title: pendingPhoto.title,
-        gew: pendingPhoto.title,
-        statVon: pendingPhoto.kilometer,
-        gewSeite: pendingPhoto.gewSeite,
-        gewRi: pendingPhoto.gewRi,
-        BBeschreib1: pendingPhoto.bbBeschreib1 || pendingPhoto.description || '',
+      await savePhoto(photoForStorage, descriptionForThisPhoto, {
+        title: titleForThisPhoto,
+        gew: titleForThisPhoto,
+        statVon: kilometerForThisPhoto,
+        gewSeite: gewSeiteForThisPhoto,
+        gewRi: gewRiForThisPhoto,
+        BBeschreib1: pendingPhoto.bbBeschreib1 || descriptionForThisPhoto,
         latitude: photoLocation.latitude,
         longitude: photoLocation.longitude,
         direction,
@@ -760,6 +793,7 @@ export function initPhotoCapture(map) {
   exportPhotoGeojsonBtn.addEventListener('click', exportPhotoGeoJson);
   clearPhotoDatabaseBtn.addEventListener('click', clearPhotoDatabase);
   cancelPhotoLocationBtn.addEventListener('click', () => {
+    resetPhotoForm();
     pendingPhoto = null;
     photoLocation = null;
     setPhotoLocationMode(false);
@@ -770,15 +804,10 @@ export function initPhotoCapture(map) {
     const [file] = cameraInput.files;
     if (!file) return;
 
-    const metadata = readPhotoMetadata();
+    const formData = readCurrentPhotoForm();
     pendingPhoto = {
       file,
-      title: photoTitle.value.trim(),
-      description: photoDescription.value.trim().slice(0, 255),
-      kilometer: metadata.kilometer,
-      gewSeite: metadata.gewSeite,
-      gewRi: metadata.gewRi,
-      bbBeschreib1: metadata.bbeschreib1
+      ...formData
     };
     photoLocation = null;
     photoSelectionStage = 'location';

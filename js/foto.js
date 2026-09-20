@@ -467,6 +467,7 @@ export function initPhotoCapture(map) {
 
   function downloadCsvFile(rows, fileName) {
     const headers = [
+      'Path',
       'BName',
       'BOrdner',
       'Altitude',

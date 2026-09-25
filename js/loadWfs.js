@@ -8,7 +8,7 @@ import Fill from 'ol/style/Fill';
 import Stroke from 'ol/style/Stroke';
 import Circle from 'ol/style/Circle'; // 💡 NEU: Für die Punktdarstellung importieren
 import WFS from 'ol/format/WFS'; // 💡 WICHTIG: Oben aus OpenLayers importieren!
-import GML3 from 'ol/format/GML3';
+import GML32 from 'ol/format/GML32';
 
 
 export async function loadWFSCapabilities(baseUrl) {
@@ -67,7 +67,7 @@ export function loadWFSLayer(map, baseUrl, typeName) {
 
   const vectorSource = new VectorSource({
     format: new WFS({
-      gmlFormat: new GML3()
+      gmlFormat: new GML32()
     }),
     url: function (extent, resolution, projection) {
       const srsUrn = 'urn:ogc:def:crs:EPSG::3857';
@@ -81,11 +81,11 @@ export function loadWFSLayer(map, baseUrl, typeName) {
       // Direkter Zugriff - BfN-Server unterstützt CORS
       return (
         `${baseUrlForRequest}?service=WFS` +
-        `&version=1.1.0` +
+        `&version=2.0.0` +
         `&request=GetFeature` +
-        `&typeName=${typeName}` +
-        `&outputFormat=text/xml; subtype=gml/3.1.1` + 
-        `&srsname=${srsUrn}` +
+        `&typeNames=${encodeURIComponent(typeName)}` +
+        `&outputFormat=application/gml+xml; version=3.2.1` + 
+        `&srsName=${encodeURIComponent(srsUrn)}` +
         `&bbox=${extent.join(',')},${srsUrn}`
       );
     },

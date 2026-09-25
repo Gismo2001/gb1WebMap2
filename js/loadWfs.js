@@ -87,7 +87,9 @@ export function loadWFSLayer(map, baseUrl, typeName) {
   const parsedUrl = new URL(cleanUrl);
   const layerInfo = wfsMetadata.get(cleanUrl)?.layers?.[typeName];
   const supportedCrs = layerInfo?.crs || [];
-  const srsCode = supportedCrs.some(crs => crs.endsWith(':3857')) ? '3857' : '4326';
+  const srsCode = ['25832', '3857', '4326'].find(code =>
+    supportedCrs.some(crs => crs.endsWith(`:${code}`))
+  ) || '4326';
   const srsUrn = `urn:ogc:def:crs:EPSG::${srsCode}`;
   const outputFormat = wfsMetadata.get(cleanUrl)?.outputFormats
     .find(format => format === 'application/gml+xml; version=3.2')

@@ -32,7 +32,7 @@ export default defineConfig({
       },
 
       '/wfs-proxy': {
-        target: 'https://www.inspire.niedersachsen.de/doorman/noauth',
+        target: 'https://www.inspire.niedersachsen.de',
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/wfs-proxy/, ''),

@@ -84,9 +84,10 @@ export function loadWFSLayer(map, baseUrl, typeName) {
         `&version=2.0.0` +
         `&request=GetFeature` +
         `&typeNames=${encodeURIComponent(typeName)}` +
-        `&outputFormat=application/gml+xml; version=3.2.1` + 
+        `&outputFormat=${encodeURIComponent('application/gml+xml; version=3.2.1')}` +
+        `&count=100` +
         `&srsName=${encodeURIComponent(srsUrn)}` +
-        `&bbox=${extent.join(',')},${srsUrn}`
+        `&bbox=${encodeURIComponent(`${extent.join(',')},${srsUrn}`)}`
       );
     },
     strategy: bboxStrategy

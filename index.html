@@ -94,7 +94,10 @@
   <button id="draw-clear" class="draw-btn" data-type="Delete" title="Einzelne Objekte durch Anklicken löschen">🗑️</button>
   </div>
   <div id="wfs-loader" style="display: none !important;">
-  <input type="text" id="wfs-url" placeholder="WFS Basis-URL eingeben (ohne ?)" />
+  <div id="wfs-url-field">
+    <input type="text" id="wfs-url" placeholder="WFS Basis-URL eingeben (ohne ?)" />
+    <button id="clear-wfs-url-btn" type="button" aria-label="WFS-URL löschen" title="WFS-URL löschen">×</button>
+  </div>
   <button id="load-wfs-btn">WFS laden</button>
   <div id="wfs-layer-list"></div>
   </div>

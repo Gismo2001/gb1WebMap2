@@ -289,6 +289,11 @@ map.on('moveend', () => {
 // 💡 Import erweitern!
 import { loadWFSCapabilities, loadWFSLayer, loadArcGISCapabilities, loadArcGISLayer } from './js/loadWfs.js';
 
+document.getElementById('clear-wfs-url-btn').addEventListener('click', () => {
+  document.getElementById('wfs-url').value = '';
+  document.getElementById('wfs-url').focus();
+});
+
 document.getElementById('load-wfs-btn').addEventListener('click', async function () {
   const baseUrl = document.getElementById('wfs-url').value.trim();
   console.log('Eingegebene URL:', baseUrl);

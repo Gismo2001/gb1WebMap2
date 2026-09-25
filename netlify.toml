@@ -15,6 +15,12 @@
   force = true
 
 [[redirects]]
+  from = "/wfs-proxy/*"
+  to = "https://www.inspire.niedersachsen.de/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200

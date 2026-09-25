@@ -85,29 +85,34 @@ export async function loadWFSCapabilities(baseUrl) {
 export function loadWFSLayer(map, baseUrl, typeName) {
   const cleanUrl = baseUrl.split('?')[0];
   const parsedUrl = new URL(cleanUrl);
+  const layerInfo = wfsMetadata.get(cleanUrl)?.layers?.[typeName];
+  const supportedCrs = layerInfo?.crs || [];
+  const srsCode = supportedCrs.some(crs => crs.endsWith(':3857')) ? '3857' : '4326';
+  const srsUrn = `urn:ogc:def:crs:EPSG::${srsCode}`;
+  const outputFormat = wfsMetadata.get(cleanUrl)?.outputFormats
+    .find(format => format === 'application/gml+xml; version=3.2')
+    || wfsMetadata.get(cleanUrl)?.outputFormats
+      .find(format => format.includes('gml/3.2.1'))
+    || 'application/gml+xml; version=3.2';
+  const format = new WFS({
+    version: '2.0.0',
+    gmlFormat: new GML32()
+  });
+  const readFeatures = format.readFeatures.bind(format);
+  format.readFeatures = (source, options = {}) => readFeatures(source, {
+    ...options,
+    dataProjection: `EPSG:${srsCode}`
+  });
 
   const vectorSource = new VectorSource({
-    format: new WFS({
-      version: '2.0.0',
-      gmlFormat: new GML32()
-    }),
+    format,
     url: function (extent, resolution, projection) {
-      const layerInfo = wfsMetadata.get(cleanUrl)?.layers?.[typeName];
-      const supportedCrs = layerInfo?.crs || [];
-      const srsCode = supportedCrs.some(crs => crs.endsWith(':3857')) ? '3857' : '4326';
-      const srsUrn = `urn:ogc:def:crs:EPSG::${srsCode}`;
       const requestExtent = srsCode === '3857'
         ? extent
         : transformExtent(extent, projection, `EPSG:${srsCode}`);
       const bboxValues = srsCode === '4326'
         ? [requestExtent[1], requestExtent[0], requestExtent[3], requestExtent[2]]
         : requestExtent;
-      const outputFormat = wfsMetadata.get(cleanUrl)?.outputFormats
-        .find(format => format === 'application/gml+xml; version=3.2')
-        || wfsMetadata.get(cleanUrl)?.outputFormats
-          .find(format => format.includes('gml/3.2.1'))
-        || 'application/gml+xml; version=3.2';
-      
       // Prüfe, ob die URL von inspire.niedersachsen.de kommt → verwende Vite Proxy
       let baseUrlForRequest = cleanUrl;
       if (parsedUrl.hostname.endsWith('inspire.niedersachsen.de')) {

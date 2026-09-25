@@ -9,6 +9,9 @@ import Stroke from 'ol/style/Stroke';
 import Circle from 'ol/style/Circle'; // 💡 NEU: Für die Punktdarstellung importieren
 import WFS from 'ol/format/WFS'; // 💡 WICHTIG: Oben aus OpenLayers importieren!
 import GML32 from 'ol/format/GML32';
+import { transformExtent } from 'ol/proj';
+
+const wfsMetadata = new Map();
 
 
 export async function loadWFSCapabilities(baseUrl) {
@@ -39,6 +42,12 @@ export async function loadWFSCapabilities(baseUrl) {
     
     // FeatureType-Elemente auslesen
     const featureTypes = xml.getElementsByTagNameNS("*", "FeatureType");
+    const getFeatureOperation = [...xml.getElementsByTagNameNS("*", "Operation")]
+      .find(operation => operation.getAttribute('name') === 'GetFeature');
+    const outputFormats = getFeatureOperation
+      ? [...getFeatureOperation.getElementsByTagNameNS("*", "Value")]
+        .map(node => node.textContent.trim())
+      : [];
     const wfsLayers = [];
     
     for (let i = 0; i < featureTypes.length; i++) {
@@ -47,11 +56,23 @@ export async function loadWFSCapabilities(baseUrl) {
       
       const name = nameNode?.textContent?.trim();
       const title = titleNode?.textContent?.trim();
+      const crsNodes = [
+        ...featureTypes[i].getElementsByTagNameNS("*", "DefaultCRS"),
+        ...featureTypes[i].getElementsByTagNameNS("*", "DefaultSRS"),
+        ...featureTypes[i].getElementsByTagNameNS("*", "OtherCRS"),
+        ...featureTypes[i].getElementsByTagNameNS("*", "OtherSRS")
+      ];
+      const crs = crsNodes.map(node => node.textContent.trim());
       
       if (name) {
-        wfsLayers.push({ name, title: title || name });
+        wfsLayers.push({ name, title: title || name, crs, outputFormats });
       }
     }
+
+    wfsMetadata.set(cleanUrl, {
+      outputFormats,
+      layers: Object.fromEntries(wfsLayers.map(layer => [layer.name, layer]))
+    });
     
     console.log(`✅ ${wfsLayers.length} WFS-Layer geladen`);
     return wfsLayers;
@@ -70,7 +91,21 @@ export function loadWFSLayer(map, baseUrl, typeName) {
       gmlFormat: new GML32()
     }),
     url: function (extent, resolution, projection) {
-      const srsUrn = 'urn:ogc:def:crs:EPSG::3857';
+      const layerInfo = wfsMetadata.get(cleanUrl)?.layers?.[typeName];
+      const supportedCrs = layerInfo?.crs || [];
+      const srsCode = supportedCrs.some(crs => crs.endsWith(':3857')) ? '3857' : '4326';
+      const srsUrn = `urn:ogc:def:crs:EPSG::${srsCode}`;
+      const requestExtent = srsCode === '3857'
+        ? extent
+        : transformExtent(extent, projection, `EPSG:${srsCode}`);
+      const bboxValues = srsCode === '4326'
+        ? [requestExtent[1], requestExtent[0], requestExtent[3], requestExtent[2]]
+        : requestExtent;
+      const outputFormat = wfsMetadata.get(cleanUrl)?.outputFormats
+        .find(format => format === 'application/gml+xml; version=3.2')
+        || wfsMetadata.get(cleanUrl)?.outputFormats
+          .find(format => format.includes('gml/3.2.1'))
+        || 'application/gml+xml; version=3.2';
       
       // Prüfe, ob die URL von inspire.niedersachsen.de kommt → verwende Vite Proxy
       let baseUrlForRequest = cleanUrl;
@@ -84,10 +119,10 @@ export function loadWFSLayer(map, baseUrl, typeName) {
         `&version=2.0.0` +
         `&request=GetFeature` +
         `&typeNames=${encodeURIComponent(typeName)}` +
-        `&outputFormat=${encodeURIComponent('application/gml+xml; version=3.2.1')}` +
+        `&outputFormat=${encodeURIComponent(outputFormat)}` +
         `&count=100` +
         `&srsName=${encodeURIComponent(srsUrn)}` +
-        `&bbox=${encodeURIComponent(`${extent.join(',')},${srsUrn}`)}`
+        `&bbox=${encodeURIComponent(`${bboxValues.join(',')},${srsUrn}`)}`
       );
     },
     strategy: bboxStrategy

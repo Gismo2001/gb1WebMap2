@@ -137,10 +137,22 @@ export function loadWFSLayer(map, baseUrl, typeName) {
   const layer = new VectorLayer({
     source: vectorSource,
     properties: { title: typeName },
-    style: new Style({
-      stroke: new Stroke({ color: '#0078d4', width: 2 }),
-      fill: new Fill({ color: 'rgba(0, 120, 212, 0.15)' })
-    })
+    style: (feature) => {
+      const geometryType = feature.getGeometry()?.getType();
+      const isPoint = geometryType === 'Point' || geometryType === 'MultiPoint';
+
+      return new Style({
+        image: isPoint
+          ? new Circle({
+              radius: 6,
+              fill: new Fill({ color: '#0078d4' }),
+              stroke: new Stroke({ color: '#ffffff', width: 1.5 })
+            })
+          : undefined,
+        stroke: new Stroke({ color: '#0078d4', width: 2 }),
+        fill: new Fill({ color: 'rgba(0, 120, 212, 0.15)' })
+      });
+    }
   });
 
   map.addLayer(layer);

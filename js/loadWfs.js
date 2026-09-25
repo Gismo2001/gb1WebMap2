@@ -12,13 +12,13 @@ import GML3 from 'ol/format/GML3';
 
 
 export async function loadWFSCapabilities(baseUrl) {
-  const cleanUrl = baseUrl.split('?')[0]; 
+  const cleanUrl = baseUrl.split('?')[0];
+  const parsedUrl = new URL(cleanUrl);
   
   // Prüfe, ob die URL von inspire.niedersachsen.de kommt → verwende Vite Proxy
   let wfsUrl = cleanUrl + '?service=WFS&request=GetCapabilities';
-  if (cleanUrl.includes('inspire.niedersachsen.de')) {
-    const pathOnly = cleanUrl.replace('https://www.inspire.niedersachsen.de', '');
-    wfsUrl = `/wfs-proxy${pathOnly}?service=WFS&request=GetCapabilities`;
+  if (parsedUrl.hostname.endsWith('inspire.niedersachsen.de')) {
+    wfsUrl = `/wfs-proxy${parsedUrl.pathname}?service=WFS&request=GetCapabilities`;
   }
 
   try {
@@ -63,6 +63,7 @@ export async function loadWFSCapabilities(baseUrl) {
 }
 export function loadWFSLayer(map, baseUrl, typeName) {
   const cleanUrl = baseUrl.split('?')[0];
+  const parsedUrl = new URL(cleanUrl);
 
   const vectorSource = new VectorSource({
     format: new WFS({
@@ -73,9 +74,8 @@ export function loadWFSLayer(map, baseUrl, typeName) {
       
       // Prüfe, ob die URL von inspire.niedersachsen.de kommt → verwende Vite Proxy
       let baseUrlForRequest = cleanUrl;
-      if (cleanUrl.includes('inspire.niedersachsen.de')) {
-        const pathOnly = cleanUrl.replace('https://www.inspire.niedersachsen.de', '');
-        baseUrlForRequest = `/wfs-proxy${pathOnly}`;
+      if (parsedUrl.hostname.endsWith('inspire.niedersachsen.de')) {
+        baseUrlForRequest = `/wfs-proxy${parsedUrl.pathname}`;
       }
 
       // Direkter Zugriff - BfN-Server unterstützt CORS

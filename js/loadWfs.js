@@ -88,6 +88,7 @@ export function loadWFSLayer(map, baseUrl, typeName) {
 
   const vectorSource = new VectorSource({
     format: new WFS({
+      version: '2.0.0',
       gmlFormat: new GML32()
     }),
     url: function (extent, resolution, projection) {

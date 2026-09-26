@@ -96,6 +96,7 @@ let permalinkControl = new Permalink({
 export function initPermalinkButton(map) {
   const permalink = new Permalink({
     className: 'ol-permalink-button',
+    title: "Permalink erstellen",
     urlReplace: false, 
     refreshDelay: 100,
     localStorage: false, 

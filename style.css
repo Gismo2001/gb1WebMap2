@@ -1042,6 +1042,24 @@ div.ol-ctx-menu-container li.ol-ctx-menu-submenu > .ol-ctx-menu-container {
     text-align: left;
   }
 
+  .photo-save-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .photo-save-actions #save-photo-btn {
+    flex: 0 0 auto;
+  }
+
+  .photo-save-actions label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+  }
+
   .photo-location-actions button.active {
     border-color: #1976d2;
     background: #e8f1fb;

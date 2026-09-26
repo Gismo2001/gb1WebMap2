@@ -10,6 +10,7 @@ import piexif from 'piexifjs';
 export function initPhotoCapture(map) {
   const takePhotoBtn = document.getElementById('take-photo-btn');
   const cameraInput = document.getElementById('camera-input');
+  const photoDialogTitle = document.querySelector('#mobile-sidebar .sidebar-header h3');
   const photoTitle = document.getElementById('photo-title');
   const photoKilometer = document.getElementById('photo-kilometer');
   const photoGewSeite = document.getElementById('photo-gew-seite');
@@ -24,6 +25,7 @@ export function initPhotoCapture(map) {
   const choosePhotoLocationBtn = document.getElementById('choose-photo-location-btn');
   const choosePhotoDirectionBtn = document.getElementById('choose-photo-direction-btn');
   const savePhotoBtn = document.getElementById('save-photo-btn');
+  const keepPhotoFilename = document.getElementById('keep-photo-filename');
   let pendingPhoto = null;
   let photoLocation = null;
   let photoSelectionStage = 'location';
@@ -70,6 +72,7 @@ export function initPhotoCapture(map) {
     window.photoLocationSelectionActive = active;
     cancelPhotoLocationBtn.hidden = !active;
     photoLocationActions.hidden = !active;
+    if (!active) photoDialogTitle.textContent = 'Foto';
     if (!active) photoSelectionSource.clear();
   }
 
@@ -717,7 +720,9 @@ export function initPhotoCapture(map) {
         titleForThisPhoto,
         descriptionForThisPhoto
       );
-      const photoFileName = getPhotoDownloadName(photoWithMetadata, capturedAt);
+      const photoFileName = keepPhotoFilename.checked
+        ? pendingPhoto.file.name
+        : getPhotoDownloadName(photoWithMetadata, capturedAt);
       const photoForStorage = new File([photoWithMetadata], photoFileName, {
         type: photoWithMetadata.type,
         lastModified: photoWithMetadata.lastModified
@@ -804,6 +809,7 @@ export function initPhotoCapture(map) {
     const [file] = cameraInput.files;
     if (!file) return;
 
+    photoDialogTitle.textContent = `Foto (${file.name})`;
     const formData = readCurrentPhotoForm();
     pendingPhoto = {
       file,

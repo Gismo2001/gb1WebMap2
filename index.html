@@ -146,7 +146,13 @@
     <div id="photo-location-actions" class="photo-location-actions" hidden>
       <button id="choose-photo-location-btn" type="button">Standort neu wählen</button>
       <button id="choose-photo-direction-btn" type="button">Richtung neu wählen</button>
-      <button id="save-photo-btn" type="button" disabled>Foto speichern</button>
+      <div class="photo-save-actions">
+        <button id="save-photo-btn" type="button" disabled>Foto speichern</button>
+        <label for="keep-photo-filename">
+          <input id="keep-photo-filename" type="checkbox">
+          Originaldateiname beibehalten
+        </label>
+      </div>
     </div>
     <button id="cancel-photo-location-btn" class="cancel-photo-location-btn" type="button" hidden>
       Auswahl abbrechen

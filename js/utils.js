@@ -373,12 +373,37 @@ function geojsonStyle(feature) {
 }
 
 // Style für Kilomtrierung
-const Km10scalStyle = new Style({
-    stroke: new Stroke({
-        color: 'grey',
-        width: .5
-    })
-});
+const Km10scalStyle = function(feature, km, resolution) {
+    const minResolution = 0;
+    const maxResolution = 0.3;
+    const kmInKilometer = km / 1000;
+    const kmFormatted = kmInKilometer.toFixed(2);
+
+    if (resolution > minResolution && resolution < maxResolution) {
+        return new Style({
+            text: new Text({
+                text: kmFormatted,
+                font: 'normal 16px "Arial Light", "Helvetica Neue Light", Arial, sans-serif',
+                offsetX: -15,
+                offsetY: 8,
+                fill: new Fill({
+                    color: 'rgba(150, 150, 150, 1)'
+                })
+            }),
+            stroke: new Stroke({
+                color: 'grey',
+                width: .5
+            })
+        });
+    }
+
+    return new Style({
+        stroke: new Stroke({
+            color: 'grey',
+            width: .5
+        })
+    });
+};
 const Km100scalStyle = function(feature, km, resolution) {
     var minResolution = 0;
     var maxResolution = 5; 

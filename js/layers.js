@@ -260,7 +260,7 @@ export function createKm10scalLayer() {
   title: 'Km10scal',
   name: 'Km10scal',
   permalink:'Km10scal',
-  style: Km10scalStyle,
+  style: function(feature, resolution) {return Km10scalStyle(feature, feature.get('km'), resolution);  },
   visible: true,
   minResolution: 0,
   maxResolution: 1

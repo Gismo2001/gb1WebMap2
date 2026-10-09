@@ -115,7 +115,7 @@ initializeWMS(map);
 
 map.updateSize();
 
-initPhotoCapture(map);
+initPhotoCapture(map, layerSwitcher);
 
 const menuBtn = document.getElementById('mobile-menu-btn');
 const closeBtn = document.getElementById('close-sidebar-btn');

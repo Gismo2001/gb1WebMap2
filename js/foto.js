@@ -4,10 +4,11 @@ import VectorSource from 'ol/source/Vector';
 import VectorLayer from 'ol/layer/Vector';
 import Point from 'ol/geom/Point';
 import LineString from 'ol/geom/LineString';
+import Overlay from 'ol/Overlay';
 import { Circle as CircleStyle, Fill, Stroke, Style } from 'ol/style';
 import piexif from 'piexifjs';
 
-export function initPhotoCapture(map) {
+export function initPhotoCapture(map, layerSwitcher) {
   const takePhotoBtn = document.getElementById('take-photo-btn');
   const cameraInput = document.getElementById('camera-input');
   const photoDialogTitle = document.querySelector('#mobile-sidebar .sidebar-header h3');
@@ -29,24 +30,85 @@ export function initPhotoCapture(map) {
   let pendingPhoto = null;
   let photoLocation = null;
   let photoSelectionStage = 'location';
+  let photoPreviewUrl = null;
+  let hoveredPhotoFeature = null;
+  let hoveredPhotoUrl = null;
+  let photoDatabaseVersion = 0;
 
   const photoSelectionSource = new VectorSource();
   const photoSelectionLayer = new VectorLayer({
     source: photoSelectionSource,
     zIndex: 1001,
-    displayInLayerSwitcher: true,
+    displayInLayerSwitcher: false,
     style: (feature) => feature.get('selectionType') === 'direction'
       ? new Style({
         stroke: new Stroke({ color: '#d62f2f', width: 4 }),
         image: new CircleStyle({ radius: 7, fill: new Fill({ color: '#d62f2f' }), stroke: new Stroke({ color: '#fff', width: 2 }) })
       })
       : new Style({
-        image: new CircleStyle({ radius: 9, fill: new Fill({ color: '#1976d2' }), stroke: new Stroke({ color: '#fff', width: 3 }) })
+        image: new CircleStyle({ radius: 8, fill: new Fill({ color: feature.get('selectionType') === 'saved' ? '#388e3c' : '#1976d2' }), stroke: new Stroke({ color: '#fff', width: 3 }) })
       }),
     title: 'Foto',
     name: 'Foto'
   });
   map.addLayer(photoSelectionLayer);
+
+  const photoPreview = document.createElement('div');
+  photoPreview.style.cssText = 'display:none; padding:4px; background:#fff; border:1px solid #777; border-radius:4px; box-shadow:0 2px 8px #0005; pointer-events:none;';
+  const photoPreviewImage = document.createElement('img');
+  photoPreviewImage.alt = 'Ausgewähltes Foto';
+  photoPreviewImage.style.cssText = 'display:block; max-width:240px; max-height:180px; object-fit:contain;';
+  const photoPreviewCaption = document.createElement('div');
+  photoPreviewCaption.style.cssText = 'max-width:240px; padding:4px 2px 0; color:#222; font:12px sans-serif; overflow-wrap:anywhere;';
+  photoPreview.append(photoPreviewImage, photoPreviewCaption);
+  const photoPreviewOverlay = new Overlay({
+    element: photoPreview,
+    positioning: 'bottom-left',
+    offset: [12, -12],
+    stopEvent: false
+  });
+  map.addOverlay(photoPreviewOverlay);
+
+  function hidePhotoPreview() {
+    photoPreviewOverlay.setPosition(undefined);
+    photoPreview.style.display = 'none';
+    photoPreviewImage.removeAttribute('src');
+    photoPreviewCaption.textContent = '';
+    if (hoveredPhotoUrl) URL.revokeObjectURL(hoveredPhotoUrl);
+    hoveredPhotoFeature = null;
+    hoveredPhotoUrl = null;
+  }
+
+  function clearPhotoPreview() {
+    hidePhotoPreview();
+    if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
+    photoPreviewUrl = null;
+  }
+
+  function clearTemporaryPhotoFeatures() {
+    photoSelectionSource.getFeatures()
+      .filter((feature) => feature.get('selectionType') !== 'saved')
+      .forEach((feature) => photoSelectionSource.removeFeature(feature));
+  }
+
+  function addSavedPhotoFeature(photo) {
+    if (!Number.isFinite(photo.latitude) || !Number.isFinite(photo.longitude) || !photo.photo) return;
+    if (photoSelectionSource.getFeatures().some((feature) => feature.get('photoId') === photo.id)) return;
+
+    const mapCoordinate = transform(
+      [photo.longitude, photo.latitude],
+      'EPSG:4326',
+      map.getView().getProjection()
+    );
+    photoSelectionSource.addFeature(new Feature({
+      geometry: new Point(mapCoordinate),
+      selectionType: 'saved',
+      photoId: photo.id,
+      photo: photo.photo,
+      title: photo.title || '',
+      originalName: photo.originalName || ''
+    }));
+  }
 
   function resetPhotoForm() {
     photoTitle.value = '';
@@ -73,11 +135,14 @@ export function initPhotoCapture(map) {
     cancelPhotoLocationBtn.hidden = !active;
     photoLocationActions.hidden = !active;
     if (!active) photoDialogTitle.textContent = 'Foto';
-    if (!active) photoSelectionSource.clear();
+    if (!active) {
+      clearTemporaryPhotoFeatures();
+      clearPhotoPreview();
+    }
   }
 
   function updatePhotoSelectionDisplay() {
-    photoSelectionSource.clear();
+    clearTemporaryPhotoFeatures();
     if (!photoLocation) return;
 
     photoSelectionSource.addFeature(new Feature({
@@ -441,6 +506,14 @@ export function initPhotoCapture(map) {
     }));
   }
 
+  const photoLoadVersion = photoDatabaseVersion;
+  getSavedPhotos()
+    .then((photos) => {
+      if (photoLoadVersion !== photoDatabaseVersion) return;
+      photos.forEach(addSavedPhotoFeature);
+    })
+    .catch((error) => console.error('Gespeicherte Fotopunkte konnten nicht geladen werden:', error));
+
   function formatGeoJsonDate(value) {
     if (!value) return '';
 
@@ -630,6 +703,11 @@ export function initPhotoCapture(map) {
         transaction.onabort = () => reject(transaction.error || new Error('Transaktion abgebrochen'));
       });
       database.close();
+      photoDatabaseVersion += 1;
+      const savedFeatures = photoSelectionSource.getFeatures()
+        .filter((feature) => feature.get('selectionType') === 'saved');
+      if (savedFeatures.includes(hoveredPhotoFeature)) hidePhotoPreview();
+      savedFeatures.forEach((feature) => photoSelectionSource.removeFeature(feature));
       photoStorageStatus.textContent = 'Fotodatenbank wurde bereinigt.';
     } catch (error) {
       console.error('Fotodatenbank konnte nicht bereinigt werden:', error);
@@ -642,7 +720,8 @@ export function initPhotoCapture(map) {
 
     return new Promise((resolve, reject) => {
       const transaction = database.transaction('photos', 'readwrite');
-      transaction.objectStore('photos').add({
+      let photoId;
+      const request = transaction.objectStore('photos').add({
         photo: file,
         description,
         originalName: file.name,
@@ -652,9 +731,10 @@ export function initPhotoCapture(map) {
         BBeschreib1: location.BBeschreib1 || location.bbBeschreib1 || description || '',
         ...location
       });
+      request.onsuccess = () => { photoId = request.result; };
       transaction.oncomplete = () => {
         database.close();
-        resolve();
+        resolve(photoId);
       };
       transaction.onerror = () => {
         database.close();
@@ -728,7 +808,7 @@ export function initPhotoCapture(map) {
         lastModified: photoWithMetadata.lastModified
       });
       downloadPhoto(photoForStorage, photoFileName);
-      await savePhoto(photoForStorage, descriptionForThisPhoto, {
+      const photoId = await savePhoto(photoForStorage, descriptionForThisPhoto, {
         title: titleForThisPhoto,
         gew: titleForThisPhoto,
         statVon: kilometerForThisPhoto,
@@ -739,6 +819,14 @@ export function initPhotoCapture(map) {
         longitude: photoLocation.longitude,
         direction,
         capturedAt: capturedAt.toISOString()
+      });
+      addSavedPhotoFeature({
+        id: photoId,
+        photo: photoForStorage,
+        title: titleForThisPhoto,
+        originalName: photoFileName,
+        latitude: photoLocation.latitude,
+        longitude: photoLocation.longitude
       });
       photoStorageStatus.textContent = photoWithMetadata.type === 'image/jpeg'
         ? 'Foto mit EXIF- und IPTC-Daten gespeichert.'
@@ -781,7 +869,55 @@ export function initPhotoCapture(map) {
     }
   });
 
-  takePhotoBtn.addEventListener('click', () => cameraInput.click());
+  map.on('pointermove', (event) => {
+    if (event.dragging) {
+      hidePhotoPreview();
+      return;
+    }
+
+    let photoPoint = null;
+    map.forEachFeatureAtPixel(event.pixel, (feature) => {
+      const selectionType = feature.get('selectionType');
+      if (selectionType !== 'location' && selectionType !== 'saved') return false;
+      photoPoint = feature;
+      return true;
+    }, { layerFilter: (layer) => layer === photoSelectionLayer });
+
+    if (!photoPoint) {
+      hidePhotoPreview();
+      return;
+    }
+
+    const selectionType = photoPoint.get('selectionType');
+    if (hoveredPhotoFeature !== photoPoint) {
+      hidePhotoPreview();
+      hoveredPhotoFeature = photoPoint;
+      if (selectionType === 'saved') {
+        hoveredPhotoUrl = URL.createObjectURL(photoPoint.get('photo'));
+      }
+    }
+
+    const previewUrl = selectionType === 'saved' ? hoveredPhotoUrl : photoPreviewUrl;
+    if (!previewUrl) {
+      hidePhotoPreview();
+      return;
+    }
+
+    if (photoPreviewImage.getAttribute('src') !== previewUrl) photoPreviewImage.src = previewUrl;
+    photoPreviewCaption.textContent = selectionType === 'saved'
+      ? (photoPoint.get('title') || photoPoint.get('originalName'))
+      : pendingPhoto.file.name;
+    photoPreview.style.display = 'block';
+    photoPreviewOverlay.setPosition(photoPoint.getGeometry().getCoordinates());
+  });
+
+  takePhotoBtn.addEventListener('click', () => {
+    if (!photoSelectionLayer.get('displayInLayerSwitcher')) {
+      photoSelectionLayer.set('displayInLayerSwitcher', true);
+      layerSwitcher.render();
+    }
+    cameraInput.click();
+  });
   choosePhotoLocationBtn.addEventListener('click', () => {
     photoSelectionStage = 'location';
     photoStorageStatus.textContent = 'Klicke auf der Karte auf den Aufnahmestandort.';
@@ -808,6 +944,9 @@ export function initPhotoCapture(map) {
   cameraInput.addEventListener('change', async () => {
     const [file] = cameraInput.files;
     if (!file) return;
+
+    clearPhotoPreview();
+    photoPreviewUrl = URL.createObjectURL(file);
 
     photoDialogTitle.textContent = `Foto (${file.name})`;
     const formData = readCurrentPhotoForm();

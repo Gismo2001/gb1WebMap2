@@ -35,6 +35,7 @@ export function initPhotoCapture(map, layerSwitcher) {
   let photoPreviewUrl = null;
   let hoveredPhotoFeature = null;
   let hoveredPhotoUrl = null;
+  let hoveredDirectionFeature = null;
   let photoDatabaseVersion = 0;
 
   const photoSelectionSource = new VectorSource();
@@ -43,6 +44,7 @@ export function initPhotoCapture(map, layerSwitcher) {
     zIndex: 1001,
     displayInLayerSwitcher: false,
     style: (feature) => feature.get('selectionType') === 'direction'
+      || feature.get('selectionType') === 'preview-direction'
       ? new Style({
         stroke: new Stroke({ color: '#d62f2f', width: 4 }),
         image: new CircleStyle({ radius: 7, fill: new Fill({ color: '#d62f2f' }), stroke: new Stroke({ color: '#fff', width: 2 }) })
@@ -76,6 +78,10 @@ export function initPhotoCapture(map, layerSwitcher) {
     photoPreview.style.display = 'none';
     photoPreviewImage.removeAttribute('src');
     photoPreviewCaption.textContent = '';
+    if (hoveredDirectionFeature) {
+      photoSelectionSource.removeFeature(hoveredDirectionFeature);
+      hoveredDirectionFeature = null;
+    }
     if (hoveredPhotoUrl) URL.revokeObjectURL(hoveredPhotoUrl);
     hoveredPhotoFeature = null;
     hoveredPhotoUrl = null;
@@ -108,7 +114,8 @@ export function initPhotoCapture(map, layerSwitcher) {
       photoId: photo.id,
       photo: photo.photo,
       title: photo.title || '',
-      originalName: photo.originalName || ''
+      originalName: photo.originalName || '',
+      direction: photo.direction
     }));
   }
 
@@ -798,7 +805,8 @@ export function initPhotoCapture(map, layerSwitcher) {
             photo: file,
             originalName: file.name,
             latitude: exif.latitude,
-            longitude: exif.longitude
+            longitude: exif.longitude,
+            direction: exif.direction
           });
           photoKeys.add(photoKey);
           counts.imported += 1;
@@ -910,7 +918,8 @@ export function initPhotoCapture(map, layerSwitcher) {
         title: titleForThisPhoto,
         originalName: photoFileName,
         latitude: photoLocation.latitude,
-        longitude: photoLocation.longitude
+        longitude: photoLocation.longitude,
+        direction
       });
       photoStorageStatus.textContent = photoWithMetadata.type === 'image/jpeg'
         ? 'Foto mit EXIF- und IPTC-Daten gespeichert.'
@@ -978,6 +987,23 @@ export function initPhotoCapture(map, layerSwitcher) {
       hoveredPhotoFeature = photoPoint;
       if (selectionType === 'saved') {
         hoveredPhotoUrl = URL.createObjectURL(photoPoint.get('photo'));
+        const direction = photoPoint.get('direction');
+        if (Number.isFinite(direction)) {
+          const originPixel = map.getPixelFromCoordinate(photoPoint.getGeometry().getCoordinates());
+          const directionPixel = [
+            originPixel[0] + Math.sin(direction * Math.PI / 180) * 80,
+            originPixel[1] - Math.cos(direction * Math.PI / 180) * 80
+          ];
+          const directionCoordinate = map.getCoordinateFromPixel(directionPixel);
+          hoveredDirectionFeature = new Feature({
+            geometry: new LineString([
+              photoPoint.getGeometry().getCoordinates(),
+              directionCoordinate
+            ]),
+            selectionType: 'preview-direction'
+          });
+          photoSelectionSource.addFeature(hoveredDirectionFeature);
+        }
       }
     }
 

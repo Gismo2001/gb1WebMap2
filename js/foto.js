@@ -11,6 +11,8 @@ import piexif from 'piexifjs';
 export function initPhotoCapture(map, layerSwitcher) {
   const takePhotoBtn = document.getElementById('take-photo-btn');
   const cameraInput = document.getElementById('camera-input');
+  const importPhotosBtn = document.getElementById('import-photos-btn');
+  const photoImportInput = document.getElementById('photo-import-input');
   const photoDialogTitle = document.querySelector('#mobile-sidebar .sidebar-header h3');
   const photoTitle = document.getElementById('photo-title');
   const photoKilometer = document.getElementById('photo-kilometer');
@@ -234,8 +236,14 @@ export function initPhotoCapture(map, layerSwitcher) {
     return Number.isNaN(date.getTime()) ? null : date;
   }
 
+  function isJpegPhoto(file) {
+    return file.type === 'image/jpeg'
+      || file.type === 'image/jpg'
+      || /\.jpe?g$/i.test(file.name);
+  }
+
   async function readPhotoExif(file) {
-    if (file.type !== 'image/jpeg' && file.type !== 'image/jpg') return null;
+    if (!isJpegPhoto(file)) return null;
 
     try {
       const exif = piexif.load(await fileToDataUrl(file));
@@ -743,6 +751,82 @@ export function initPhotoCapture(map, layerSwitcher) {
     });
   }
 
+  async function importPhotos(files) {
+    const counts = { imported: 0, duplicates: 0, withoutGps: 0, unreadable: 0, failed: 0 };
+
+    try {
+      const existingPhotos = await getSavedPhotos();
+      const photoKeys = new Set(existingPhotos.map((photo) => {
+        const storedFile = photo.photo;
+        return storedFile
+          ? `${photo.originalName}\u0000${storedFile.size}\u0000${storedFile.lastModified}`
+          : '';
+      }));
+
+      for (const file of files) {
+        if (!isJpegPhoto(file)) {
+          counts.unreadable += 1;
+          continue;
+        }
+
+        const photoKey = `${file.name}\u0000${file.size}\u0000${file.lastModified}`;
+        if (photoKeys.has(photoKey)) {
+          counts.duplicates += 1;
+          continue;
+        }
+
+        const exif = await readPhotoExif(file);
+        if (!exif) {
+          counts.unreadable += 1;
+          continue;
+        }
+        if (!Number.isFinite(exif.latitude) || !Number.isFinite(exif.longitude)) {
+          counts.withoutGps += 1;
+          continue;
+        }
+
+        try {
+          const capturedAt = exif.capturedAt || new Date(file.lastModified);
+          const photoId = await savePhoto(file, '', {
+            latitude: exif.latitude,
+            longitude: exif.longitude,
+            direction: exif.direction ?? '',
+            capturedAt: capturedAt.toISOString()
+          });
+          addSavedPhotoFeature({
+            id: photoId,
+            photo: file,
+            originalName: file.name,
+            latitude: exif.latitude,
+            longitude: exif.longitude
+          });
+          photoKeys.add(photoKey);
+          counts.imported += 1;
+        } catch (error) {
+          console.error(`Foto "${file.name}" konnte nicht gespeichert werden:`, error);
+          counts.failed += 1;
+        }
+      }
+    } catch (error) {
+      console.error('Fotoimport konnte nicht auf die Fotodatenbank zugreifen:', error);
+      photoStorageStatus.textContent = 'Der Fotoimport ist fehlgeschlagen. Die Fotodatenbank konnte nicht gelesen werden.';
+      return;
+    }
+
+    if (counts.imported > 0 && !photoSelectionLayer.get('displayInLayerSwitcher')) {
+      photoSelectionLayer.set('displayInLayerSwitcher', true);
+      layerSwitcher.render();
+    }
+
+    photoStorageStatus.textContent = [
+      `${counts.imported} importiert`,
+      `${counts.duplicates} bereits vorhanden`,
+      `${counts.withoutGps} ohne GPS übersprungen`,
+      `${counts.unreadable} keine lesbare JPEG-Datei`,
+      `${counts.failed} Speicherfehler`
+    ].join(' · ');
+  }
+
   function getPhotoDownloadName(file, capturedAt = new Date()) {
     const extension = file.type === 'image/jpeg' || file.type === 'image/jpg'
       ? 'jpg'
@@ -917,6 +1001,20 @@ export function initPhotoCapture(map, layerSwitcher) {
       layerSwitcher.render();
     }
     cameraInput.click();
+  });
+  importPhotosBtn.addEventListener('click', () => photoImportInput.click());
+  photoImportInput.addEventListener('change', async () => {
+    const files = Array.from(photoImportInput.files || []);
+    photoImportInput.value = '';
+    if (!files.length) return;
+
+    importPhotosBtn.disabled = true;
+    photoStorageStatus.textContent = `${files.length} Foto(s) werden geprüft und importiert …`;
+    try {
+      await importPhotos(files);
+    } finally {
+      importPhotosBtn.disabled = false;
+    }
   });
   choosePhotoLocationBtn.addEventListener('click', () => {
     photoSelectionStage = 'location';

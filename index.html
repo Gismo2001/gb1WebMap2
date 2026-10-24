@@ -137,8 +137,9 @@
         <label for="photo-description">Beschreibung (optional)</label>
         <textarea id="photo-description" rows="2" maxlength="200" placeholder="Beschreibung zum Foto" class="photo-description-input"></textarea>
         <button id="take-photo-btn" type="button">📷 Foto aufnehmen</button>
+        <button id="import-photos-btn" type="button">📂 Fotos importieren</button>
         <button id="export-photo-csv-btn" type="button">📄 Fotostandorte CSV exportieren</button>
-        <button id="export-photo-geojson-btn" type="button">🗺️ Fotostandorte exportieren</button>
+        <button id="export-photo-geojson-btn" type="button">🗺️ Fotostandorte JOSON exportieren</button>
         <button id="clear-photo-database-btn" type="button">🗑️ Fotodatenbank bereinigen</button>
       </li>
     </ul>
@@ -163,6 +164,7 @@
 
 <div id="sidebar-overlay" class="sidebar-overlay"></div>
 <input type="file" id="camera-input" accept="image/*" capture="environment" hidden>
+<input type="file" id="photo-import-input" accept="image/jpeg,.jpg,.jpeg" multiple hidden>
 <div class="sidebar-section">
   <h4 class="sidebar-section-title">Legenden: Bauwerke</h4>
   <!-- Hier werden die Accordion-Einträge dynamisch hineingeneriert -->

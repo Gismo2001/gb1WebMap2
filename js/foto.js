@@ -63,7 +63,7 @@ export function initPhotoCapture(map, layerSwitcher) {
   photoPreviewImage.alt = 'Ausgewähltes Foto';
   photoPreviewImage.style.cssText = 'display:block; max-width:240px; max-height:180px; object-fit:contain;';
   const photoPreviewCaption = document.createElement('div');
-  photoPreviewCaption.style.cssText = 'max-width:240px; padding:4px 2px 0; color:#222; font:12px sans-serif; overflow-wrap:anywhere;';
+  photoPreviewCaption.style.cssText = 'max-width:240px; padding:4px 2px 0; color:#222; font:12px sans-serif; overflow-wrap:anywhere; white-space:pre-line;';
   photoPreview.append(photoPreviewImage, photoPreviewCaption);
   const photoPreviewOverlay = new Overlay({
     element: photoPreview,
@@ -1014,9 +1014,11 @@ export function initPhotoCapture(map, layerSwitcher) {
     }
 
     if (photoPreviewImage.getAttribute('src') !== previewUrl) photoPreviewImage.src = previewUrl;
-    photoPreviewCaption.textContent = selectionType === 'saved'
-      ? (photoPoint.get('title') || photoPoint.get('originalName'))
-      : pendingPhoto.file.name;
+    const photoTitle = selectionType === 'saved' ? photoPoint.get('title') : '';
+    const photoFileName = selectionType === 'saved' ? photoPoint.get('originalName') : pendingPhoto.file.name;
+    photoPreviewCaption.textContent = [photoTitle, photoFileName]
+      .filter((caption, index, captions) => caption && captions.indexOf(caption) === index)
+      .join('\n');
     photoPreview.style.display = 'block';
     photoPreviewOverlay.setPosition(photoPoint.getGeometry().getCoordinates());
   });

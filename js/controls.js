@@ -24,6 +24,7 @@ import CanvasTitle from 'ol-ext/control/CanvasTitle';
 import CanvasScaleLine from 'ol-ext/control/CanvasScaleLine';
 
 import { fileToggleInput } from './mapEvents.js';
+import { downloadLayerSwitcherConfig, selectLayerSwitcherConfigFile } from './shareConfigLayerSwicher.js';
 
 
 import { isDgmActive, setDgmActive, disableDgmInteraction  } from './dgmdom.js';
@@ -255,6 +256,45 @@ export function createSubBarI(map) {
     },  
   });
 
+  let layerConfigToggleBtn;
+  layerConfigToggleBtn = new Toggle({
+    html: '💾',
+    title: 'Layerswitcher-Konfiguration als JSON speichern',
+    onToggle: function (active) {
+      if (!active) return;
+
+      try {
+        downloadLayerSwitcherConfig(map);
+      } catch (error) {
+        console.error('Fehler beim Exportieren der Layerswitcher-Konfiguration:', error);
+        zeigeNachricht('Die Layerswitcher-Konfiguration konnte nicht gespeichert werden.');
+      } finally {
+        layerConfigToggleBtn.setActive(false);
+      }
+    }
+  });
+
+  let loadLayerConfigToggleBtn;
+  loadLayerConfigToggleBtn = new Toggle({
+    html: '📂',
+    title: 'Layerswitcher-Konfiguration aus JSON laden',
+    onToggle: async function (active) {
+      if (!active) return;
+
+      try {
+        const restoredCount = await selectLayerSwitcherConfigFile(map);
+        if (restoredCount !== false) {
+          zeigeNachricht(`Layerswitcher-Konfiguration geladen (${restoredCount} Haupteinträge).`);
+        }
+      } catch (error) {
+        console.error('Fehler beim Laden der Layerswitcher-Konfiguration:', error);
+        zeigeNachricht(error.message || 'Die Layerswitcher-Konfiguration konnte nicht geladen werden.');
+      } finally {
+        loadLayerConfigToggleBtn.setActive(false);
+      }
+    }
+  });
+
   // --- Permalink Toggle Button ---
   const permalinkToggleBtn = new Toggle({
     html: '🔗',
@@ -284,7 +324,7 @@ export function createSubBarI(map) {
 
   return new Bar({ 
     toggleOne: true, 
-    controls: [gpsToggleBtn, ptnToogleBtn, fileToogleBtn, permalinkToggleBtn] 
+    controls: [gpsToggleBtn, ptnToogleBtn, fileToogleBtn, layerConfigToggleBtn, loadLayerConfigToggleBtn, permalinkToggleBtn]
   });
 }
 

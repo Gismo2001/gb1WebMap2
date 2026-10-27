@@ -83,15 +83,33 @@ export async function loadWFSCapabilities(baseUrl) {
   }
 }
 export function loadWFSLayer(map, baseUrl, typeName) {
+  const layer = createWFSLayer(baseUrl, typeName);
+  map.addLayer(layer);
+  const vectorSource = layer.getSource();
+
+  // Fehlerüberwachung
+  vectorSource.on('featuresloadend', function(evt) {
+    console.log(`✅ ${evt.features.length} Features für ${typeName} geladen`);
+  });
+
+  vectorSource.on('featuresloaderror', function() {
+    console.error(`❌ Fehler beim Laden der WFS-Features für ${typeName}`);
+  });
+}
+
+export function createWFSLayer(baseUrl, typeName, serviceConfig = {}) {
   const cleanUrl = baseUrl.split('?')[0];
   const parsedUrl = new URL(cleanUrl);
   const layerInfo = wfsMetadata.get(cleanUrl)?.layers?.[typeName];
   const supportedCrs = layerInfo?.crs || [];
-  const srsCode = ['25832', '3857', '4326'].find(code =>
+  const srsCode = serviceConfig.srsName
+    ? serviceConfig.srsName.match(/(\d+)$/)?.[1]
+    : null;
+  const selectedSrsCode = srsCode || ['25832', '3857', '4326'].find(code =>
     supportedCrs.some(crs => crs.endsWith(`:${code}`))
   ) || '4326';
-  const srsUrn = `urn:ogc:def:crs:EPSG::${srsCode}`;
-  const outputFormat = wfsMetadata.get(cleanUrl)?.outputFormats
+  const srsUrn = serviceConfig.srsName || `urn:ogc:def:crs:EPSG::${selectedSrsCode}`;
+  const outputFormat = serviceConfig.outputFormat || wfsMetadata.get(cleanUrl)?.outputFormats
     .find(format => format === 'application/gml+xml; version=3.2')
     || wfsMetadata.get(cleanUrl)?.outputFormats
       .find(format => format.includes('gml/3.2.1'))
@@ -109,10 +127,10 @@ export function loadWFSLayer(map, baseUrl, typeName) {
   const vectorSource = new VectorSource({
     format,
     url: function (extent, resolution, projection) {
-      const requestExtent = srsCode === '3857'
+      const requestExtent = selectedSrsCode === '3857'
         ? extent
-        : transformExtent(extent, projection, `EPSG:${srsCode}`);
-      const bboxValues = srsCode === '4326'
+        : transformExtent(extent, projection, `EPSG:${selectedSrsCode}`);
+      const bboxValues = selectedSrsCode === '4326'
         ? [requestExtent[1], requestExtent[0], requestExtent[3], requestExtent[2]]
         : requestExtent;
       // Prüfe, ob die URL von inspire.niedersachsen.de kommt → verwende Vite Proxy
@@ -138,7 +156,17 @@ export function loadWFSLayer(map, baseUrl, typeName) {
 
   const layer = new VectorLayer({
     source: vectorSource,
-    properties: { title: typeName },
+    properties: {
+      title: serviceConfig.title || typeName,
+      serviceConfig: {
+        type: 'WFS',
+        url: cleanUrl,
+        typeName,
+        version: serviceConfig.version || '2.0.0',
+        outputFormat,
+        srsName: srsUrn
+      }
+    },
     style: (feature) => {
       const geometryType = feature.getGeometry()?.getType();
       const isPoint = geometryType === 'Point' || geometryType === 'MultiPoint';
@@ -157,16 +185,7 @@ export function loadWFSLayer(map, baseUrl, typeName) {
     }
   });
 
-  map.addLayer(layer);
-
-  // Fehlerüberwachung
-  vectorSource.on('featuresloadend', function(evt) {
-    console.log(`✅ ${evt.features.length} Features für ${typeName} geladen`);
-  });
-  
-  vectorSource.on('featuresloaderror', function(evt) {
-    console.error(`❌ Fehler beim Laden der WFS-Features für ${typeName}`);
-  });
+  return layer;
 }
 
 // 💡 NEU: Holt die Liste aller Layer des ArcGIS FeatureServers

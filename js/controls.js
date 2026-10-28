@@ -33,7 +33,6 @@ import { isDomActive, setDomActive, disableDomInteraction  } from './dgmdom.js';
 import { layerSwitcher } from '../main.js';
 import SearchPhoton from 'ol-ext/control/SearchPhoton';
 
-import Permalink from 'ol-ext/control/Permalink';
 import WMSCapabilities from 'ol-ext/control/WMSCapabilities';
 import { deactivateDrawing } from './myDraw.js'; 
 
@@ -65,8 +64,6 @@ let isDrawActive = false;
 let isWfsActive = false; 
 
 
-//export const permalinkControl = null; 
-
 import { Style, Stroke, Fill, Circle as CircleStyle, Text } from 'ol/style';
 export const selectStyle = new Style({
   stroke: new Stroke({
@@ -82,42 +79,8 @@ export const selectStyle = new Style({
   })
 });
 
-// --- Control definieren ---
-let permalinkControl = new Permalink({
-  className: 'ol-permalink permalinkControl', // Eigene Klasse hinzufügen
-  refreshDelay:100,
-  visible: true,
-  localStorage: false,
-  onclick: function(url) {
-    navigator.clipboard.writeText(url).then(function() {alert("Link kopiert!"); });
-  }
-});
-
-// Initialisiert permalinkButton
-export function initPermalinkButton(map) {
-  const permalink = new Permalink({
-    className: 'ol-permalink-button',
-    title: "Permalink erstellen",
-    urlReplace: false, 
-    refreshDelay: 100,
-    localStorage: false, 
-    visible: false,    
-    anchor: false, 
-      onclick: function(url) {
-        navigator.clipboard.writeText(url).then(() => {
-          const btn = document.querySelector('.ol-permalink-button button');
-          console.log ("permalinkButton geclickt");
-          btn.innerHTML = "✅"; 
-            setTimeout(() => { btn.innerHTML = ""; }, 2000);
-        });
-        zeigeNachricht("Link (aus init) erstellt");
-    }
-  });
-  map.addControl(permalink);
-  return permalink;
-}
 export function createLayerSwitcher(map) {
-  return new LayerSwitcher({
+  const layerSwitcher = new LayerSwitcher({
     reordering: true, // Erlaubt Neuanordnung
     trash: true,
     activationMode: 'click',
@@ -131,6 +94,21 @@ export function createLayerSwitcher(map) {
       }
     },
   });
+
+  layerSwitcher.element.addEventListener('click', (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+
+    const removeButton = target.closest('.layerTrash');
+    if (!removeButton || !layerSwitcher.element.contains(removeButton)) return;
+
+    if (!window.confirm('Möchtest du diesen Layer wirklich entfernen? Wenn dadurch eine Gruppe leer wird, wird auch diese entfernt.')) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  }, true);
+
+  return layerSwitcher;
 }
 export function createMainToolbar(map) {
   const bar = new Bar({
@@ -190,30 +168,6 @@ export function createMainToolbar(map) {
 }
 
 export function createSubBarI(map) {
-  // 1. Erst prüfen, ob permalinkControl (die globale Variable von ganz oben) existiert. Wenn nicht: frisch erstellen!
-  if (!permalinkControl) {
-    console.log("Permalink wird initialisiert");
-    permalinkControl = new Permalink({
-        className: 'ol-permalink-button',
-        urlReplace: false, 
-        refreshDelay: 100,
-        localStorage: false, 
-        visible: false,    
-        anchor: false,     
-        onclick: function(url) {
-            navigator.clipboard.writeText(url).then(() => {
-                const btn = document.querySelector('.ol-permalink-button button');
-                if (btn) {
-                    btn.innerHTML = "✅"; 
-                    setTimeout(() => { btn.innerHTML = ""; }, 2000);
-                }
-              
-            });
-            zeigeNachricht("Link (aus Button) erstellt");
-        }
-    });
-  }
-
   // --- DIE ALTE SUCHE WURDE HIER ENTFERNT ---
 
   const gpsToggleBtn = new Toggle({
@@ -295,36 +249,9 @@ export function createSubBarI(map) {
     }
   });
 
-  // --- Permalink Toggle Button ---
-  const permalinkToggleBtn = new Toggle({
-    html: '🔗',
-    title: 'Permalink / Teilen aktivieren',
-    onToggle: function (active) {
-      if (active) {
-        //Control zur Karte hinzufügen (erstellt das HTML-Element!)
-        map.addControl(permalinkControl);
-        permalinkControl.setUrlReplace(true);
-         // Das Element im DOM suchen
-        const permalinkButton = document.querySelector('.ol-permalink-button');
-        //Sichtbar machen
-       if (permalinkButton) {
-        permalinkButton.style.display = 'block';
-        permalinkButton.style.transform = 'translateY(50px)';
-       }
-      } else {
-        // suchen, von der Karte löschen
-        const permalinkButton = document.querySelector('.ol-permalink-button');
-        if (permalinkButton) {permalinkButton.style.display = 'none';}
-        permalinkControl.setUrlReplace(false);
-        map.removeControl(permalinkControl);
-        //window.history.replaceState({}, document.title, window.location.pathname);
-      }
-    }
-  });
-
   return new Bar({ 
     toggleOne: true, 
-    controls: [gpsToggleBtn, ptnToogleBtn, fileToogleBtn, layerConfigToggleBtn, loadLayerConfigToggleBtn, permalinkToggleBtn]
+    controls: [gpsToggleBtn, ptnToogleBtn, fileToogleBtn, layerConfigToggleBtn, loadLayerConfigToggleBtn]
   });
 }
 
@@ -785,19 +712,11 @@ export function initializeWMS(map) {
     cap.on('load', (e) => {
       const layer = e.layer;
       const rawTitle = (e.options.data && (e.options.data.title || e.options.data.Name)) || "WMS Layer";
-      const permalinkId = rawTitle.toLowerCase().replace(/\s+/g, '_');
-      layer.set('permalink', permalinkId);
-      console.log(`Permalink für Layer "${rawTitle}": ${permalinkId}`);
       layer.set('title', rawTitle);
       layer.set('name', rawTitle); // Falls du 'name' als ID nutzt
       // Layer der Karte hinzufügen
       map.addLayer(layer);
       console.log('externer WMS-Layer hinzugefügt:', layer);
-      setTimeout(() => {
-        if (typeof permaFunktionality !== 'undefined' && permaFunktionality) {
-          permaFunktionality.changed();
-        }
-      }, 250); // Etwas großzügigerer Puffer für die Stabilität
   });
 }
 

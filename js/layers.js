@@ -46,7 +46,6 @@ export function creategnAtlasNI2023Layer() {
 return new TileLayer({
   title: 'NI2023',
   name: 'NI2023',
-  permalink:'NI2023',
   source: new TileWMS(({
     url: "https://opendata.lgln.niedersachsen.de/doorman/noauth/dop_wms",
     attributions: 'Orthophotos Niedersachsen, LGLN',
@@ -60,7 +59,6 @@ export function creategnAtlasNI2020Layer() {
 return new TileLayer({
   title: 'NI2020',
   name: 'NI2020',
-  permalink:'NI2020',
  source: new TileWMS(({
     url: "https://opendata.lgln.niedersachsen.de/doorman/noauth/doph_wms?",
     attributions: ' ',
@@ -74,7 +72,6 @@ export function creategnAtlasNI2017Layer() {
 return new TileLayer({
   title: 'NI2017',
   name: 'NI2017',
-  permalink:'NI2017',
   source: new TileWMS(({
     url: "https://opendata.lgln.niedersachsen.de/doorman/noauth/doph_wms?",
     attributions: ' ',
@@ -88,7 +85,6 @@ export function creategnAtlasNI2014Layer() {
 return new TileLayer({
   title: 'NI2014',
   name: 'NI2014',
-  permalink:'NI2014',
  source: new TileWMS(({
     url: "https://opendata.lgln.niedersachsen.de/doorman/noauth/doph_wms?",
     attributions: ' ',
@@ -102,7 +98,6 @@ export function creategnAtlasNOH2012Layer() {
 return new TileLayer({
   title: 'NOH2012',
   name: 'NOH2012',
-  permalink:'NOH2012',
   source: new TileWMS(({
       url: "https://geo.grafschaft.de/arcgis/services/Migratrion_Okt_2020/BAS_Luftbilder_2/MapServer/WMSServer",
       attributions: ' ',
@@ -116,7 +111,6 @@ export function creategnAtlasNI2011Layer() {
 return new TileLayer({
   title: 'NI2011',
   name: 'NI2011',
-  permalink:'NNI2011',
   source: new TileWMS(({
     url: "https://opendata.lgln.niedersachsen.de/doorman/noauth/doph_wms?",
     attributions: ' ',
@@ -130,7 +124,6 @@ export function creategnAtlasNOH2010Layer () {
 return new TileLayer({
   title: 'NOH2010',
   name: 'NOH2010',
-  permalink:'NOH2010',
   source: new TileWMS(({
       url: "https://geo.grafschaft.de/arcgis/services/Migratrion_Okt_2020/BAS_Luftbilder_2/MapServer/WMSServer",
       attributions: ' ',
@@ -144,7 +137,6 @@ export function creategnAtlasNI2009Layer () {
 return new TileLayer({
   title: 'NI2009',
   name: 'NI2009',
-  permalink:'NI2009',
    source: new TileWMS(({
     url: "https://opendata.lgln.niedersachsen.de/doorman/noauth/doph_wms?",
     attributions: ' ',
@@ -158,7 +150,6 @@ export function creategnAtlasNOH2009Layer () {
 return new TileLayer({
   title: 'NOH2009',
   name: 'NOH2009',
-  permalink:'NOH2009',
   source: new TileWMS(({
       url: "https://geo.grafschaft.de/arcgis/services/Migratrion_Okt_2020/BAS_Luftbilder_2/MapServer/WMSServer",
       attributions: ' ',
@@ -172,7 +163,6 @@ export function creategnAtlasNOH2002Layer() {
 return new TileLayer({
   title: 'NOH2002',
   name: 'NOH2002',
-  permalink:'NOH2002',
   source: new TileWMS(({
       url: "https://geo.grafschaft.de/arcgis/services/Migratrion_Okt_2020/BAS_Luftbilder_2/MapServer/WMSServer",
       attributions: ' ',
@@ -186,7 +176,6 @@ export function creategnAtlasNOH1990Layer() {
 return new TileLayer({
   title: 'NOH1990',
   name: 'NOH1990',
-  permalink:'NOH1990',
   source: new TileWMS(({
       url: "https://geo.grafschaft.de/arcgis/services/Migratrion_Okt_2020/BAS_Luftbilder_2/MapServer/WMSServer",
       attributions: ' ',
@@ -200,7 +189,6 @@ export function creategnAtlasNOH1980Layer() {
 return new TileLayer({
   title: 'NOH1980',
   name: 'NOH1980',
-  permalink:'NOH1980',
   source: new TileWMS(({
       url: "https://geo.grafschaft.de/arcgis/services/Migratrion_Okt_2020/BAS_Luftbilder_2/MapServer/WMSServer",
       attributions: ' ',
@@ -214,7 +202,6 @@ export function creategnAtlasNOH1970Layer() {
 return new TileLayer({
   title: 'NOH1970',
   name: 'NOH1970',
-  permalink:'NOH1970',
   source: new TileWMS(({
       url: "https://geo.grafschaft.de/arcgis/services/Migratrion_Okt_2020/BAS_Luftbilder_2/MapServer/WMSServer",
       attributions: ' ',
@@ -228,7 +215,6 @@ export function creategnAtlasNOH1957Layer() {
 return new TileLayer({
   title: 'NOH1957',
   name: 'NOH1957',
-  permalink:'NOH1957',
   source: new TileWMS(({
       url: "https://geo.grafschaft.de/arcgis/services/Migratrion_Okt_2020/BAS_Luftbilder_2/MapServer/WMSServer",
       attributions: ' ',
@@ -242,7 +228,6 @@ export function creategnAtlasNOH1937Layer () {
 return new TileLayer({
   title: 'NOH1937',
   name: 'NOH1937',
-  permalink:'NOH1937',
   source: new TileWMS(({
       url: "https://geo.grafschaft.de/arcgis/services/Migratrion_Okt_2020/BAS_Luftbilder_2/MapServer/WMSServer",
       attributions: ' ',
@@ -259,7 +244,6 @@ export function createKm10scalLayer() {
   source: new VectorSource({format: new GeoJSON(), url: function (extent) {return '/myLayers/km_10_scal.geojson' + '?bbox=' + extent.join(','); }, strategy: bboxStrategy }),
   title: 'Km10scal',
   name: 'Km10scal',
-  permalink:'Km10scal',
   style: function(feature, resolution) {return Km10scalStyle(feature, feature.get('km'), resolution);  },
   visible: true,
   minResolution: 0,
@@ -271,7 +255,6 @@ export function createKm100scalLayer() {
  source: new VectorSource({format: new GeoJSON(), url: function (extent) {return '/myLayers/km_100_scal.geojson' + '?bbox=' + extent.join(','); }, strategy: bboxStrategy }),
   title: 'Km100scal',
   name: 'Km100scal',
-  permalink:'Km100scal',
   style: function(feature, resolution) {return Km100scalStyle(feature, feature.get('km'), resolution);  },
   visible: true,
   minResolution: 0,
@@ -283,7 +266,6 @@ export function createKm500scalLayer() {
  source: new VectorSource({format: new GeoJSON(), url: function (extent) {return '/myLayers/km_500_scal.geojson' + '?bbox=' + extent.join(','); }, strategy: bboxStrategy }),
   title: 'Km500scal',
   name: 'Km500scal',
-  permalink:'Km500scal',
   style: function(feature, resolution) {return Km500scalStyle(feature, feature.get('km'), resolution);  },
   visible: true
  
@@ -296,7 +278,6 @@ export function creategoogleHybLayer() {
 return new TileLayer({
   title: 'GoogleHybrid',
   name: 'googleHybrid',
-  permalink:'googleHybrid',
   type: 'base',
   baseLayer: false,
   opacity: 1,
@@ -311,7 +292,6 @@ export function creategoogleSatLayer() {
 return new TileLayer({
   title: 'GoogleSat',
   name: 'googleSat',
-  permalink:'googleSat',
   type: 'base',
   baseLayer: false,
   opacity: 1,
@@ -326,7 +306,6 @@ export function createEsriWorldImageryLayer() {
 return new TileLayer({
   title: 'ESRI-Sat',
   name: 'ESRISat',
-  permalink:'ESRISat',
   type: 'base',
   source: new XYZ({
     attributions: 'Powered by Esri',
@@ -340,7 +319,6 @@ export function createDop20niLayer() {
   return new TileLayer({
   title: 'DOP20 NI',
   name: 'dop20ni',
-  permalink:'dop20ni',
   type: 'base',
   source: new TileWMS({
     url: "https://opendata.lgln.niedersachsen.de/doorman/noauth/dop_wms",
@@ -359,7 +337,6 @@ export function createOsmTileCr() {
   return new TileLayer({
     title: 'osm-color',
     name: 'osmcolor',
-    permalink: 'osmcolor',
     className: 'base',
     type: 'base',
     source: new OSM({
@@ -374,7 +351,6 @@ export function createOsmTileGr() {
   return new TileLayer({
     title: 'osm-grey',
     name: 'osmgrey',
-    permalink: 'osmgrey',
     className: 'base-grey',
     type: 'base',
     
@@ -391,7 +367,6 @@ export function createbaseDECrLayer() {
   return new TileLayer({
      title: 'Base-DE-color',
   name: 'baseDeCr',
-  permalink:'baseDECr',
   type: 'base',
   source: new TileWMS({
     url: "https://sgx.geodatenzentrum.de/wms_basemapde",
@@ -411,7 +386,6 @@ export function createbaseDEGrLayer() {
   return new TileLayer({
   title: 'Base-DE-grey',
   name: 'baseDeGr',
-  permalink:'baseDEGr',
   type: 'base',
     source: new TileWMS({
     url: "https://sgx.geodatenzentrum.de/wms_basemapde",
@@ -432,7 +406,6 @@ export function createbaseTopPlusLayer() {
 return new TileLayer({
 title: 'TopPlus',
   name: 'TopPlus',
-  permalink:'TopPlus',
   type: 'base',
   'TopPlusOpen': 'https://sgx.geodatenzentrum.de/wms_topplus_open?request=GetCapabilities&service=wms',
 
@@ -465,7 +438,6 @@ export function createExpBwSleLayer() {
     }),
     title: 'Schleuse',
     name: 'sle',
-    permalink: 'sle',
     style: SleStyle,
     opacity: 0.7,
     visible: true,
@@ -482,7 +454,6 @@ export function createExpBwWehLayer() {
     }),
     title: 'Wehr', 
     name: 'weh', 
-    permalink:'weh',
     style: WehStyle,
     opacity: 0.7,
     visible: false,
@@ -499,7 +470,6 @@ export function createExpBwBruAndereLayer() {
     }),
     title: 'Brücke (andere)',
     name: 'bru_andere', 
-    permalink:'bru_andere',  
     style: BruAndereStyle,
     opacity: 0.7,
     visible: false,
@@ -516,7 +486,6 @@ export function createExpBwBruNlwknLayer() {
     }),
     title: 'Brücke (NLWKN)', 
     name: 'bru_nlwkn', // Titel für den Layer-Switcher
-    permalink:'bru_nlwkn',  // Um Permalink zu setzen
     style: BruNlwknStyle,
     opacity: 0.7,
     visible: true,
@@ -533,7 +502,6 @@ export function createExpBwDueLayer() {
     }),
     title: 'Düker', 
     name: 'due', 
-    permalink:'due',  
     style: DueStyle,
     opacity: 0.7,
     visible: false
@@ -550,7 +518,6 @@ export function createExpBwQueLayer() {
     }),
     title: 'Querung', 
     name: 'que', 
-    permalink:'que',  
     style: QueStyle,
     opacity: 0.7,
     visible: false,
@@ -567,7 +534,6 @@ export function createExpBwEinLayer() {
     }),
   title: 'Einläufe', 
   name: 'ein', 
-  permalink:'ein',  
   style: getStyleForArtEin,
   opacity: 0.7,
   visible: false
@@ -584,7 +550,6 @@ export function createExpBwSonPunLayer() {
     }),
    title: 'Sonstige, Punkte', 
   name: 'son_pun', 
-  permalink:'son_pun', 
   style: getStyleForArtSonPun,
   opacity: 0.7,
   visible: false
@@ -605,7 +570,6 @@ return  new VectorLayer({
     }),
     title: 'fsk',
     name: 'fsk', 
-    permalink:'fsk', 
     style: getStyleForArtFSK,
     visible: false,
     //minResolution: 0,
@@ -625,7 +589,6 @@ export function createExpBwSonLinLayer() {
     }),
     title: 'Sonstige, Linien', 
     name: 'son_lin', 
-    permalink:'son_lin', 
     style: getStyleForArtSonLin,
     visible: false 
   });
@@ -641,7 +604,6 @@ export function createExpGewInfoLayer() {
     }),
   title: 'Gew, Info', 
   name: 'gew_info',
-  permalink: 'gew_info', 
   style: getStyleForArtGewInfo,
   visible: true
   });
@@ -657,7 +619,6 @@ export function createExpBwUMassnLayer() {
     }),
   title: 'U-Maßnahmen', 
   name: 'gew_umn',
-  permalink: 'gew_umn',
   style: getStyleForArtUmn,
   visible: false
   });
@@ -677,7 +638,6 @@ export function createGewWmsFgLayer() {
   }),
   title: 'gewWms',
   name: 'Gewaesser',
-  permalink:'Gewaesser',
   visible: true,
   opacity: 1,
 });
@@ -697,7 +657,6 @@ export function createWmsWrrlFgLayer() {
   }),
   title: 'Fließgew.',
   name: 'Fließgew',
-  permalink:'Fließgew',
   visible: false,
   opacity: 1,
 });
@@ -716,7 +675,6 @@ export function createwmsUesgLayer() {
   }),  
   title: 'UESG',
   name: 'UESG',
-  permalink:'UESG',
   visible: false,
   opacity: .5,
 
@@ -727,7 +685,6 @@ export function createwmsNsgLayer() {
 
   title: "NSG",
   name: "NSG",
-  permalink:'NSG',  
   source: new TileWMS({
     url: 'https://www.umweltkarten-niedersachsen.de/arcgis/services/Natur_wms/MapServer/WMSServer',
     params: {
@@ -745,7 +702,6 @@ export function createwmsLsgLayer() {
   return new TileLayer({
   title: "LSG",
   name: "LSG",
-  permalink:'LSG',  
   source: new TileWMS({
     url: 'https://www.umweltkarten-niedersachsen.de/arcgis/services/Natur_wms/MapServer/WMSServer',
     params: {
@@ -764,7 +720,6 @@ export function createwmsNibisLayer() {
   return new TileLayer({
   title: "Nibis Bohrdaten", // Für die Anzeige im LayerSwitcher
   name: "Nibis Bohrdaten",
-  permalink: 'nibis_bohrdaten', 
   source: new TileWMS({
     url: 'https://nibis.lbeg.de/net3/public/ogc.ashx?PkgId=37',
     params: {
@@ -785,7 +740,6 @@ export function createwmsAlkisLayer() {
   return new TileLayer({
   title: 'ALKIS',
   name: 'ALKIS',
-  permalink:'ALKIS',
   type: 'base',
   source: new TileWMS({
     url: "https://opendata.lgln.niedersachsen.de/doorman/noauth/alkis_wms?",
@@ -955,7 +909,6 @@ export function createLayerStructure() {
       new LayerGroup({
       title: 'Base',
       name: 'Base',
-      permalink: 'Base',
       layers: [
         ESRISat,
         googleHyb,
@@ -972,7 +925,6 @@ export function createLayerStructure() {
     new LayerGroup({
       title: 'Luftbilder',
       name: 'Luftbilder',
-      permalink: 'Luftbilder',
       layers: [
         NOH1937, 
         NOH1957,
@@ -1003,7 +955,6 @@ export function createLayerStructure() {
     new LayerGroup({
       title: 'WMS-Layer',
       name: 'WMS-Layer',
-      permalink:'WMS-Layer',
       visible: false,
 
       layers: [
@@ -1021,7 +972,6 @@ export function createLayerStructure() {
     new LayerGroup({
       title: 'Station',
       name: 'Station',
-      permalink: 'Station',
       layers: [
       Km10scal,
       Km100scal,
@@ -1034,7 +984,6 @@ export function createLayerStructure() {
     new LayerGroup({
       title: 'Bauw.(L)',
       name: 'Bauw.(L)',
-      permalink: 'Bauw.(L)',
       visible: false,
       layers: [
         umnLin,
@@ -1046,7 +995,6 @@ export function createLayerStructure() {
     new LayerGroup({
       title: 'Bauw.(P)',
       name: 'Bauw.(P)',
-      permalink: 'Bauw.(P)',
       layers: [
         sonPun,
         ein,

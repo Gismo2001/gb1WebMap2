@@ -40,7 +40,7 @@ function getLayerSourceConfig(layer) {
 
 function getLayerProperties(layer) {
   const properties = {};
-  ['name', 'permalink', 'displayInLayerSwitcher'].forEach(propertyName => {
+  ['name', 'displayInLayerSwitcher'].forEach(propertyName => {
     const value = layer.get(propertyName);
     if (value !== undefined) properties[propertyName] = value;
   });

@@ -54,8 +54,6 @@ import { initPhotoCapture } from './js/foto.js';
 
 import { loadedDgms, loadedDoms } from './js/dgmdom.js';  
 
-import { initPermalinkButton  } from './js/controls.js';
-
 import { initDrawing } from './js/myDraw.js'; // 💡 Hierher verschieben!
 
 
@@ -225,9 +223,6 @@ export function initBauwerkeLegendAccordion(map) {
     container.appendChild(itemEl);
   });
 }
-// permalinkButton aktivieren, 
-initPermalinkButton(map);
-
 initDrawing(map);
 
 export const dgmKachelLayer = createDgmKachelLayer();

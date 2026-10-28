@@ -277,14 +277,6 @@ html, body {
 }
 
 
- .ol-control.ol-permalink {
-    top: 0.5em;
-    right: 5em;
-    
-}
-
-
-
 .tabulator-header-filter {
     display: block; 
 }
@@ -449,12 +441,6 @@ html, body {
     height: 26px !important;
     font-size: 12px !important;
     border-radius: 4px !important;
-  }
-
-  /* 3. Den Permalink-Button sauber an die neue Position anpassen */
-  .ol-permalink-button {
-    top: 0.5em !important;
-    left: 15em !important; 
   }
 
   /* 4. Das Feature-Select Suchergebnis-Fenster im Querformat begrenzen */

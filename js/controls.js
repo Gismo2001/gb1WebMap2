@@ -238,11 +238,11 @@ export function createSubBarI(map) {
       try {
         const restoredCount = await selectLayerSwitcherConfigFile(map);
         if (restoredCount !== false) {
-          zeigeNachricht(`Layerswitcher-Konfiguration geladen (${restoredCount} Haupteinträge).`);
+          zeigeNachricht(`Layerswitcher-Konfiguration geladen (${restoredCount} Haupteinträge).`, 4000);
         }
       } catch (error) {
         console.error('Fehler beim Laden der Layerswitcher-Konfiguration:', error);
-        zeigeNachricht(error.message || 'Die Layerswitcher-Konfiguration konnte nicht geladen werden.');
+        zeigeNachricht(error.message || 'Die Layerswitcher-Konfiguration konnte nicht geladen werden.', 4000);
       } finally {
         loadLayerConfigToggleBtn.setActive(false);
       }
@@ -720,15 +720,14 @@ export function initializeWMS(map) {
   });
 }
 
-export function zeigeNachricht(txt) {
+export function zeigeNachricht(txt, dauer = 2000) {
   var x = document.getElementById("myShortMessage");
   x.className = "toast show";
   x.textContent = txt;
   console.log (x);
-  // Nach 3 Sekunden (3000ms) wieder ausblenden
   setTimeout(function(){ 
     x.className = x.className.replace("toast show", "toast");   
-  }, 2000);
+  }, dauer);
 }
 
 export function initializeWFS(map) {

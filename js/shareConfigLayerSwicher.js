@@ -218,9 +218,9 @@ function restoreLayer(config, existingLayers, usedLayers) {
     if (!Array.isArray(config.layers)) {
       throw new Error(`Die Gruppe "${config.title}" enthält keine gültige Layerliste.`);
     }
-    const restoredChildren = config.layers.map(child =>
-      restoreLayer(child, existingLayers, usedLayers)
-    );
+    const restoredChildren = config.layers
+      .map(child => restoreLayer(child, existingLayers, usedLayers))
+      .filter(layer => layer !== null);
     layer.getLayers().clear();
     layer.getLayers().extend(restoredChildren);
     return layer;
@@ -235,7 +235,7 @@ function restoreLayer(config, existingLayers, usedLayers) {
       getLayerIdentity(candidate) === identity
     );
     if (!layer) {
-      throw new Error(`Der Layer "${config.title}" ist kein WMS/WFS-Dienst und wurde in der aktuellen Karte nicht gefunden.`);
+      return null;
     }
   }
 
@@ -256,9 +256,9 @@ export function restoreLayerSwitcherConfig(map, config) {
   const existingLayers = collectExistingLayers(root);
   const hiddenLayers = collectHiddenLayers(root);
   const usedLayers = new Set([root]);
-  const restoredLayers = config.layers.map(layer =>
-    restoreLayer(layer, existingLayers, usedLayers)
-  );
+  const restoredLayers = config.layers
+    .map(layer => restoreLayer(layer, existingLayers, usedLayers))
+    .filter(layer => layer !== null);
 
   root.getLayers().clear();
   root.getLayers().extend([

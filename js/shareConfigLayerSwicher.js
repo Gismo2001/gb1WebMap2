@@ -203,6 +203,7 @@ function applyLayerConfig(layer, config) {
     layer.setExtent(config.extent);
   }
 }
+
 function restoreLayer(config, existingLayers, usedLayers) {
   try {
     if (!config || (config.type !== 'group' && config.type !== 'layer')) {

@@ -1,5 +1,35 @@
 import { defineConfig } from 'vite';
 
+const serviceProxy = {
+  '/lgln-stac': {
+    target: 'https://dgm.stac.lgln.niedersachsen.de',
+    changeOrigin: true,
+    secure: true,
+    rewrite: (path) => path.replace(/^\/lgln-stac/, ''),
+  },
+
+  '/dgm': {
+    target: 'https://dgm1.s3.eu-de.cloud-object-storage.appdomain.cloud',
+    changeOrigin: true,
+    secure: true,
+    rewrite: (path) => path.replace(/^\/dgm/, ''),
+  },
+
+  '/dom': {
+    target: 'https://dom1.s3.eu-de.cloud-object-storage.appdomain.cloud',
+    changeOrigin: true,
+    secure: true,
+    rewrite: (path) => path.replace(/^\/dom/, ''),
+  },
+
+  '/wfs-proxy': {
+    target: 'https://www.inspire.niedersachsen.de',
+    changeOrigin: true,
+    secure: false,
+    rewrite: (path) => path.replace(/^\/wfs-proxy/, ''),
+  }
+};
+
 export default defineConfig({
   plugins: [
     // legacy() wurde entfernt
@@ -9,37 +39,12 @@ export default defineConfig({
   },
   server: {
     host: '0.0.0.0',
-    proxy: {
-      '/lgln-stac': {
-        target: 'https://dgm.stac.lgln.niedersachsen.de',
-        changeOrigin: true,
-        secure: true,
-        rewrite: (path) => path.replace(/^\/lgln-stac/, ''),
-      },
-
-      '/dgm': {
-        target: 'https://dgm1.s3.eu-de.cloud-object-storage.appdomain.cloud',
-        changeOrigin: true,
-        secure: true,
-        rewrite: (path) => path.replace(/^\/dgm/, ''),
-      },
-
-      '/dom': {
-        target: 'https://dom1.s3.eu-de.cloud-object-storage.appdomain.cloud',
-        changeOrigin: true,
-        secure: true,
-        rewrite: (path) => path.replace(/^\/dom/, ''),
-      },
-
-      '/wfs-proxy': {
-        target: 'https://www.inspire.niedersachsen.de',
-        changeOrigin: true,
-        secure: false,
-        rewrite: (path) => path.replace(/^\/wfs-proxy/, ''),
-      }
-    },
+    proxy: serviceProxy,
   },
   preview: {
-    host: '0.0.0.0'
+    host: '0.0.0.0',
+    port: Number(process.env.PORT) || 8080,
+    strictPort: true,
+    proxy: serviceProxy,
   },
 });

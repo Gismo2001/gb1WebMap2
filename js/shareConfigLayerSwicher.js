@@ -5,10 +5,13 @@ import ImageWMS from 'ol/source/ImageWMS';
 import TileWMS from 'ol/source/TileWMS';
 import { transform } from 'ol/proj';
 import { createWFSLayer } from './loadWfs.js';
+import { dgmGroup, domGroup } from './layers.js';
+import { createRasterLayerFromConfig, syncRestoredRasterLayers } from './dgmdom.js';
 
 function getLayerSourceConfig(layer) {
   const serviceConfig = layer.get('serviceConfig');
-  if (serviceConfig && serviceConfig.type === 'WFS') {
+  if (serviceConfig &&
+      ['WFS', 'DGM', 'DOM'].includes(serviceConfig.type)) {
     return { ...serviceConfig };
   }
 
@@ -191,6 +194,16 @@ function createServiceLayer(config) {
     return createWFSLayer(service.url, service.typeName, service);
   }
 
+  if (config.source && ['DGM', 'DOM'].includes(config.source.type)) {
+    return createRasterLayerFromConfig({
+      ...config.source,
+      title: config.title,
+      visible: config.visible,
+      opacity: config.opacity,
+      properties: config.properties
+    });
+  }
+
   return null;
 }
 
@@ -211,7 +224,12 @@ function restoreLayer(config, existingLayers, usedLayers) {
 
   let layer;
   if (config.type === 'group') {
-    layer = new Group();
+    const groupIdentity = config.properties && config.properties.name || config.title;
+    layer = groupIdentity === dgmGroup.get('title')
+      ? dgmGroup
+      : groupIdentity === domGroup.get('title')
+        ? domGroup
+        : new Group();
     applyLayerConfig(layer, config);
     if (config.combine !== undefined) layer.set('combine', config.combine);
 
@@ -260,11 +278,14 @@ export function restoreLayerSwitcherConfig(map, config) {
     .map(layer => restoreLayer(layer, existingLayers, usedLayers))
     .filter(layer => layer !== null);
 
+  if (!restoredLayers.includes(dgmGroup)) dgmGroup.getLayers().clear();
+  if (!restoredLayers.includes(domGroup)) domGroup.getLayers().clear();
   root.getLayers().clear();
   root.getLayers().extend([
     ...restoredLayers,
     ...hiddenLayers.filter(layer => !usedLayers.has(layer))
   ]);
+  syncRestoredRasterLayers(root.getLayers().getArray());
 
   if (config.view && Array.isArray(config.view.center) &&
       config.view.center.length >= 2 &&

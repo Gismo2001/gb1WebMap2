@@ -55,6 +55,14 @@ export async function addDgmLayer(map, url, bbox, id1) {
     });
 
     layer.bbox = bbox;
+    layer.set('serviceConfig', {
+        type: 'DGM',
+        url: proxyUrl,
+        bbox: [...bbox],
+        min,
+        max,
+        tileId: id1
+    });
     //map.addLayer(layer);
     dgmGroup.getLayers().push(layer);
     activeDgmRasterLayers.push(layer);
@@ -147,6 +155,14 @@ export async function addDomLayer(map, url, bbox, id1) {
     });
 
     layer.bbox = bbox;
+    layer.set('serviceConfig', {
+        type: 'DOM',
+        url: proxyUrl,
+        bbox: [...bbox],
+        min,
+        max,
+        tileId: id1
+    });
     //map.addLayer(layer);
     domGroup.getLayers().push(layer);
     activeDomRasterLayers.push(layer);
@@ -235,6 +251,88 @@ export function createGeoTiffStyle(minHeight, maxHeight) {
         ]
     };
 }
+
+export function createRasterLayerFromConfig(config) {
+    const { type, url, bbox, min, max, tileId } = config || {};
+    if ((type !== 'DGM' && type !== 'DOM') ||
+        typeof url !== 'string' ||
+        !url ||
+        !Array.isArray(bbox) ||
+        bbox.length !== 4 ||
+        !bbox.every(Number.isFinite) ||
+        !Number.isFinite(min) ||
+        !Number.isFinite(max)) {
+        throw new Error('Die GeoTIFF-Kachelkonfiguration ist unvollständig.');
+    }
+
+    const layer = new WebGLTileLayer({
+        source: new GeoTIFFSource({
+            sources: [{ url }],
+            projection: 'EPSG:25832',
+            normalize: false,
+            sourceOptions: { allowFullFile: false, cache: true }
+        }),
+        title: config.title,
+        name: config.properties && config.properties.name || config.title,
+        visible: config.visible,
+        opacity: config.opacity,
+        style: createGeoTiffStyle(min, max)
+    });
+    layer.bbox = [...bbox];
+    layer.set('serviceConfig', { type, url, bbox: [...bbox], min, max, tileId });
+    return layer;
+}
+
+export function syncRestoredRasterLayers(layers) {
+    const restoredLayers = [];
+    const collectLayers = layer => {
+        restoredLayers.push(layer);
+        if (typeof layer.getLayers === 'function') {
+            layer.getLayers().forEach(collectLayers);
+        }
+    };
+    layers.forEach(collectLayers);
+    const restoredLayerSet = new Set(restoredLayers);
+    const dgmLayers = activeDgmRasterLayers.filter(layer => restoredLayerSet.has(layer));
+    const domLayers = activeDomRasterLayers.filter(layer => restoredLayerSet.has(layer));
+    const dgmData = activeDgmRasterData.filter(data => restoredLayerSet.has(data.layer));
+    const domData = activeDomRasterData.filter(data => restoredLayerSet.has(data.layer));
+    const restoredDgms = [];
+    const restoredDoms = [];
+
+    restoredLayers.forEach(layer => {
+        const config = layer.get('serviceConfig');
+        if (!config || (config.type !== 'DGM' && config.type !== 'DOM')) return;
+
+        const data = { bbox: config.bbox, min: config.min, max: config.max, layer };
+        if (config.type === 'DGM') {
+            if (!dgmLayers.includes(layer)) dgmLayers.push(layer);
+            if (!dgmData.some(item => item.layer === layer)) dgmData.push(data);
+            restoredDgms.push({ tile_id: config.tileId, bbox: config.bbox });
+        } else {
+            if (!domLayers.includes(layer)) domLayers.push(layer);
+            if (!domData.some(item => item.layer === layer)) domData.push(data);
+            restoredDoms.push({ tile_id: config.tileId, bbox: config.bbox });
+        }
+    });
+
+    activeDgmRasterLayers.splice(0, activeDgmRasterLayers.length, ...dgmLayers);
+    activeDomRasterLayers.splice(0, activeDomRasterLayers.length, ...domLayers);
+    activeDgmRasterData.splice(0, activeDgmRasterData.length, ...dgmData);
+    activeDomRasterData.splice(0, activeDomRasterData.length, ...domData);
+    loadedDgms.splice(0, loadedDgms.length, ...restoredDgms);
+    loadedDoms.splice(0, loadedDoms.length, ...restoredDoms);
+
+    const dgmRange = getOverallDgmMinMax();
+    if (dgmRange) {
+        dgmData.forEach(data => data.layer.setStyle(createGeoTiffStyle(dgmRange.min, dgmRange.max)));
+    }
+    const domRange = getOverallDomMinMax();
+    if (domRange) {
+        domData.forEach(data => data.layer.setStyle(createGeoTiffStyle(domRange.min, domRange.max)));
+    }
+}
+
 export async function getMinMaxFromMetadata(url, typePath = '/dgm') {
     try {
         const response = await fetch(url);

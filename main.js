@@ -282,7 +282,7 @@ map.on('moveend', () => {
 
 
 // 💡 Import erweitern!
-import { loadWFSCapabilities, loadWFSLayer, loadArcGISCapabilities, loadArcGISLayer } from './js/loadWfs.js';
+import { loadWFSCapabilities, loadWFSLayer, loadArcGISCapabilities, loadArcGISLayer, isArcGISRestUrl } from './js/loadWfs.js';
 
 document.getElementById('clear-wfs-url-btn').addEventListener('click', () => {
   document.getElementById('wfs-url').value = '';
@@ -299,7 +299,7 @@ document.getElementById('load-wfs-btn').addEventListener('click', async function
 
   try {
     let layers = [];
-    const isArcGIS = baseUrl.includes('/FeatureServer');
+    const isArcGIS = isArcGISRestUrl(baseUrl);
 
     // 1. Unterscheidung beim Abfragen der Capabilities
     if (isArcGIS) {
@@ -323,12 +323,13 @@ document.getElementById('load-wfs-btn').addEventListener('click', async function
       btn.title = layerInfo.name;
       
       btn.onclick = () => {
+        let layer;
         if (isArcGIS) {
           // 👉 Übergibt die ArcGIS Layer-ID (z.B. 0, 1)
-          loadArcGISLayer(map, baseUrl, layerInfo.id, layerInfo.name);
+          layer = loadArcGISLayer(map, baseUrl, layerInfo.id, layerInfo.name);
         } else {
           // 👉 Übergibt den WFS Layer-Namen
-          loadWFSLayer(map, baseUrl, layerInfo.name);
+          layer = loadWFSLayer(map, baseUrl, layerInfo.name);
         }
         container.innerHTML = ''; // Schließt die Liste nach Auswahl
       };

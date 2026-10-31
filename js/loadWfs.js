@@ -95,6 +95,8 @@ export function loadWFSLayer(map, baseUrl, typeName) {
   vectorSource.on('featuresloaderror', function() {
     console.error(`❌ Fehler beim Laden der WFS-Features für ${typeName}`);
   });
+
+  return layer;
 }
 
 export function createWFSLayer(baseUrl, typeName, serviceConfig = {}) {
@@ -121,7 +123,7 @@ export function createWFSLayer(baseUrl, typeName, serviceConfig = {}) {
   const readFeatures = format.readFeatures.bind(format);
   format.readFeatures = (source, options = {}) => readFeatures(source, {
     ...options,
-    dataProjection: `EPSG:${srsCode}`
+    dataProjection: `EPSG:${selectedSrsCode}`
   });
 
   const vectorSource = new VectorSource({
@@ -188,30 +190,56 @@ export function createWFSLayer(baseUrl, typeName, serviceConfig = {}) {
   return layer;
 }
 
-// 💡 NEU: Holt die Liste aller Layer des ArcGIS FeatureServers
+function getArcGISServiceUrl(serviceUrl) {
+  const cleanUrl = serviceUrl.split('?')[0].replace(/\/+$/, '');
+  const match = cleanUrl.match(/^(.*\/(?:FeatureServer|MapServer))(?:\/\d+)?$/i);
+
+  if (!match) {
+    throw new Error('Bitte eine ArcGIS FeatureServer- oder MapServer-URL eingeben.');
+  }
+
+  return match[1];
+}
+
+export function isArcGISRestUrl(serviceUrl) {
+  return /\/(?:FeatureServer|MapServer)(?:\/\d+)?\/?$/i.test(serviceUrl.split('?')[0]);
+}
+
+// Lädt Layer-Metadaten von ArcGIS FeatureServern und MapServern.
 export async function loadArcGISCapabilities(serviceUrl) {
-  // f=json an die Basis-URL anhängen
-  const response = await fetch(`${serviceUrl.replace(/\/$/, '')}?f=json`);
+  const cleanUrl = serviceUrl.split('?')[0].replace(/\/+$/, '');
+  const requestedLayerId = cleanUrl.match(/\/(?:FeatureServer|MapServer)\/(\d+)$/i)?.[1];
+  const serviceRoot = getArcGISServiceUrl(serviceUrl);
+  const metadataUrl = requestedLayerId
+    ? `${cleanUrl}?f=json`
+    : `${serviceRoot}?f=json`;
+  const response = await fetch(metadataUrl);
   if (!response.ok) throw new Error('ArcGIS Server antwortet nicht');
   
   const data = await response.json();
-  
-  // Falls der Server Fehler liefert oder keine Layer hat
-  if (!data.layers) return [];
 
-  // Wir mappen die ArcGIS-Struktur auf das gleiche Format wie beim WFS
-  return data.layers.map(l => ({
-    id: l.id,       // z.B. 0, 1, 2
-    name: l.name,   // Technischer Name / Anzeige-Name
-    title: l.name   // Für die Button-Beschriftung
-  }));
+  if (data.error) {
+    throw new Error(data.error.message || 'ArcGIS Server hat einen Fehler zurückgegeben.');
+  }
+
+  const layers = requestedLayerId
+    ? [data]
+    : data.layers || [];
+
+  return layers
+    .filter(layer => layer.geometryType)
+    .map(layer => ({
+      id: layer.id,
+      name: layer.name,
+      title: layer.name
+    }));
 }
 
-export async function loadArcGISLayer(map, serviceUrl, layerId, layerName) {
-  const baseUrl = `${serviceUrl.replace(/\/$/, '')}/${layerId}/query`;
+export function loadArcGISLayer(map, serviceUrl, layerId, layerName) {
+  const baseUrl = `${getArcGISServiceUrl(serviceUrl)}/${layerId}/query`;
 
   const source = new VectorSource({
-    format: new GeoJSON(),
+    format: new GeoJSON({ dataProjection: 'EPSG:3857' }),
     // 💡 OpenLayers baut die URL bei jedem Verschieben/Zoomen dynamisch zusammen:
     url: function (extent, resolution, projection) {
       // ArcGIS erwartet das Extent im Format: xmin,ymin,xmax,ymax
@@ -219,9 +247,11 @@ export async function loadArcGISLayer(map, serviceUrl, layerId, layerName) {
       
       return `${baseUrl}?where=1%3D1` +
              `&outFields=*` +
+             `&returnGeometry=true` +
              `&geometry=${bbox}` +           // Nur Objekte in diesem Ausschnitt
              `&geometryType=esriGeometryEnvelope` +
              `&inSR=3857` +                  // Projektion des Ausschnitts (Web Mercator)
+             `&outSR=3857` +
              `&spatialRel=esriSpatialRelIntersects` +
              `&f=geojson`;
     },
@@ -233,8 +263,13 @@ export async function loadArcGISLayer(map, serviceUrl, layerId, layerName) {
   console.log(technischerName);
   const layer = new VectorLayer({ 
     source, 
-    title: technischerName, // Für die Anzeige in der Layerliste
+    title: layerName || technischerName,
     name: technischerName, // 💡 Technischer Name für die spätere Identifikation
+    serviceConfig: {
+      type: 'ArcGIS REST',
+      url: getArcGISServiceUrl(serviceUrl),
+      layerId
+    },
     style: new Style({
       stroke: new Stroke({ color: '#ff6600', width: 2 }),
       fill: new Fill({ color: 'rgba(255,102,0,0.1)' }) // Etwas transparenter, da Flurstücke groß sind
@@ -250,6 +285,38 @@ export async function loadArcGISLayer(map, serviceUrl, layerId, layerName) {
   // ohnehin nicht flüssig. Wir loggen stattdessen die Ladevorgänge:
   
   source.on('featuresloadend', () => {
-    console.log(`Es befinden sich aktuell ${source.getFeatures().length} Flurstücke im Speicher.`);
+    console.log(`Es befinden sich aktuell ${source.getFeatures().length} Datensätze im Speicher.`);
   });
+
+  return layer;
+}
+
+export function exportServiceLayerAsGeoJSON(map, layer) {
+  const source = layer.getSource();
+  const features = source?.getFeatures();
+
+  if (!features?.length) {
+    throw new Error('Für diesen Layer sind noch keine Features geladen.');
+  }
+
+  const geoJson = new GeoJSON().writeFeatures(features, {
+    featureProjection: map.getView().getProjection(),
+    dataProjection: 'EPSG:4326'
+  });
+  const blob = new Blob([geoJson], { type: 'application/geo+json' });
+  const url = URL.createObjectURL(blob);
+  const fileName = (layer.get('title') || layer.get('name') || 'dienst-layer')
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, '_')
+    .replace(/^_+|_+$/g, '') || 'dienst-layer';
+  const link = document.createElement('a');
+
+  link.href = url;
+  link.download = `${fileName}.geojson`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+  return features.length;
 }

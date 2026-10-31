@@ -522,7 +522,7 @@ export function createSubBarT(map) {
   // 3. WFS-LOADER-BUTTON
   const wfsToggleBtn = new Toggle({
     html: '<i class="fa fa-cloud-download" aria-hidden="true"></i>',
-    title: 'WFS-Dienst laden',
+    title: 'WFS-/ArcGIS-REST-Dienst laden',
     className: 'wfs-loader-btn',
     onToggle: function (active) {
       isWfsActive = active;

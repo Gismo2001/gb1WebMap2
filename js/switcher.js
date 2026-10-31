@@ -1,13 +1,92 @@
 
 import ContextMenu from 'ol-contextmenu';
 import { transform } from 'ol/proj';
-import { Style, Text, Fill, Stroke } from 'ol/style';
+import { Style, Text, Fill, Stroke, Circle as CircleStyle } from 'ol/style';
 import { createNewGroupFromLayers } from './layers.js';
 import { convertToDMS } from './utils.js';
 import { isDrawingActive } from './myDraw.js';
 import { swipeControl, activateLayerSwipe, deactivateLayerSwipe } from './controls.js';
+import { exportServiceLayerAsGeoJSON } from './loadWfs.js';
 
 const MOBILE_PRESS_DELAY = 600;
+let colorPickerLayer = null;
+const layerColorPicker = document.createElement('input');
+layerColorPicker.type = 'color';
+layerColorPicker.tabIndex = -1;
+layerColorPicker.setAttribute('aria-label', 'Layerfarbe auswählen');
+layerColorPicker.style.position = 'fixed';
+layerColorPicker.style.left = '50vw';
+layerColorPicker.style.top = '35vh';
+layerColorPicker.style.width = '1px';
+layerColorPicker.style.height = '1px';
+layerColorPicker.style.opacity = '0';
+layerColorPicker.style.pointerEvents = 'none';
+document.body.appendChild(layerColorPicker);
+
+function recolorStyle(style, geometryType, color) {
+  if (!style || typeof style.clone !== 'function') return style;
+
+  const updatedStyle = style.clone();
+  if (geometryType === 'LineString' || geometryType === 'MultiLineString') {
+    const stroke = updatedStyle.getStroke();
+    if (stroke) {
+      stroke.setColor(color);
+    } else {
+      updatedStyle.setStroke(new Stroke({ color, width: 2 }));
+    }
+  } else if (geometryType === 'Point' || geometryType === 'MultiPoint') {
+    const image = updatedStyle.getImage();
+    if (image && typeof image.setFill === 'function') {
+      const fill = image.getFill();
+      if (fill) fill.setColor(color);
+      else image.setFill(new Fill({ color }));
+    } else if (image && typeof image.setColor === 'function') {
+      image.setColor(color);
+    } else if (updatedStyle.getFill()) {
+      updatedStyle.getFill().setColor(color);
+    } else {
+      updatedStyle.setImage(new CircleStyle({
+        radius: 6,
+        fill: new Fill({ color })
+      }));
+    }
+  } else if (geometryType === 'Polygon' || geometryType === 'MultiPolygon' || geometryType === 'Circle') {
+    const fill = updatedStyle.getFill();
+    if (fill) {
+      fill.setColor(color);
+    } else {
+      updatedStyle.setFill(new Fill({ color }));
+    }
+  }
+
+  return updatedStyle;
+}
+
+function createColorizedStyle(baseStyle, layer) {
+  return (feature, resolution) => {
+    const style = typeof baseStyle === 'function'
+      ? baseStyle(feature, resolution)
+      : baseStyle;
+    const geometryType = feature.getGeometry()?.getType();
+    const color = layer.get('userStyleColor');
+    const recolor = item => recolorStyle(item, geometryType, color);
+
+    return Array.isArray(style) ? style.map(recolor) : recolor(style);
+  };
+}
+
+function setLayerColor(layer, color) {
+  const isFiltered = !!layer.get('currentFilter');
+  const baseStyleProperty = isFiltered ? 'colorFilterBaseStyle' : 'colorBaseStyle';
+  const baseStyle = layer.get(baseStyleProperty) || layer.getStyle();
+  if (!layer.get(baseStyleProperty)) layer.set(baseStyleProperty, baseStyle);
+  layer.set('userStyleColor', color);
+  layer.setStyle(createColorizedStyle(baseStyle, layer));
+}
+
+layerColorPicker.addEventListener('input', () => {
+  if (colorPickerLayer) setLayerColor(colorPickerLayer, layerColorPicker.value);
+});
 
 function isTouchDevice() {
   return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
@@ -363,6 +442,11 @@ function handleLayerSwitcherMenu(evt, targetElement, map, layerSwitcher, context
   
   // 2. getSource() NUR aufrufen, wenn es KEINE Gruppe ist
   const source = !isGroup && typeof clickedLayer.getSource === 'function' ? clickedLayer.getSource() : null;
+  const serviceConfig = clickedLayer.get('serviceConfig');
+  const isExportableServiceLayer = ['WFS', 'ArcGIS REST'].includes(serviceConfig?.type);
+  const isColorEditableLayer = !!source &&
+    typeof source.getFeatures === 'function' &&
+    (clickedLayer.get('isUserGeoJSON') === true || isExportableServiceLayer);
 
   // 3. Jetzt ist die Prüfung auf WMS sicher
   const legendUrl = getWmsLegendUrl(source);
@@ -469,6 +553,26 @@ function handleLayerSwitcherMenu(evt, targetElement, map, layerSwitcher, context
     contextMenu.extend([
       renameAction,
       '-',
+      ...(isColorEditableLayer ? [{
+        text: 'Farbe ändern',
+        callback: () => {
+          colorPickerLayer = clickedLayer;
+          layerColorPicker.value = clickedLayer.get('userStyleColor') || '#ff0000';
+          layerColorPicker.click();
+        }
+      }, '-'] : []),
+      ...(isExportableServiceLayer ? [{
+        text: 'Als GeoJSON exportieren',
+        callback: () => {
+          try {
+            const featureCount = exportServiceLayerAsGeoJSON(map, clickedLayer);
+            showSwitcherInfo(`${featureCount} Features als GeoJSON exportiert.`);
+          } catch (error) {
+            console.error('GeoJSON-Export des Dienst-Layers fehlgeschlagen:', error);
+            alert(error.message);
+          }
+        }
+      }, '-'] : []),
       ...bauwPContextActions,
       // Legende anzeigen (nur bei WMS-Layern)
       ...(isWms ? 
@@ -530,7 +634,11 @@ function handleLayerSwitcherMenu(evt, targetElement, map, layerSwitcher, context
 
           // Wenn der Filter leer ist, setzen wir den Original-Style zurück
           if (bereinigterFilter === '') {
-            clickedLayer.setStyle(originalStyle);
+            clickedLayer.setStyle(clickedLayer.get('userStyleColor')
+              ? createColorizedStyle(originalStyle, clickedLayer)
+              : originalStyle);
+            clickedLayer.set('colorBaseStyle', originalStyle);
+            clickedLayer.unset('colorFilterBaseStyle');
             clickedLayer.unset('currentFilter');
             updateLayerFilterVisualState(clickedLayer, labelElement);
             map.changed();
@@ -572,7 +680,11 @@ function handleLayerSwitcherMenu(evt, targetElement, map, layerSwitcher, context
 
     if (originalStyle) {
       // 1. Den originalen Style wieder auf den Layer anwenden
-      clickedLayer.setStyle(originalStyle);
+      clickedLayer.setStyle(clickedLayer.get('userStyleColor')
+        ? createColorizedStyle(originalStyle, clickedLayer)
+        : originalStyle);
+      clickedLayer.set('colorBaseStyle', originalStyle);
+      clickedLayer.unset('colorFilterBaseStyle');
       
       // 2. Die Filter-Merker vom Layer löschen
       clickedLayer.unset('currentFilter');

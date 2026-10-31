@@ -107,7 +107,7 @@ export function createWFSLayer(baseUrl, typeName, serviceConfig = {}) {
   const srsCode = serviceConfig.srsName
     ? serviceConfig.srsName.match(/(\d+)$/)?.[1]
     : null;
-  const selectedSrsCode = srsCode || ['25832', '3857', '4326'].find(code =>
+  const selectedSrsCode = srsCode || ['3857', '25832', '4326'].find(code =>
     supportedCrs.some(crs => crs.endsWith(`:${code}`))
   ) || '4326';
   const srsUrn = serviceConfig.srsName || `urn:ogc:def:crs:EPSG::${selectedSrsCode}`;

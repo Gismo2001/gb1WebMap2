@@ -1,12 +1,13 @@
 {
   "name": "gb1webmap2",
   "private": true,
+  "type": "module",
   "version": "1.0.0",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "start": "vite preview --host 0.0.0.0"
+    "start": "node server.js"
   },
   "devDependencies": {
     "@babel/core": "^7.26.7",
@@ -22,8 +23,10 @@
     "chart.js": "^4.5.1",
     "chartjs-plugin-dragdata": "^2.3.1",
     "core-js": "^3.49.0",
+    "express": "^5.3.0",
     "file-saver": "^2.0.5",
     "font-awesome": "^4.7.0",
+    "http-proxy-middleware": "^4.2.1",
     "jquery": "^4.0.0",
     "jspdf": "^4.2.1",
     "latest": "^0.2.0",
@@ -31,6 +34,7 @@
     "ol-contextmenu": "^6.0.0",
     "ol-ext": "^4.0.26",
     "ol-load-geopackage": "^2.3.1",
+    "pg": "^8.23.1",
     "piexifjs": "^1.0.6",
     "proj4": "^2.20.6",
     "shpjs": "^6.2.0",

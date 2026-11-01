@@ -1023,8 +1023,7 @@ import GML3 from 'ol/format/GML3';
 import { initSqlJsWasm, loadGpkg } from 'ol-load-geopackage';
 
 
-//initSqlJsWasm(window, (filename) => `/${filename}`);
-initSqlJsWasm('.');
+initSqlJsWasm('');
 //initSqlJsWasm(window, () => 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.12.0/sql-wasm.wasm');
 
 function getShapefileEntryLabel(entry, index, fallbackName) {

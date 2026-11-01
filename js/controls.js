@@ -567,9 +567,26 @@ export function createSubBarT(map) {
   });
   wfsToggleBtnInstance = wfsToggleBtn;
 
+  const printToggleBtn = new Toggle({
+    html: '<i class="fa fa-print" aria-hidden="true"></i>',
+    title: 'Drucken',
+    className: 'drucken',
+    onToggle: function (active) {
+      if (!active) return;
+
+      if (printControlInstance) {
+        printControlInstance.print();
+      } else {
+        printToggleBtn.setActive(false);
+        console.error('Druckdialog ist noch nicht initialisiert.');
+      }
+    },
+  });
+  printToogleBtnInstance = printToggleBtn;
+
   return new Bar({ 
     toggleOne: false, 
-    controls: [tableToggleBtn, drawToggleBtn, wfsToggleBtn] 
+    controls: [tableToggleBtn, drawToggleBtn, wfsToggleBtn, printToggleBtn] 
   });
 }
 
@@ -632,8 +649,8 @@ export function initPrintControl(map) {
     className: 'ol-print-dialog' // Für eigenes CSS
   });
   map.addControl(printControlInstance);
-  // Finde das HTML-Element des Controls und entferne den Button
-  const printButton = printControlInstance.element.querySelector('.ol-print-button');
+  // Der Druckdialog wird über den Button in der Subbar geöffnet.
+  const printButton = printControlInstance.element.querySelector('button');
   if (printButton) {
     printButton.remove(); // Button aus dem DOM entfernen
   }

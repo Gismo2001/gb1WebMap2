@@ -1476,6 +1476,16 @@ function createDatenLink(url, label) {
   return label;
 }
 
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[character]);
+}
+
 export function initPopup(map) {
   const container = document.getElementById('popup');
   const content = document.getElementById('popup-content');
@@ -1702,7 +1712,9 @@ function showDataInModal(daten, layerName) {
       const stringValue = String(value).trim();
       const isUrl = stringValue.match(/^https?:\/\//i) || stringValue.toLowerCase().startsWith('www.');
       
-      if (isUrl) {
+      if (lowerKey === 'bbeschreib1') {
+        displayValue = escapeHtml(stringValue);
+      } else if (isUrl) {
         const formalUrl = stringValue.toLowerCase().startsWith('www.') ? `https://${stringValue}` : stringValue;
         displayValue = createDatenLink(formalUrl, "Link öffnen 🌐");
       } 
@@ -1724,9 +1736,8 @@ function showDataInModal(daten, layerName) {
     }
 
     // Optimiertes CSS für lange Texte & Silbentrennung
-    tableHtml += `<tr> <td class="attr-key">${key}</td> <td class="attr-val">${displayValue}</td> </tr>`; });
+    tableHtml += `<tr> <td class="attr-key">${escapeHtml(key)}</td> <td class="attr-val">${displayValue}</td> </tr>`; });
     tableHtml += `</tbody></table>`;
     content.innerHTML = tableHtml;
     modal.style.display = "flex";
 }
-

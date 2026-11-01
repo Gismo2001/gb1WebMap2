@@ -114,6 +114,7 @@ export function initPhotoCapture(map, layerSwitcher) {
       photoId: photo.id,
       photo: photo.photo,
       title: photo.title || '',
+      BBeschreib1: photo.BBeschreib1 || photo.bbBeschreib1 || photo.description || '',
       originalName: photo.originalName || '',
       direction: photo.direction
     }));
@@ -917,6 +918,7 @@ export function initPhotoCapture(map, layerSwitcher) {
         photo: photoForStorage,
         title: titleForThisPhoto,
         originalName: photoFileName,
+        BBeschreib1: pendingPhoto.bbBeschreib1 || descriptionForThisPhoto,
         latitude: photoLocation.latitude,
         longitude: photoLocation.longitude,
         direction
@@ -1016,7 +1018,8 @@ export function initPhotoCapture(map, layerSwitcher) {
     if (photoPreviewImage.getAttribute('src') !== previewUrl) photoPreviewImage.src = previewUrl;
     const photoTitle = selectionType === 'saved' ? photoPoint.get('title') : '';
     const photoFileName = selectionType === 'saved' ? photoPoint.get('originalName') : pendingPhoto.file.name;
-    photoPreviewCaption.textContent = [photoTitle, photoFileName]
+    const photoDescription = selectionType === 'saved' ? photoPoint.get('BBeschreib1') : '';
+    photoPreviewCaption.textContent = [photoTitle, photoFileName, photoDescription]
       .filter((caption, index, captions) => caption && captions.indexOf(caption) === index)
       .join('\n');
     photoPreview.style.display = 'block';

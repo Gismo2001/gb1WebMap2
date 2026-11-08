@@ -34,12 +34,28 @@ import { layerSwitcher } from '../main.js';
 import SearchPhoton from 'ol-ext/control/SearchPhoton';
 
 import WMSCapabilities from 'ol-ext/control/WMSCapabilities';
+import WMSCapabilitiesFormat from 'ol/format/WMSCapabilities.js';
 import { deactivateDrawing } from './myDraw.js'; 
 
 import VectorLayer from 'ol/layer/Vector';
 
 import { drawSource,drawLayer } from './myDraw.js'; // 💡 Import der drawSource für die Reanimation des Layers
 
+class LayerCompatibleWMSCapabilities extends WMSCapabilities {
+  _getParser() {
+    const parser = new WMSCapabilitiesFormat();
+    return {
+      read: response => {
+        const capabilities = parser.read(response);
+        const rootLayer = capabilities?.Capability?.Layer;
+        if (rootLayer?.Name) {
+          capabilities.Capability.Layer = { Layer: [rootLayer] };
+        }
+        return capabilities;
+      }
+    };
+  }
+}
 
 let searchPlaceControl = null; //Erstmal die Ortssuche auf null
 export let isTableActive = false;
@@ -694,7 +710,7 @@ export function initPrintControl(map) {
 
  
 export function initializeWMS(map) {
-  var cap = new WMSCapabilities({
+  var cap = new LayerCompatibleWMSCapabilities({
     target: document.body, // Oder ein spezielles Div
     srs: ['EPSG:3857', 'EPSG:4326', 'EPSG:25832'], // Deine Projektionen
     cors: true,
@@ -703,7 +719,7 @@ export function initializeWMS(map) {
     title: 'WMS-Dienste',
     name: 'WMS-Dienste',
     searchLabel: 'Suche',
-    optional: 'token',
+    optional: 'token,PkgId,NodeId',
     services: {
       'Verwaltungsgrenzen NI ': 'https://opendata.lgln.niedersachsen.de/doorman/noauth/verwaltungsgrenzen_wms',            
         'Hydro, Umweltkarten NI ': 'https://www.umweltkarten-niedersachsen.de/arcgis/services/Hydro_wms/MapServer/WMSServer?VERSION=1.3.0.&SERVICE=WMS&REQUEST=GetCapabilities',  

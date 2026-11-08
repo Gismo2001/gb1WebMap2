@@ -2,11 +2,12 @@
 import ContextMenu from 'ol-contextmenu';
 import { transform } from 'ol/proj';
 import { Style, Text, Fill, Stroke, Circle as CircleStyle } from 'ol/style';
-import { createNewGroupFromLayers } from './layers.js';
+import { createNewGroupFromLayers, dgmGroup } from './layers.js';
 import { convertToDMS } from './utils.js';
 import { isDrawingActive } from './myDraw.js';
 import { swipeControl, activateLayerSwipe, deactivateLayerSwipe } from './controls.js';
 import { exportServiceLayerAsGeoJSON } from './loadWfs.js';
+import { getOverallDgmMinMax } from './dgmdom.js';
 
 const MOBILE_PRESS_DELAY = 600;
 let colorPickerLayer = null;
@@ -499,6 +500,12 @@ function handleLayerSwitcherMenu(evt, targetElement, map, layerSwitcher, context
       
       renameAction,
       '-',
+      ...(clickedLayer === dgmGroup ? [{
+        text: 'DGM-Legende anzeigen',
+        icon: '/data/legend.svg',
+        callback: showDgmLegendModal
+      }] : []),
+      ...(clickedLayer === dgmGroup ? ['-'] : []),
       {
         text: 'Alle Layer ein',
         icon: '/data/checked.svg',
@@ -866,4 +873,54 @@ function showLegendModal(layerTitle, url) {
 
   // Schließen-Event
   document.getElementById('close-legend-btn').onclick = () => modal.remove();
+}
+
+function showDgmLegendModal() {
+  const range = getOverallDgmMinMax();
+  if (!range) {
+    showSwitcherInfo('Für die DGM-Legende sind keine DGM-Daten geladen.');
+    return;
+  }
+
+  const existingModal = document.getElementById('dgm-legend-modal');
+  if (existingModal) existingModal.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'dgm-legend-modal';
+  modal.style.cssText = `
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    background: white; padding: 12px; border-radius: 4px; z-index: 9999;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3); width: min(360px, 90vw);
+  `;
+
+  const header = document.createElement('div');
+  header.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid #eee; padding-bottom: 8px;';
+
+  const title = document.createElement('h3');
+  title.textContent = 'DGM-Legende';
+  title.style.cssText = 'margin: 0; font-size: 16px;';
+
+  const closeButton = document.createElement('button');
+  closeButton.type = 'button';
+  closeButton.textContent = '×';
+  closeButton.setAttribute('aria-label', 'Legende schließen');
+  closeButton.style.cssText = 'cursor: pointer; background: none; border: none; font-size: 20px;';
+  closeButton.addEventListener('click', () => modal.remove());
+  header.append(title, closeButton);
+
+  const gradient = document.createElement('div');
+  gradient.setAttribute('role', 'img');
+  gradient.setAttribute('aria-label', 'Farbverlauf von niedriger zu hoher Geländehöhe');
+  gradient.style.cssText = 'height: 18px; border: 1px solid #aaa; background: linear-gradient(to right, #1e3c96 0%, #3cb44b 15%, #dcdc64 40%, #78461e 70%, #fff 100%);';
+
+  const values = document.createElement('div');
+  values.style.cssText = 'display: flex; justify-content: space-between; margin-top: 6px; font-size: 13px;';
+  const minLabel = document.createElement('span');
+  minLabel.textContent = `${range.min.toFixed(2)} m`;
+  const maxLabel = document.createElement('span');
+  maxLabel.textContent = `${range.max.toFixed(2)} m`;
+  values.append(minLabel, maxLabel);
+
+  modal.append(header, gradient, values);
+  document.body.appendChild(modal);
 }

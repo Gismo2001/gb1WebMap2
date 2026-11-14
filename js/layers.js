@@ -283,7 +283,7 @@ return new TileLayer({
   opacity: 1,
   visible: false,
   source: new XYZ({
-    //attributions: '© Google',
+    attributions: '© Google',
     url: 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'
   })
  });
@@ -356,7 +356,6 @@ export function createOsmTileGr() {
     
     source: new OSM({
       url: 'http://tile.openstreetmap.org/{z}/{x}/{y}.png',
-      
       attributions: ['© OpenStreetMap contributors'],
     }),
     opacity: 1,

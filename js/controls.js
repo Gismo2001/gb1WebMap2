@@ -42,6 +42,22 @@ import VectorLayer from 'ol/layer/Vector';
 import { drawSource,drawLayer } from './myDraw.js'; // 💡 Import der drawSource für die Reanimation des Layers
 
 class LayerCompatibleWMSCapabilities extends WMSCapabilities {
+  testUrl(url) {
+    try {
+      const parsedUrl = new URL(url, window.location.origin);
+      if (
+        parsedUrl.origin === window.location.origin &&
+        parsedUrl.pathname === '/wfs-proxy/doorman/noauth/alkis-vs-cp'
+      ) {
+        return true;
+      }
+    } catch {
+      return false;
+    }
+
+    return super.testUrl(url);
+  }
+
   _getParser() {
     const parser = new WMSCapabilitiesFormat();
     return {
@@ -51,6 +67,18 @@ class LayerCompatibleWMSCapabilities extends WMSCapabilities {
         if (rootLayer?.Name) {
           capabilities.Capability.Layer = { Layer: [rootLayer] };
         }
+        capabilities?.Capability?.Request?.GetMap?.DCPType?.forEach(dcpType => {
+          const onlineResource = dcpType.HTTP?.Get?.OnlineResource;
+          if (!onlineResource) return;
+
+          const url = new URL(onlineResource);
+          if (url.hostname === 'www.inspire.niedersachsen.de') {
+            url.protocol = window.location.protocol;
+            url.host = window.location.host;
+            url.pathname = `/wfs-proxy${url.pathname}`;
+            dcpType.HTTP.Get.OnlineResource = url.href;
+          }
+        });
         return capabilities;
       }
     };
@@ -721,6 +749,10 @@ export function initializeWMS(map) {
     searchLabel: 'Suche',
     optional: 'token,PkgId,NodeId',
     services: {
+      'ALKIS Flurstücke/Grundstücke NI': new URL(
+        '/wfs-proxy/doorman/noauth/alkis-vs-cp',
+        window.location.origin
+      ).href,
       'Verwaltungsgrenzen NI ': 'https://opendata.lgln.niedersachsen.de/doorman/noauth/verwaltungsgrenzen_wms',            
         'Hydro, Umweltkarten NI ': 'https://www.umweltkarten-niedersachsen.de/arcgis/services/Hydro_wms/MapServer/WMSServer?VERSION=1.3.0.&SERVICE=WMS&REQUEST=GetCapabilities',  
         'WRRL, Umweltkarten NI ': 'https://www.umweltkarten-niedersachsen.de/arcgis/services/WRRL_wms/MapServer/WMSServer?VERSION=1.3.0.&SERVICE=WMS&REQUEST=GetCapabilities',
@@ -746,10 +778,9 @@ export function initializeWMS(map) {
       const layer = e.layer;
       const rawTitle = (e.options.data && (e.options.data.title || e.options.data.Name)) || "WMS Layer";
       layer.set('title', rawTitle);
-      layer.set('name', rawTitle); // Falls du 'name' als ID nutzt
-      // Layer der Karte hinzufügen
+      layer.set('name', rawTitle); 
       map.addLayer(layer);
-      console.log('externer WMS-Layer hinzugefügt:', layer);
+      //console.log('externer WMS-Layer hinzugefügt:', layer);
   });
 }
 

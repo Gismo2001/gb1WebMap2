@@ -1,6 +1,9 @@
 @import "node_modules/ol/ol.css";
 @import "node_modules/ol-ext/dist/ol-ext.css";
 
+.ol-ext-dialog.ol-wmscapabilities > form.ol-title > h2 {
+  font-size: 18px;
+}
 
 * {
   box-sizing: border-box;

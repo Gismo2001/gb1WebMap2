@@ -469,6 +469,12 @@ function handleLayerSwitcherMenu(evt, targetElement, map, layerSwitcher, context
   const switcherEl = targetElement.closest('.ol-layerswitcher');
   const selectedLabels = switcherEl ? switcherEl.querySelectorAll('label.is-selected') : [];
   const isMultiSelectActive = selectedLabels.length >= 2;
+  const selectedLayers = Array.from(selectedLabels)
+    .map(label => label.closest('li')?._olLayer)
+    .filter(Boolean);
+  const removeAction = isMultiSelectActive
+    ? createRemoveFromSwitcherAction(selectedLayers, map, layerSwitcher, true)
+    : createRemoveFromSwitcherAction([clickedLayer], map, layerSwitcher);
   // 1. Mehrfachauswahl aktiv
   if (isMultiSelectActive) {
     contextMenu.extend([
@@ -490,7 +496,9 @@ function handleLayerSwitcherMenu(evt, targetElement, map, layerSwitcher, context
         text: 'Auswahl aufheben',
         icon: '/data/unselect.svg',
         callback: () => selectedLabels.forEach(lbl => lbl.classList.remove('is-selected'))
-      }
+      },
+      '-',
+      removeAction
     ]);
   } 
   // 2. Rechtsklick auf Gruppe (Ordner)
@@ -527,7 +535,9 @@ function handleLayerSwitcherMenu(evt, targetElement, map, layerSwitcher, context
           });
           map.changed();
         }
-      }
+      },
+      '-',
+      removeAction
     ]);
   } 
   // 3. Rechtsklick auf Einzellayer
@@ -716,7 +726,9 @@ function handleLayerSwitcherMenu(evt, targetElement, map, layerSwitcher, context
         text: 'Transparenz: 50%',
         icon: '/data/transparenz.svg',
         callback: () => clickedLayer.setOpacity(0.5)
-      }
+      },
+      '-',
+      removeAction
     ]);
   }
 }
@@ -815,6 +827,83 @@ function setupMobileProtection(map) {
       e.preventDefault();
     }
   }, true);
+}
+
+function isLayerOrDescendant(layer, targetLayer) {
+  if (layer === targetLayer) return true;
+  if (typeof layer.getLayers !== 'function') return false;
+
+  return layer.getLayers().getArray().some(child => isLayerOrDescendant(child, targetLayer));
+}
+
+function removeLayerFromTree(layerToRemove, currentGroup) {
+  const layersInGroup = currentGroup.getLayers();
+  if (layersInGroup.getArray().includes(layerToRemove)) {
+    layersInGroup.remove(layerToRemove);
+    return true;
+  }
+
+  for (const layer of layersInGroup.getArray()) {
+    if (typeof layer.getLayers === 'function' && removeLayerFromTree(layerToRemove, layer)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function createRemoveFromSwitcherAction(layersToRemove, map, layerSwitcher, isSelection = false) {
+  const uniqueLayers = Array.from(new Set(layersToRemove));
+  const layersToRemoveAtRoot = uniqueLayers.filter(layer =>
+    !uniqueLayers.some(parent => parent !== layer && isLayerOrDescendant(parent, layer))
+  );
+  const actionText = isSelection
+    ? `Ausgewählte entfernen (${uniqueLayers.length})`
+    : 'Aus Switcher entfernen';
+
+  return {
+    text: actionText,
+    callback: () => {
+      const confirmation = isSelection
+        ? `${uniqueLayers.length} ausgewählte Einträge aus dem Switcher entfernen? Bei Gruppen werden enthaltene Layer mit entfernt.`
+        : typeof layersToRemoveAtRoot[0]?.getLayers === 'function'
+          ? `Gruppe "${layersToRemoveAtRoot[0].get('title') || 'Unbekannt'}" und alle enthaltenen Layer aus dem Switcher entfernen?`
+          : `Layer "${layersToRemoveAtRoot[0]?.get('title') || 'Unbekannt'}" aus dem Switcher entfernen?`;
+      if (!confirm(confirmation)) return;
+
+      const layerGroup = map.getLayerGroup();
+      const removedLayers = [];
+      const failedLayers = [];
+      layersToRemoveAtRoot.forEach(layer => {
+        (removeLayerFromTree(layer, layerGroup) ? removedLayers : failedLayers).push(layer);
+      });
+
+      if (removedLayers.length === 0) {
+        showSwitcherInfo('Die ausgewählten Einträge konnten nicht aus dem Switcher entfernt werden.');
+        return;
+      }
+
+      const activeSwipeLayers = swipeControl && typeof swipeControl.getLayers === 'function'
+        ? swipeControl.getLayers()
+        : [];
+      if (activeSwipeLayers.some(swipeLayer =>
+        removedLayers.some(layer => isLayerOrDescendant(layer, swipeLayer))
+      )) {
+        deactivateLayerSwipe(map);
+      }
+
+      if (window.layerToMove && removedLayers.some(layer => isLayerOrDescendant(layer, window.layerToMove))) {
+        cancelTargetingMode(layerSwitcher);
+      }
+
+      if (layerSwitcher && typeof layerSwitcher.render === 'function') layerSwitcher.render();
+      map.changed();
+
+      if (failedLayers.length > 0) {
+        showSwitcherInfo(`${failedLayers.length} Eintrag/Einträge konnten nicht aus dem Switcher entfernt werden.`);
+      }
+    }
+  };
 }
 
 // --- Hilfsfunktion: wms-Legende URL holen ---

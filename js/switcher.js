@@ -9,7 +9,9 @@ import { swipeControl, activateLayerSwipe, deactivateLayerSwipe } from './contro
 import { exportServiceLayerAsGeoJSON } from './loadWfs.js';
 import { getOverallDgmMinMax } from './dgmdom.js';
 
-const MOBILE_PRESS_DELAY = 600;
+const MOBILE_MULTI_SELECT_PRESS_DELAY = 2000;
+const MOBILE_CONTEXT_MENU_PRESS_DELAY = 4000;
+const MOBILE_PRESS_MOVE_TOLERANCE = 10;
 let colorPickerLayer = null;
 const layerColorPicker = document.createElement('input');
 layerColorPicker.type = 'color';
@@ -249,7 +251,6 @@ export function switcherToggle(layerSwitcher) {
     const clickedLayer = evt.layer;
     const labelElement = evt.li.querySelector('label');
     const listItem = evt.li;
-    const isGroup = typeof clickedLayer.getLayers === 'function';
 
     if (!labelElement || !listItem) return;
 
@@ -259,7 +260,12 @@ export function switcherToggle(layerSwitcher) {
     updateLayerFilterVisualState(clickedLayer, labelElement);
 
     let touchTimer = null;
-    let isLongPress = false;
+    let contextMenuTimer = null;
+    let touchCoordinates = { x: 0, y: 0 };
+    let isPressActionTriggered = false;
+    let pressThresholdReached = false;
+    let contextMenuTriggered = false;
+    let dispatchingMobileContextMenu = false;
 
     const clearTouchTimer = () => {
       if (touchTimer !== null) {
@@ -268,55 +274,115 @@ export function switcherToggle(layerSwitcher) {
       }
     };
 
-    const startLongPress = () => {
-      isLongPress = false;
-      clearTouchTimer();
-      touchTimer = window.setTimeout(() => {
-        isLongPress = true;
-        if (!isGroup) {
-          window.layerToMove = clickedLayer;
-          showSwitcherInfo(`Verschiebemodus aktiv: Tippe jetzt auf die Ziel-Gruppe für "${clickedLayer.get('title') || 'Layer'}".`);
-          const switcherEl = layerSwitcher.element;
-          if (switcherEl) switcherEl.classList.add('targeting-group-mode');
-        }
-      }, MOBILE_PRESS_DELAY);
+    const clearContextMenuTimer = () => {
+      if (contextMenuTimer !== null) {
+        window.clearTimeout(contextMenuTimer);
+        contextMenuTimer = null;
+      }
     };
 
-    const stopLongPress = () => {
+    const startLongPress = (event) => {
+      if (!isMobileScreen()) return;
       clearTouchTimer();
+      clearContextMenuTimer();
+      isPressActionTriggered = false;
+      pressThresholdReached = false;
+      contextMenuTriggered = false;
+
+      const touch = event.touches?.[0] || event.changedTouches?.[0];
+      touchCoordinates = {
+        x: touch ? touch.clientX : event.clientX,
+        y: touch ? touch.clientY : event.clientY
+      };
+
+      touchTimer = window.setTimeout(() => {
+        touchTimer = null;
+        pressThresholdReached = true;
+
+        contextMenuTimer = window.setTimeout(() => {
+          contextMenuTimer = null;
+          contextMenuTriggered = true;
+          isPressActionTriggered = true;
+          dispatchingMobileContextMenu = true;
+          try {
+            labelElement.dispatchEvent(new MouseEvent('contextmenu', {
+              bubbles: true,
+              cancelable: true,
+              view: window,
+              button: 2,
+              clientX: touchCoordinates.x,
+              clientY: touchCoordinates.y
+            }));
+          } finally {
+            dispatchingMobileContextMenu = false;
+          }
+        }, MOBILE_CONTEXT_MENU_PRESS_DELAY - MOBILE_MULTI_SELECT_PRESS_DELAY);
+      }, MOBILE_MULTI_SELECT_PRESS_DELAY);
+    };
+
+    const finishLongPress = () => {
+      const shouldToggleMultiSelect = pressThresholdReached && !contextMenuTriggered;
+      clearTouchTimer();
+      clearContextMenuTimer();
+      if (shouldToggleMultiSelect) {
+        isPressActionTriggered = true;
+        const isSelected = labelElement.classList.toggle('is-selected');
+        const layerTitle = clickedLayer.get('title') || 'Layer';
+        showSwitcherInfo(isSelected
+          ? `"${layerTitle}" zur Auswahl hinzugefügt.`
+          : `"${layerTitle}" aus der Auswahl entfernt.`);
+      }
+      pressThresholdReached = false;
+      contextMenuTriggered = false;
+    };
+
+    const cancelLongPress = () => {
+      if (contextMenuTriggered) return;
+      clearTouchTimer();
+      clearContextMenuTimer();
+      pressThresholdReached = false;
+      isPressActionTriggered = false;
+    };
+
+    const cancelLongPressIfMoved = (event) => {
+      const touch = event.touches?.[0] || event.changedTouches?.[0];
+      const x = touch ? touch.clientX : event.clientX;
+      const y = touch ? touch.clientY : event.clientY;
+      const distance = Math.hypot(x - touchCoordinates.x, y - touchCoordinates.y);
+      if (distance > MOBILE_PRESS_MOVE_TOLERANCE) cancelLongPress();
     };
 
     const touchStartHandler = (event) => {
-      if (!isMobileScreen()) return;
       startLongPress(event);
     };
 
     if (window.PointerEvent) {
       labelElement.addEventListener('pointerdown', (e) => {
         if (e.pointerType === 'touch') touchStartHandler(e);
+        else isPressActionTriggered = false;
       }, { passive: true });
       labelElement.addEventListener('pointerup', (e) => {
-        if (e.pointerType === 'touch') stopLongPress();
+        if (e.pointerType === 'touch') finishLongPress();
       });
       labelElement.addEventListener('pointercancel', (e) => {
-        if (e.pointerType === 'touch') stopLongPress();
+        if (e.pointerType === 'touch') cancelLongPress();
       });
       labelElement.addEventListener('pointermove', (e) => {
-        if (e.pointerType === 'touch') stopLongPress();
+        if (e.pointerType === 'touch') cancelLongPressIfMoved(e);
       }, { passive: true });
     } else {
       labelElement.addEventListener('touchstart', touchStartHandler, { passive: true });
-      labelElement.addEventListener('touchend', stopLongPress);
-      labelElement.addEventListener('touchcancel', stopLongPress);
-      labelElement.addEventListener('touchmove', stopLongPress, { passive: true });
+      labelElement.addEventListener('touchend', finishLongPress);
+      labelElement.addEventListener('touchcancel', cancelLongPress);
+      labelElement.addEventListener('touchmove', cancelLongPressIfMoved, { passive: true });
     }
 
     labelElement.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
 
-      if (isLongPress) {
-        isLongPress = false;
+      if (isPressActionTriggered) {
+        isPressActionTriggered = false;
         return;
       }
 
@@ -375,6 +441,7 @@ export function switcherToggle(layerSwitcher) {
 
     labelElement.addEventListener('contextmenu', (e) => {
       e.preventDefault();
+      if (isMobileScreen() && !dispatchingMobileContextMenu) e.stopPropagation();
     });
   });
 }

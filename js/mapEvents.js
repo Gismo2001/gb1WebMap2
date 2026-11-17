@@ -1541,12 +1541,13 @@ function buildPopupContent(featureOrProps, layerName) {
       'titel',
       'label',
       'id',
+      'gen',
       'objectid',
       'nummer',
       'typ',
       'ebene',
       'cod',
-      'code'
+      'code'     
     ];
 
     // 2. Alle Schlüssel des Daten-Objekts holen

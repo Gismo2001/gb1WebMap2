@@ -322,20 +322,18 @@ export function initMapClick(map) {
             });
         }
 
-        const promise = requestFeatureInfo('text/xml')
-          .then((responseText) => responseText || requestFeatureInfo('text/html'))
-          .then((responseText) => {
-            if (!responseText) return;
-            let data = [];
-            
-            if (responseText.includes('FeatureInfoResponse')) {
-              data = parseArcGISXml(responseText, name);
-            } else if (responseText.includes('gml:featureMember') || responseText.includes('FeatureCollection')) {
-              data = parseDeegreeGml(responseText, name);
-            } else if (responseText.includes('<body') || responseText.includes('<table')) {
-              data = parseNibisHTML(responseText);
-            }
+        const promise = (async () => {
+          for (const infoFormat of ['text/xml', 'application/vnd.ogc.gml', 'text/html']) {
+            const responseText = await requestFeatureInfo(infoFormat);
+            if (!responseText) continue;
 
+            const data = parseWmsFeatureInfo(responseText, name);
+            if (data.length > 0) return data;
+          }
+
+          return [];
+        })()
+          .then((data) => {
             if (data.length > 0) {
               data.forEach(item => {
                 item._clickCoord = coord;
@@ -778,15 +776,72 @@ function parseDeegreeGml(xmlString, layerName) {
     }
     return results;
 }
+function parseMapServerGml(xmlString, layerName) {
+  const parser = new DOMParser();
+  const xmlDoc = parser.parseFromString(xmlString, 'text/xml');
+  const featureNodes = Array.from(xmlDoc.getElementsByTagName('*')).filter(node =>
+    node.localName.endsWith('_feature') &&
+    node.parentElement?.localName.endsWith('_layer')
+  );
+
+  return featureNodes.map(featureNode => {
+    const entry = { Layer: layerName };
+    const featureId = featureNode.getAttribute('fid') ||
+      featureNode.getAttributeNS('http://www.opengis.net/gml', 'id');
+
+    if (featureId) entry.id = featureId;
+
+    Array.from(featureNode.children).forEach(child => {
+      if (child.localName === 'boundedBy' || child.namespaceURI === 'http://www.opengis.net/gml') {
+        return;
+      }
+
+      entry[child.localName] = child.textContent.trim();
+    });
+
+    return entry;
+  });
+}
+function parseWmsFeatureInfo(responseText, layerName) {
+  if (responseText.includes('FeatureInfoResponse')) {
+    return parseArcGISXml(responseText, layerName);
+  }
+  if (responseText.includes('msGMLOutput')) {
+    return parseMapServerGml(responseText, layerName);
+  }
+  if (responseText.includes('gml:featureMember') || responseText.includes('FeatureCollection')) {
+    return parseDeegreeGml(responseText, layerName);
+  }
+  if (responseText.includes('<body') || responseText.includes('<table')) {
+    return parseNibisHTML(responseText);
+  }
+  return [];
+}
 function parseNibisHTML(html) {
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, 'text/html');
-  const result = []; // Hier landen nachher die einzelnen Bohrungs-Objekte
+  const result = [];
   
   const tables = doc.querySelectorAll('table');
-  tables.forEach((table, tableIndex) => {
+  tables.forEach((table) => {
+    const rows = Array.from(table.querySelectorAll('tr'));
+    const keyValueRows = rows.filter(row =>
+      row.querySelectorAll('th').length === 1 &&
+      row.querySelectorAll('td').length === 1
+    );
+
+    if (keyValueRows.length > 1) {
+      const attributes = {};
+      keyValueRows.forEach(row => {
+        const key = row.querySelector('th').textContent.trim();
+        if (key) attributes[key] = row.querySelector('td').textContent.trim();
+      });
+
+      if (Object.keys(attributes).length > 0) result.push(attributes);
+      return;
+    }
+
     const headers = Array.from(table.querySelectorAll('th')).map(th => th.textContent.trim());
-    const rows = table.querySelectorAll('tr');
     
     // Ein eigenes Objekt für diese spezifische Bohrung anlegen
     const bohrungAttributes = {};

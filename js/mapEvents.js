@@ -1564,7 +1564,7 @@ function buildPopupContent(featureOrProps, layerName) {
     }
     // 4. Titel auslesen oder Fallback nutzen
     const title = dynamicKey ? daten[dynamicKey] : 'Keine Bezeichnung';
-    html += `<strong>${dynamicKey ? dynamicKey + ': ' : ''}${title}</strong><br>`;
+    html += `<strong>${dynamicKey ? `${escapeHtml(dynamicKey)}: ` : ''}${escapeHtml(title)}</strong><br>`;
   }
   // DGM / DOM Link
   const kachelUrl = daten.dgm1 || daten.dom1;
@@ -1714,7 +1714,7 @@ function showDataInModal(daten, layerName) {
       const stringValue = String(value).trim();
       const isUrl = stringValue.match(/^https?:\/\//i) || stringValue.toLowerCase().startsWith('www.');
       
-      if (lowerKey === 'bbeschreib1') {
+      if (lowerKey === 'bbeschreib1' || lowerKey === 'description') {
         displayValue = escapeHtml(stringValue);
       } else if (isUrl) {
         const formalUrl = stringValue.toLowerCase().startsWith('www.') ? `https://${stringValue}` : stringValue;

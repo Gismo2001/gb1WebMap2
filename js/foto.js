@@ -113,10 +113,11 @@ export function initPhotoCapture(map, layerSwitcher) {
       selectionType: 'saved',
       photoId: photo.id,
       photo: photo.photo,
-      title: photo.title || '',
-      BBeschreib1: photo.BBeschreib1 || photo.bbBeschreib1 || photo.description || '',
+      title: photo.title || photo.originalName || '',
+      Description: photo.BBeschreib1 || photo.bbBeschreib1 || photo.description || '',
       originalName: photo.originalName || '',
-      direction: photo.direction
+      Direction: photo.direction,
+      capturedAt: photo.capturedAt || ''
     }));
   }
 
@@ -250,11 +251,154 @@ export function initPhotoCapture(map, layerSwitcher) {
       || /\.jpe?g$/i.test(file.name);
   }
 
+  function decodeExifText(value, utf16 = false) {
+    if (typeof value === 'string') return value.replace(/\0+$/g, '').trim();
+    if (!Array.isArray(value) && !(value instanceof Uint8Array)) return '';
+
+    const bytes = Uint8Array.from(value);
+    try {
+      return new TextDecoder(utf16 ? 'utf-16le' : 'utf-8')
+        .decode(bytes)
+        .replace(/\0+$/g, '')
+        .trim();
+    } catch (error) {
+      console.warn('Text-Metadaten des Fotos konnten nicht dekodiert werden:', error);
+      return '';
+    }
+  }
+
+  function readIptcMetadata(bytes) {
+    const metadata = {};
+    let offset = 2;
+
+    while (offset + 4 <= bytes.length && bytes[offset] === 0xff) {
+      const marker = bytes[offset + 1];
+      if (marker === 0xda || marker === 0xd9) break;
+
+      const segmentLength = (bytes[offset + 2] << 8) | bytes[offset + 3];
+      const segmentEnd = offset + 2 + segmentLength;
+      if (segmentLength < 2 || segmentEnd > bytes.length) break;
+
+      if (marker === 0xed) {
+        const segment = bytes.subarray(offset + 4, segmentEnd);
+        const photoshopHeader = new TextEncoder().encode('Photoshop 3.0\0');
+        if (photoshopHeader.every((byte, index) => segment[index] === byte)) {
+          let resourceOffset = photoshopHeader.length;
+          while (resourceOffset + 12 <= segment.length) {
+            const signature = new TextDecoder().decode(segment.subarray(resourceOffset, resourceOffset + 4));
+            if (signature !== '8BIM') break;
+            const resourceId = (segment[resourceOffset + 4] << 8) | segment[resourceOffset + 5];
+            const nameLength = segment[resourceOffset + 6];
+            const nameSize = 1 + nameLength + ((1 + nameLength) % 2);
+            const dataLengthOffset = resourceOffset + 6 + nameSize;
+            if (dataLengthOffset + 4 > segment.length) break;
+            const dataLength = new DataView(segment.buffer, segment.byteOffset + dataLengthOffset, 4)
+              .getUint32(0);
+            const dataStart = dataLengthOffset + 4;
+            const dataEnd = dataStart + dataLength;
+            if (dataEnd > segment.length) break;
+
+            if (resourceId === 0x0404) {
+              let dataOffset = dataStart;
+              while (dataOffset + 5 <= dataEnd && segment[dataOffset] === 0x1c) {
+                const record = segment[dataOffset + 1];
+                const dataset = segment[dataOffset + 2];
+                let valueLength = (segment[dataOffset + 3] << 8) | segment[dataOffset + 4];
+                let valueStart = dataOffset + 5;
+                if (valueLength & 0x8000) {
+                  const lengthBytes = valueLength & 0x7fff;
+                  if (lengthBytes < 1 || lengthBytes > 4 || valueStart + lengthBytes > dataEnd) break;
+                  valueLength = 0;
+                  for (let index = 0; index < lengthBytes; index += 1) {
+                    valueLength = (valueLength << 8) | segment[valueStart + index];
+                  }
+                  valueStart += lengthBytes;
+                }
+                const valueEnd = valueStart + valueLength;
+                if (valueEnd > dataEnd) break;
+                if (record === 2 && (dataset === 5 || dataset === 120)) {
+                  const value = new TextDecoder().decode(segment.subarray(valueStart, valueEnd)).trim();
+                  if (dataset === 5) metadata.title = value;
+                  if (dataset === 120) metadata.description = value;
+                }
+                dataOffset = valueEnd;
+              }
+            }
+
+            resourceOffset = dataStart + dataLength + (dataLength % 2);
+          }
+        }
+      }
+
+      offset = segmentEnd;
+    }
+
+    return metadata;
+  }
+
+  function readXmpMetadata(bytes) {
+    const signature = new TextEncoder().encode('http://ns.adobe.com/xap/1.0/\0');
+    let offset = 2;
+
+    while (offset + 4 <= bytes.length && bytes[offset] === 0xff) {
+      const marker = bytes[offset + 1];
+      if (marker === 0xda || marker === 0xd9) break;
+
+      const segmentLength = (bytes[offset + 2] << 8) | bytes[offset + 3];
+      const segmentEnd = offset + 2 + segmentLength;
+      if (segmentLength < 2 || segmentEnd > bytes.length) break;
+
+      if (marker === 0xe1) {
+        const segment = bytes.subarray(offset + 4, segmentEnd);
+        if (signature.every((byte, index) => segment[index] === byte)) {
+          const xml = new TextDecoder().decode(segment.subarray(signature.length));
+          const document = new DOMParser().parseFromString(xml, 'application/xml');
+          if (!document.querySelector('parsererror')) {
+            const dcNamespace = 'http://purl.org/dc/elements/1.1/';
+            const rdfNamespace = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#';
+            const readValue = (tagName) => {
+              const element = document.getElementsByTagNameNS(dcNamespace, tagName)[0];
+              return element?.getElementsByTagNameNS(rdfNamespace, 'li')[0]?.textContent.trim()
+                || element?.textContent.trim()
+                || '';
+            };
+            return {
+              title: readValue('title'),
+              description: readValue('description')
+            };
+          }
+          return {};
+        }
+      }
+
+      offset = segmentEnd;
+    }
+
+    return {};
+  }
+
   async function readPhotoExif(file) {
     if (!isJpegPhoto(file)) return null;
 
     try {
-      const exif = piexif.load(await fileToDataUrl(file));
+      const [dataUrl, fileBytes] = await Promise.all([
+        fileToDataUrl(file),
+        file.arrayBuffer()
+      ]);
+      const exif = piexif.load(dataUrl);
+      const bytes = new Uint8Array(fileBytes);
+      const iptc = readIptcMetadata(bytes);
+      const xmp = readXmpMetadata(bytes);
+      const exifTitle = decodeExifText(exif['0th']?.[piexif.ImageIFD.ImageDescription]);
+      const exifDescription = decodeExifText(exif['0th']?.[piexif.ImageIFD.XPComment], true);
+      const title = decodeExifText(exif['0th']?.[piexif.ImageIFD.XPTitle], true)
+        || exifTitle
+        || xmp.title
+        || iptc.title;
+      const description = iptc.description
+        || xmp.description
+        || exifDescription
+        || exifTitle;
       const capturedAt = parseExifDate(
         exif.Exif?.[piexif.ExifIFD.DateTimeOriginal]
         || exif['0th']?.[piexif.ImageIFD.DateTime]
@@ -264,9 +408,11 @@ export function initPhotoCapture(map, layerSwitcher) {
       const longitude = exifRationalToNumber(gps[piexif.GPSIFD.GPSLongitude]);
       const latitudeRef = gps[piexif.GPSIFD.GPSLatitudeRef];
       const longitudeRef = gps[piexif.GPSIFD.GPSLongitudeRef];
+      const directionValue = exifRationalToNumber(gps[piexif.GPSIFD.GPSImgDirection]);
+      const direction = Number.isFinite(directionValue) ? (directionValue + 360) % 360 : null;
       const hasPosition = Array.isArray(latitude) && Array.isArray(longitude)
         && latitude.length === 3 && longitude.length === 3;
-      if (!hasPosition) return { capturedAt };
+      if (!hasPosition) return { capturedAt, title, description, direction };
 
       const signedLatitude = (latitude[0] + latitude[1] / 60 + latitude[2] / 3600)
         * (latitudeRef === 'S' ? -1 : 1);
@@ -274,15 +420,16 @@ export function initPhotoCapture(map, layerSwitcher) {
         * (longitudeRef === 'W' ? -1 : 1);
       if (!Number.isFinite(signedLatitude) || !Number.isFinite(signedLongitude)
         || Math.abs(signedLatitude) > 90 || Math.abs(signedLongitude) > 180) {
-        return { capturedAt };
+        return { capturedAt, title, description, direction };
       }
 
-      const directionValue = exifRationalToNumber(gps[piexif.GPSIFD.GPSImgDirection]);
       return {
         latitude: signedLatitude,
         longitude: signedLongitude,
-        direction: Number.isFinite(directionValue) ? (directionValue + 360) % 360 : null,
-        capturedAt
+        direction,
+        capturedAt,
+        title,
+        description
       };
     } catch (error) {
       console.warn('GPS-Daten des Fotos konnten nicht gelesen werden:', error);
@@ -795,16 +942,23 @@ export function initPhotoCapture(map, layerSwitcher) {
 
         try {
           const capturedAt = exif.capturedAt || new Date(file.lastModified);
-          const photoId = await savePhoto(file, '', {
+          const description = exif.description || '';
+          const title = exif.title || file.name;
+          const photoId = await savePhoto(file, description, {
+            title,
             latitude: exif.latitude,
             longitude: exif.longitude,
             direction: exif.direction ?? '',
-            capturedAt: capturedAt.toISOString()
+            capturedAt: capturedAt.toISOString(),
+            BBeschreib1: description
           });
           addSavedPhotoFeature({
             id: photoId,
             photo: file,
             originalName: file.name,
+            title,
+            description,
+            capturedAt: capturedAt.toISOString(),
             latitude: exif.latitude,
             longitude: exif.longitude,
             direction: exif.direction
@@ -989,7 +1143,7 @@ export function initPhotoCapture(map, layerSwitcher) {
       hoveredPhotoFeature = photoPoint;
       if (selectionType === 'saved') {
         hoveredPhotoUrl = URL.createObjectURL(photoPoint.get('photo'));
-        const direction = photoPoint.get('direction');
+        const direction = photoPoint.get('Direction');
         if (Number.isFinite(direction)) {
           const originPixel = map.getPixelFromCoordinate(photoPoint.getGeometry().getCoordinates());
           const directionPixel = [
@@ -1018,7 +1172,7 @@ export function initPhotoCapture(map, layerSwitcher) {
     if (photoPreviewImage.getAttribute('src') !== previewUrl) photoPreviewImage.src = previewUrl;
     const photoTitle = selectionType === 'saved' ? photoPoint.get('title') : '';
     const photoFileName = selectionType === 'saved' ? photoPoint.get('originalName') : pendingPhoto.file.name;
-    const photoDescription = selectionType === 'saved' ? photoPoint.get('BBeschreib1') : '';
+    const photoDescription = selectionType === 'saved' ? photoPoint.get('Description') : '';
     photoPreviewCaption.textContent = [photoTitle, photoFileName, photoDescription]
       .filter((caption, index, captions) => caption && captions.indexOf(caption) === index)
       .join('\n');

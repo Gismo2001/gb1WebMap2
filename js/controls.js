@@ -44,18 +44,11 @@ import { drawSource,drawLayer } from './myDraw.js'; // 💡 Import der drawSourc
 class LayerCompatibleWMSCapabilities extends WMSCapabilities {
   testUrl(url) {
     try {
-      const parsedUrl = new URL(url, window.location.origin);
-      if (
-        parsedUrl.origin === window.location.origin &&
-        parsedUrl.pathname === '/wfs-proxy/doorman/noauth/alkis-vs-cp'
-      ) {
-        return true;
-      }
+      const parsedUrl = new URL(url);
+      return parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:';
     } catch {
       return false;
     }
-
-    return super.testUrl(url);
   }
 
   _getParser() {

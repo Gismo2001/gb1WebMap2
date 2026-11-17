@@ -35,6 +35,7 @@ import { istZeichenleisteAktiv } from './myDraw.js';
 import GeoJSON from 'ol/format/GeoJSON';
 import KML from 'ol/format/KML';
 import GPX from 'ol/format/GPX';
+import { deserialize as deserializeFlatGeobuf } from 'flatgeobuf/ol';
 import shp from 'shpjs';
 import VectorSource from 'ol/source/Vector';
 import VectorLayer from 'ol/layer/Vector';
@@ -1147,7 +1148,7 @@ export function fileToggleInput(map) {
     fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.multiple = true;
-    fileInput.accept = '.geojson,.json,.kml,.gml,.zip,.tif,.tiff,.gpkg,.gpx';
+    fileInput.accept = '.geojson,.json,.kml,.gml,.zip,.tif,.tiff,.gpkg,.gpx,.fgb';
     fileInput.style.display = 'none';
     document.body.appendChild(fileInput);
   }
@@ -1246,6 +1247,66 @@ export function fileToggleInput(map) {
         };
         reader.readAsArrayBuffer(file); 
       } 
+      else if (fileEnd === 'fgb') {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          try {
+            const buffer = new Uint8Array(e.target.result);
+            let headerMetadata;
+            const metadataReader = deserializeFlatGeobuf(buffer, {
+              headerMetaFn: (metadata) => {
+                headerMetadata = metadata;
+              }
+            });
+            await metadataReader.next();
+            await metadataReader.return();
+
+            const crs = headerMetadata?.crs;
+            const crsCode = crs?.code || crs?.code_string;
+            let dataProjection = crs
+              ? crs.org && crsCode
+                ? `${crs.org}:${crsCode}`
+                : null
+              : 'EPSG:4326';
+
+            if (
+              crs?.org?.toUpperCase() === 'OGC' &&
+              String(crs.code_string).toUpperCase() === 'CRS84'
+            ) {
+              dataProjection = 'EPSG:4326';
+            }
+
+            if (!dataProjection || !getProjection(dataProjection)) {
+              throw new Error(`Nicht unterstützte FlatGeobuf-Projektion: ${dataProjection || 'unbekannt'}`);
+            }
+
+            const features = [];
+
+            for await (const feature of deserializeFlatGeobuf(buffer, {
+              dataProjection,
+              featureProjection: 'EPSG:3857'
+            })) {
+              features.push(feature);
+            }
+
+            if (features.length === 0) {
+              console.warn(`FlatGeobuf-Datei "${file.name}" enthält keine Features.`);
+              alert(`Die FlatGeobuf-Datei enthält keine Features: ${file.name}`);
+              return;
+            }
+
+            const sourceName = fileName === 'exp_allgm_fsk'
+              ? 'fsk'
+              : `FlatGeobuf:${zaehlerGeojson}_${fileName}`;
+            if (fileName !== 'exp_allgm_fsk') zaehlerGeojson++;
+            addVectorLayerToMap(map, features, sourceName);
+          } catch (err) {
+            console.error("Fehler beim FlatGeobuf-Parsing:", err);
+            alert(`Fehler beim Laden der FlatGeobuf-Datei: ${file.name}`);
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      }
       // =========================================================================
       // 🎯 KORRIGIERT: GEOPACKAGE-LOGIK MIT DIREKTER FILE-ÜBERGABE
       // =========================================================================

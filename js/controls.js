@@ -182,16 +182,12 @@ export function createMainToolbar(map) {
   mainTableBtnInstance = toggleBtn3;
   const allBtns = [toggleBtn1, toggleBtn2, toggleBtn3];
 
-  // (Deine bestehende Change-Active Logik bleibt gleich...)
+  // Nur einen der drei Haupt-Togglebuttons gleichzeitig aktiv halten.
   allBtns.forEach((btn) => {
     btn.on('change:active', (e) => {
       if (!e.active) return;
       allBtns.filter((b) => b !== btn).forEach((b) => {
-        const isInfoTableCombo = (btn === toggleBtn1 && b === toggleBtn3) || 
-                                 (btn === toggleBtn3 && b === toggleBtn1);
-        if (!isInfoTableCombo) {
-          b.setActive(false);
-        }
+        b.setActive(false);
       });
     });
   });

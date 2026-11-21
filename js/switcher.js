@@ -699,13 +699,24 @@ function handleLayerSwitcherMenu(evt, targetElement, map, layerSwitcher, context
             alert('Filtern ist nur für Vektor-Layer verfügbar!');
             return;
           }
-          // 1. Nutzer nach dem Filterwert fragen
+          // 1. Nutzer nach dem Suchbegriff oder einer Attributbedingung fragen
           const aktuellerFilter = clickedLayer.get('currentFilter') || '';
-          const filterWert = prompt('Nach welchem Attributwert soll gefiltert werden? (Leerlassen zum Zurücksetzen):', aktuellerFilter);
+          const filterWert = prompt('Suchbegriff oder Attribut=Wert eingeben (z. B. Art=1). Leerlassen zum Zurücksetzen:', aktuellerFilter);
 
-          // 2. Filterwert auf dem Layer speichern (für spätere Abfragen)
+          // 2. Filtereingabe prüfen und auf dem Layer speichern
           if (filterWert === null) return; // Abbrechen gedrückt
-          const bereinigterFilter = filterWert.trim().toLowerCase();
+          const bereinigterFilter = filterWert.trim();
+          const attributTrenner = bereinigterFilter.indexOf('=');
+          const attributName = attributTrenner >= 0
+            ? bereinigterFilter.slice(0, attributTrenner).trim()
+            : '';
+          const attributWert = attributTrenner >= 0
+            ? bereinigterFilter.slice(attributTrenner + 1).trim()
+            : '';
+          if (attributTrenner >= 0 && (!attributName || !attributWert)) {
+            alert('Bitte gib eine Bedingung im Format Attribut=Wert ein, z. B. Art=1.');
+            return;
+          }
           clickedLayer.set('currentFilter', bereinigterFilter);
           updateLayerFilterVisualState(clickedLayer, labelElement);
   
@@ -731,16 +742,14 @@ function handleLayerSwitcherMenu(evt, targetElement, map, layerSwitcher, context
 
           // 4. Dynamischen Style-Filter setzen
           clickedLayer.setStyle(function (feature, resolution) {
-            // Hole alle Eigenschaften des Features (z. B. { name: 'Schleuse', typ: 'Kanal' })
-            const properties = feature.getProperties();
-      
-            // Prüfen, ob IRGENDEIN Textfeld den Suchbegriff enthält
-            const treffer = Object.values(properties).some(val => {
-              if (typeof val === 'string' || typeof val === 'number') {
-                return String(val).toLowerCase().includes(bereinigterFilter);
-              }
-              return false;
-          });
+            const treffer = attributTrenner >= 0
+              ? String(feature.get(attributName) ?? '').trim().toLowerCase() === attributWert.toLowerCase()
+              : Object.values(feature.getProperties()).some(val => {
+                if (typeof val === 'string' || typeof val === 'number') {
+                  return String(val).toLowerCase().includes(bereinigterFilter.toLowerCase());
+                }
+                return false;
+              });
 
           if (treffer) {
             // Feature entspricht dem Filter -> Normal zeichnen

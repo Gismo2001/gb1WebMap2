@@ -2,6 +2,8 @@ import { unByKey } from 'ol/Observable';
 import { Draw } from 'ol/interaction';
 import LineString from 'ol/geom/LineString';
 import Polygon from 'ol/geom/Polygon';
+import Point from 'ol/geom/Point';
+import Feature from 'ol/Feature';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { getArea, getLength } from 'ol/sphere';
@@ -14,10 +16,13 @@ export function initMobileMeasurements(map) {
   const distanceBtn = document.getElementById('measure-distance-btn');
   const areaBtn = document.getElementById('measure-area-btn');
   const clearBtn = document.getElementById('clear-measurements-btn');
+  const supportPointsCheckbox = document.getElementById('show-measurement-support-points');
   const status = document.getElementById('measurement-status');
   const overlay = document.getElementById('sidebar-overlay');
   const photoSidebar = document.getElementById('mobile-sidebar');
   const source = new VectorSource();
+  supportPointsCheckbox.checked =
+    localStorage.getItem('measurement-support-points') === 'true';
   const measureOverlays = [];
   let segmentTooltipOverlays = [];
   let drawInteraction = null;
@@ -27,6 +32,7 @@ export function initMobileMeasurements(map) {
   let measureTooltipElement = null;
   let measureTooltip = null;
   let measureGeometryListener = null;
+  let temporarySupportPointFeatures = [];
 
   const measurementStyle = new Style({
     fill: new Fill({ color: 'rgba(144, 202, 249, 0.35)' }),
@@ -42,6 +48,13 @@ export function initMobileMeasurements(map) {
     stroke: new Stroke({ color: 'rgba(0, 0, 0, 0.7)', width: 2 }),
     image: measurementStyle.getImage()
   });
+  const supportPointStyle = new Style({
+    image: new CircleStyle({
+      radius: 5,
+      stroke: new Stroke({ color: 'rgba(0, 0, 0, 0.9)', width: 2 }),
+      fill: new Fill({ color: 'rgba(144, 202, 249, 0.35)' })
+    })
+  });
   let orthogonalSnapActive = false;
 
   const measurementLayer = new VectorLayer({
@@ -49,7 +62,9 @@ export function initMobileMeasurements(map) {
     title: 'Messungen',
     name: 'Messungen',
     displayInLayerSwitcher: false,
-    style: measurementStyle
+    style: (feature) => feature.get('isMeasurementSupportPoint')
+      ? supportPointStyle
+      : measurementStyle
   });
   measurementLayer.set('isMeasurementLayer', true);
   map.addLayer(measurementLayer);
@@ -80,6 +95,86 @@ export function initMobileMeasurements(map) {
       : `${rounded(area)} m²`;
   }
 
+  function addSupportPoints(geometry) {
+    if (!supportPointsCheckbox.checked) return;
+
+    let coordinates;
+    if (geometry instanceof Polygon) {
+      coordinates = geometry.getCoordinates()[0];
+    } else if (geometry instanceof LineString) {
+      coordinates = geometry.getCoordinates();
+    } else {
+      return;
+    }
+
+    coordinates.forEach((coordinate, index) => {
+      if (
+        index > 0
+        && coordinates[index - 1][0] === coordinate[0]
+        && coordinates[index - 1][1] === coordinate[1]
+      ) {
+        return;
+      }
+
+      const supportPoint = new Feature(new Point(coordinate.slice()));
+      supportPoint.set('isMeasurementSupportPoint', true);
+      source.addFeature(supportPoint);
+    });
+  }
+
+  function clearTemporarySupportPoints() {
+    temporarySupportPointFeatures.forEach((feature) => source.removeFeature(feature));
+    temporarySupportPointFeatures = [];
+  }
+
+  function updateTemporarySupportPoints(geometry) {
+    clearTemporarySupportPoints();
+    if (!supportPointsCheckbox.checked) return;
+
+    let coordinates;
+    if (geometry instanceof Polygon) {
+      const ring = geometry.getCoordinates()[0];
+      coordinates = ring.length > 2 ? ring.slice(0, -2) : ring.slice(0, -1);
+    } else if (geometry instanceof LineString) {
+      coordinates = geometry.getCoordinates().slice(0, -1);
+    } else {
+      return;
+    }
+
+    const uniqueCoordinates = [];
+    coordinates.forEach((coordinate) => {
+      if (!uniqueCoordinates.some((existing) =>
+        existing[0] === coordinate[0] && existing[1] === coordinate[1]
+      )) {
+        uniqueCoordinates.push(coordinate);
+      }
+    });
+
+    uniqueCoordinates.forEach((coordinate) => {
+      const supportPoint = new Feature(new Point(coordinate.slice()));
+      supportPoint.set('isMeasurementSupportPoint', true);
+      source.addFeature(supportPoint);
+      temporarySupportPointFeatures.push(supportPoint);
+    });
+  }
+
+  supportPointsCheckbox.addEventListener('change', () => {
+    localStorage.setItem(
+      'measurement-support-points',
+      supportPointsCheckbox.checked ? 'true' : 'false'
+    );
+    if (supportPointsCheckbox.checked) {
+      if (sketch) updateTemporarySupportPoints(sketch.getGeometry());
+      return;
+    }
+    clearTemporarySupportPoints();
+    source.getFeatures().slice().forEach((feature) => {
+      if (feature.get('isMeasurementSupportPoint')) {
+        source.removeFeature(feature);
+      }
+    });
+  });
+
   function createSegmentTooltip() {
     const element = document.createElement('div');
     element.className = 'ol-tooltip ol-tooltip-segment';
@@ -95,7 +190,21 @@ export function initMobileMeasurements(map) {
   }
 
   function updateSegmentTooltips(polygon) {
-    const coordinates = polygon.getCoordinates()[0];
+    const ring = polygon.getCoordinates()[0];
+    const coordinates = ring.slice();
+
+    while (
+      coordinates.length > 1
+      && coordinates[coordinates.length - 1][0] === coordinates[0][0]
+      && coordinates[coordinates.length - 1][1] === coordinates[0][1]
+    ) {
+      coordinates.pop();
+    }
+
+    if (coordinates.length > 2) {
+      coordinates.push(coordinates[0].slice());
+    }
+
     const segmentCount = coordinates.length - 1;
 
     while (segmentTooltipOverlays.length < segmentCount) {
@@ -215,6 +324,7 @@ export function initMobileMeasurements(map) {
   }, true);
 
   function stopDrawing() {
+    clearTemporarySupportPoints();
     if (drawInteraction) {
       map.removeInteraction(drawInteraction);
       drawInteraction = null;
@@ -404,7 +514,9 @@ export function initMobileMeasurements(map) {
       createMeasureTooltip();
       measureGeometryListener = sketch.getGeometry().on('change', (geometryEvent) => {
         updateMeasureTooltip(geometryEvent.target);
+        updateTemporarySupportPoints(geometryEvent.target);
       });
+      updateTemporarySupportPoints(sketch.getGeometry());
     });
 
     drawInteraction.on('drawend', (event) => {
@@ -412,6 +524,8 @@ export function initMobileMeasurements(map) {
       const result = geometry instanceof LineString
         ? formatDistance(geometry)
         : formatArea(geometry);
+      clearTemporarySupportPoints();
+      addSupportPoints(geometry);
       orthogonalSnapActive = false;
       if (geometry instanceof Polygon) {
         updateSegmentTooltips(geometry);

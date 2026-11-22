@@ -1153,6 +1153,23 @@ div.ol-ctx-menu-container li.ol-ctx-menu-submenu > .ol-ctx-menu-container {
   line-height: 1.4;
 }
 
+.measurement-support-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  color: #444;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.measurement-support-option input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: #90caf9;
+}
+
 .ol-tooltip {
   position: relative;
   padding: 4px 8px;

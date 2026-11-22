@@ -104,7 +104,11 @@
 
 <!-- Der mobile Menü-Button im OpenLayers-Design -->
 <div id="sidebar-toggle-control" class="ol-control mobile-sidebar-control">
-  <button id="mobile-menu-btn" title="Menü öffnen" type="button">☰</button>
+  <button id="mobile-menu-btn" title="Menü öffnen" type="button" aria-expanded="false" aria-controls="mobile-menu-actions">☰</button>
+  <div id="mobile-menu-actions" class="mobile-menu-actions" hidden>
+    <button id="open-photo-menu-btn" type="button">📷 Fotos</button>
+    <button id="open-measure-menu-btn" type="button">📐 Messen</button>
+  </div>
 </div>
 
 <!-- Die mobile Seitenleiste & Overlay (bleiben wie gehabt) -->
@@ -163,6 +167,18 @@
 </div>
 
 <div id="sidebar-overlay" class="sidebar-overlay"></div>
+<section id="measurement-panel" class="measurement-panel" aria-labelledby="measurement-title" hidden>
+  <div class="measurement-header">
+    <h3 id="measurement-title">Messen</h3>
+    <button id="close-measurement-panel-btn" type="button" aria-label="Messwerkzeuge schließen">&times;</button>
+  </div>
+  <div class="measurement-actions">
+    <button id="measure-distance-btn" type="button">Strecke messen</button>
+    <button id="measure-area-btn" type="button">Fläche messen</button>
+    <button id="clear-measurements-btn" type="button">Messungen löschen</button>
+  </div>
+  <p id="measurement-status" role="status" aria-live="polite">Wähle eine Messfunktion aus.</p>
+</section>
 <input type="file" id="camera-input" accept="image/*" capture="environment" hidden>
 <input type="file" id="photo-import-input" accept="image/jpeg,.jpg,.jpeg" multiple hidden>
 <div class="sidebar-section">

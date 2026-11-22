@@ -244,6 +244,10 @@ export function initMapClick(map) {
 
   map.on('singleclick', function (evt) {
     if (window.photoLocationSelectionActive) return;
+    if (map.get('measurementDrawingActive')) {
+      if (popupOverlay) popupOverlay.setPosition(undefined);
+      return;
+    }
 
     // 1. Wenn im Zeichenmodus: abbrechen
     if (isDrawingActive()) {
@@ -919,6 +923,7 @@ export function getVectorFeaturesAtClick(map, evt) {
         (layer?.get('title') || '').toLowerCase();
 
       if (
+        layer?.get('isMeasurementLayer') ||
         EXCLUDED_LAYERS.includes(name) ||
         EXCLUDED_LAYERS.includes(title)
       ) {
@@ -1614,6 +1619,9 @@ export function initPopup(map) {
   // ✅ WICHTIG – wieder aktivieren!
   map.addOverlay(popupOverlay);
   popupContent = content; // 👉 speichern!
+  map.on('change:measurementDrawingActive', () => {
+    if (map.get('measurementDrawingActive')) popupOverlay.setPosition(undefined);
+  });
 
   closer.onclick = function () {
     popupOverlay.setPosition(undefined);

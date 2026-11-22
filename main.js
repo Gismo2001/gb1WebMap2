@@ -51,6 +51,7 @@ import { profileMode } from './js/chart.js';
 
 import { fromArrayBuffer } from 'geotiff';
 import { initPhotoCapture } from './js/foto.js';
+import { initMobileMeasurements } from './js/mobileMeasure.js';
 
 import { loadedDgms, loadedDoms } from './js/dgmdom.js';  
 
@@ -114,8 +115,12 @@ initializeWMS(map);
 map.updateSize();
 
 initPhotoCapture(map, layerSwitcher);
+const mobileMeasurements = initMobileMeasurements(map);
 
 const menuBtn = document.getElementById('mobile-menu-btn');
+const menuActions = document.getElementById('mobile-menu-actions');
+const openPhotoMenuBtn = document.getElementById('open-photo-menu-btn');
+const openMeasureMenuBtn = document.getElementById('open-measure-menu-btn');
 const closeBtn = document.getElementById('close-sidebar-btn');
 const sidebar = document.getElementById('mobile-sidebar');
 const overlay = document.getElementById('sidebar-overlay');
@@ -137,7 +142,23 @@ function closeSidebar() {
 // Event-Listener fürs Öffnen & Schließen
 menuBtn.addEventListener('click', (e) => {
   e.stopPropagation(); // Verhindert, dass die Karte im Hintergrund Klicks registriert
+  const isExpanded = menuBtn.getAttribute('aria-expanded') === 'true';
+  if (!isExpanded) mobileMeasurements.closePanel();
+  menuBtn.setAttribute('aria-expanded', String(!isExpanded));
+  menuActions.hidden = isExpanded;
+});
+
+openPhotoMenuBtn.addEventListener('click', () => {
+  menuActions.hidden = true;
+  menuBtn.setAttribute('aria-expanded', 'false');
+  mobileMeasurements.closePanel();
   openSidebar();
+});
+
+openMeasureMenuBtn.addEventListener('click', () => {
+  menuActions.hidden = true;
+  menuBtn.setAttribute('aria-expanded', 'false');
+  mobileMeasurements.openPanel();
 });
 
 closeBtn.addEventListener('click', closeSidebar);

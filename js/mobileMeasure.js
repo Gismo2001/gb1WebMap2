@@ -15,8 +15,11 @@ export function initMobileMeasurements(map) {
   const areaBtn = document.getElementById('measure-area-btn');
   const clearBtn = document.getElementById('clear-measurements-btn');
   const status = document.getElementById('measurement-status');
+  const overlay = document.getElementById('sidebar-overlay');
+  const photoSidebar = document.getElementById('mobile-sidebar');
   const source = new VectorSource();
   const measureOverlays = [];
+  let segmentTooltipOverlays = [];
   let drawInteraction = null;
   let sketch = null;
   let helpTooltipElement = null;
@@ -34,6 +37,12 @@ export function initMobileMeasurements(map) {
       fill: new Fill({ color: 'rgba(255, 255, 255, 0.2)' })
     })
   });
+  const orthogonalSnapStyle = new Style({
+    fill: measurementStyle.getFill(),
+    stroke: new Stroke({ color: 'rgba(0, 0, 0, 0.7)', width: 2 }),
+    image: measurementStyle.getImage()
+  });
+  let orthogonalSnapActive = false;
 
   const measurementLayer = new VectorLayer({
     source,
@@ -71,6 +80,49 @@ export function initMobileMeasurements(map) {
       : `${rounded(area)} m²`;
   }
 
+  function createSegmentTooltip() {
+    const element = document.createElement('div');
+    element.className = 'ol-tooltip ol-tooltip-segment';
+    const segmentTooltip = new Overlay({
+      element,
+      offset: [0, -6],
+      positioning: 'bottom-center',
+      stopEvent: false,
+      insertFirst: false
+    });
+    map.addOverlay(segmentTooltip);
+    return segmentTooltip;
+  }
+
+  function updateSegmentTooltips(polygon) {
+    const coordinates = polygon.getCoordinates()[0];
+    const segmentCount = coordinates.length - 1;
+
+    while (segmentTooltipOverlays.length < segmentCount) {
+      segmentTooltipOverlays.push(createSegmentTooltip());
+    }
+    while (segmentTooltipOverlays.length > segmentCount) {
+      map.removeOverlay(segmentTooltipOverlays.pop());
+    }
+
+    const projection = map.getView().getProjection();
+    for (let index = 0; index < segmentCount; index += 1) {
+      const start = coordinates[index];
+      const end = coordinates[index + 1];
+      const line = new LineString([start, end]);
+      const length = getLength(line, { projection });
+      const tooltip = segmentTooltipOverlays[index];
+      const element = tooltip.getElement();
+
+      element.textContent = formatDistance(line);
+      element.classList.toggle('hidden', length < 0.01);
+      tooltip.setPosition([
+        (start[0] + end[0]) / 2,
+        (start[1] + end[1]) / 2
+      ]);
+    }
+  }
+
   function createHelpTooltip() {
     helpTooltipElement = document.createElement('div');
     helpTooltipElement.className = 'ol-tooltip hidden';
@@ -103,6 +155,7 @@ export function initMobileMeasurements(map) {
     if (geometry instanceof Polygon) {
       output = formatArea(geometry);
       coordinate = geometry.getInteriorPoint().getCoordinates().slice(0, 2);
+      updateSegmentTooltips(geometry);
     } else if (geometry instanceof LineString) {
       output = formatDistance(geometry);
       coordinate = geometry.getLastCoordinate();
@@ -142,6 +195,24 @@ export function initMobileMeasurements(map) {
   map.getViewport().addEventListener('mouseout', () => {
     helpTooltipElement.classList.add('hidden');
   });
+  map.getViewport().addEventListener('contextmenu', (event) => {
+    if (!drawInteraction || !map.get('measurementDrawingActive')) return;
+
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    if (!sketch || event.button !== 2) return;
+
+    const geometry = sketch.getGeometry();
+    const coordinates = geometry instanceof Polygon
+      ? geometry.getCoordinates()[0]
+      : geometry.getCoordinates();
+    if (coordinates.length <= 2) {
+      status.textContent = 'Der erste Messpunkt kann nicht gelöscht werden.';
+      return;
+    }
+
+    drawInteraction.removeLastPoint();
+  }, true);
 
   function stopDrawing() {
     if (drawInteraction) {
@@ -157,10 +228,26 @@ export function initMobileMeasurements(map) {
       measureTooltip = null;
       measureTooltipElement = null;
     }
+    segmentTooltipOverlays.forEach((tooltip) => map.removeOverlay(tooltip));
+    segmentTooltipOverlays = [];
     sketch = null;
+    orthogonalSnapActive = false;
     helpTooltipElement.classList.add('hidden');
     map.set('measurementDrawingActive', false);
     setActiveButton(null);
+  }
+
+  function hidePanel() {
+    panel.classList.remove('open');
+    panel.setAttribute('aria-hidden', 'true');
+    if (!photoSidebar.classList.contains('open')) overlay.classList.remove('active');
+  }
+
+  function showPanel() {
+    photoSidebar.classList.remove('open');
+    panel.classList.add('open');
+    panel.setAttribute('aria-hidden', 'false');
+    overlay.classList.add('active');
   }
 
   function startDrawing(type, activeButton) {
@@ -168,15 +255,147 @@ export function initMobileMeasurements(map) {
     setActiveButton(activeButton);
     map.set('measurementDrawingActive', true);
     status.textContent = type === 'LineString'
-      ? 'Klicke mehrere Punkte. Doppelklick beendet die Strecke.'
-      : 'Klicke die Eckpunkte. Doppelklick beendet die Fläche.';
+      ? 'Klicke mehrere Punkte. Nahe 0°/180° oder 90° rastet die Strecke ein; Doppelklick beendet die Strecke.'
+      : 'Klicke die Eckpunkte. Nahe 0°/180° oder 90° rastet die Kante ein; Doppelklick beendet die Fläche.';
+    hidePanel();
 
     drawInteraction = new Draw({
       source,
       type,
+      condition: (event) => event.originalEvent.button === 0,
+      geometryFunction: (coordinates, geometry) => {
+        const points = type === 'Polygon' ? coordinates[0] : coordinates;
+        orthogonalSnapActive = false;
+        if (type === 'Polygon' && points.length >= 4) {
+          const first = points[0];
+          const anchor = points[points.length - 2];
+          const cursor = points[points.length - 1];
+          const snapAngle = 2 * Math.PI / 180;
+
+          function angleDistance(vectorX, vectorY, targetAngle) {
+            const length = Math.hypot(vectorX, vectorY);
+            if (length === 0) return Infinity;
+            const angle = Math.atan2(vectorY, vectorX);
+            return Math.abs(Math.atan2(
+              Math.sin(angle - targetAngle),
+              Math.cos(angle - targetAngle)
+            ));
+          }
+
+          const firstToCursorX = cursor[0] - first[0];
+          const firstToCursorY = cursor[1] - first[1];
+          const anchorToCursorX = cursor[0] - anchor[0];
+          const anchorToCursorY = cursor[1] - anchor[1];
+
+          const candidateOne = [first[0], anchor[1]];
+          const candidateTwo = [anchor[0], first[1]];
+
+          let rectangleCandidate = null;
+          const candidateOneErrorFromFirst =
+            angleDistance(firstToCursorX, firstToCursorY, Math.PI / 2);
+          const candidateOneErrorFromAnchor =
+            angleDistance(anchorToCursorX, anchorToCursorY, 0);
+          const candidateTwoErrorFromFirst =
+            angleDistance(firstToCursorX, firstToCursorY, 0);
+          const candidateTwoErrorFromAnchor =
+            angleDistance(anchorToCursorX, anchorToCursorY, Math.PI / 2);
+
+          if (
+            candidateOneErrorFromFirst <= snapAngle
+            && candidateOneErrorFromAnchor <= snapAngle
+          ) {
+            rectangleCandidate = candidateOne;
+          }
+          if (
+            candidateTwoErrorFromFirst <= snapAngle
+            && candidateTwoErrorFromAnchor <= snapAngle
+            && (
+              candidateTwoErrorFromFirst + candidateTwoErrorFromAnchor
+              < candidateOneErrorFromFirst + candidateOneErrorFromAnchor
+            )
+          ) {
+            rectangleCandidate = candidateTwo;
+          }
+
+          if (rectangleCandidate) {
+            cursor[0] = rectangleCandidate[0];
+            cursor[1] = rectangleCandidate[1];
+            orthogonalSnapActive = true;
+          }
+        }
+
+        if (orthogonalSnapActive) {
+          // Rechteck-Eckpunkt wurde bereits eingerastet.
+        } else if (points.length === 2) {
+          const first = points[0];
+          const cursor = points[1];
+          const movementX = cursor[0] - first[0];
+          const movementY = cursor[1] - first[1];
+          const movementLength = Math.hypot(movementX, movementY);
+
+          if (movementLength > 0) {
+            const angleFromHorizontal = Math.atan2(movementY, movementX) * 180 / Math.PI;
+            const normalizedAngle = ((angleFromHorizontal % 180) + 180) % 180;
+            const horizontalDistance = Math.min(normalizedAngle, 180 - normalizedAngle);
+            const verticalDistance = Math.abs(normalizedAngle - 90);
+
+            if (horizontalDistance <= 2) {
+              cursor[1] = first[1];
+              orthogonalSnapActive = true;
+            } else if (verticalDistance <= 2) {
+              cursor[0] = first[0];
+              orthogonalSnapActive = true;
+            }
+          }
+        } else if (points.length >= 3) {
+          const previous = points[points.length - 3];
+          const anchor = points[points.length - 2];
+          const cursor = points[points.length - 1];
+          const directionX = anchor[0] - previous[0];
+          const directionY = anchor[1] - previous[1];
+          const movementX = cursor[0] - anchor[0];
+          const movementY = cursor[1] - anchor[1];
+          const directionLength = Math.hypot(directionX, directionY);
+          const movementLength = Math.hypot(movementX, movementY);
+
+          if (directionLength > 0 && movementLength > 0) {
+            const cosine = Math.abs(
+              (directionX * movementX + directionY * movementY)
+              / (directionLength * movementLength)
+            );
+            if (cosine <= Math.sin(2 * Math.PI / 180)) {
+              const perpendicularX = -directionY / directionLength;
+              const perpendicularY = directionX / directionLength;
+              const distance = movementX * perpendicularX + movementY * perpendicularY;
+              cursor[0] = anchor[0] + distance * perpendicularX;
+              cursor[1] = anchor[1] + distance * perpendicularY;
+              orthogonalSnapActive = true;
+            } else if (cosine >= Math.cos(2 * Math.PI / 180)) {
+              const projectionDistance =
+                (movementX * directionX + movementY * directionY)
+                / directionLength;
+              cursor[0] = anchor[0] + projectionDistance * directionX / directionLength;
+              cursor[1] = anchor[1] + projectionDistance * directionY / directionLength;
+              orthogonalSnapActive = true;
+            }
+          }
+        }
+
+        if (type === 'Polygon') {
+          if (!geometry) geometry = new Polygon(coordinates);
+          else geometry.setCoordinates(coordinates);
+        } else if (!geometry) {
+          geometry = new LineString(coordinates);
+        } else {
+          geometry.setCoordinates(coordinates);
+        }
+        return geometry;
+      },
       style: (feature) => {
         const geometryType = feature.getGeometry().getType();
-        return geometryType === type || geometryType === 'Point' ? measurementStyle : undefined;
+        return geometryType === type || geometryType === 'Point'
+          ? (orthogonalSnapActive ? orthogonalSnapStyle : measurementStyle)
+          : undefined;
       }
     });
 
@@ -193,9 +412,24 @@ export function initMobileMeasurements(map) {
       const result = geometry instanceof LineString
         ? formatDistance(geometry)
         : formatArea(geometry);
+      orthogonalSnapActive = false;
+      if (geometry instanceof Polygon) {
+        updateSegmentTooltips(geometry);
+        segmentTooltipOverlays.forEach((tooltip) => {
+          tooltip.getElement().classList.add('ol-tooltip-static');
+        });
+        measureOverlays.push(...segmentTooltipOverlays);
+        segmentTooltipOverlays = [];
+      }
 
       measureTooltipElement.className = 'ol-tooltip ol-tooltip-static';
       measureTooltip.setOffset([0, -7]);
+      if (drawInteraction) {
+        map.removeInteraction(drawInteraction);
+        drawInteraction = null;
+      }
+      setActiveButton(null);
+      showPanel();
       measureOverlays.push(measureTooltip);
       measureTooltip = null;
       measureTooltipElement = null;
@@ -212,7 +446,7 @@ export function initMobileMeasurements(map) {
 
   function closePanel() {
     stopDrawing();
-    panel.hidden = true;
+    hidePanel();
     status.textContent = 'Messwerkzeug beendet.';
   }
 
@@ -228,9 +462,7 @@ export function initMobileMeasurements(map) {
   closePanelBtn.addEventListener('click', closePanel);
 
   return {
-    openPanel() {
-      panel.hidden = false;
-    },
+    openPanel: showPanel,
     closePanel
   };
 }

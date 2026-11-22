@@ -162,7 +162,10 @@ openMeasureMenuBtn.addEventListener('click', () => {
 });
 
 closeBtn.addEventListener('click', closeSidebar);
-overlay.addEventListener('click', closeSidebar);
+overlay.addEventListener('click', () => {
+  closeSidebar();
+  mobileMeasurements.closePanel();
+});
 
 /**
  * Generiert das Accordion-Menü für die Legenden der Gruppe "Bauw.(P)"

@@ -17,12 +17,15 @@ export function initMobileMeasurements(map) {
   const areaBtn = document.getElementById('measure-area-btn');
   const clearBtn = document.getElementById('clear-measurements-btn');
   const supportPointsCheckbox = document.getElementById('show-measurement-support-points');
+  const segmentLengthsCheckbox = document.getElementById('show-measurement-segment-lengths');
   const status = document.getElementById('measurement-status');
   const overlay = document.getElementById('sidebar-overlay');
   const photoSidebar = document.getElementById('mobile-sidebar');
   const source = new VectorSource();
   supportPointsCheckbox.checked =
     localStorage.getItem('measurement-support-points') === 'true';
+  const storedSegmentLengths = localStorage.getItem('measurement-segment-lengths');
+  segmentLengthsCheckbox.checked = storedSegmentLengths === 'true';
   const measureOverlays = [];
   let segmentTooltipOverlays = [];
   let drawInteraction = null;
@@ -42,6 +45,22 @@ export function initMobileMeasurements(map) {
       stroke: new Stroke({ color: 'rgba(0, 0, 0, 0.7)' }),
       fill: new Fill({ color: 'rgba(255, 255, 255, 0.2)' })
     })
+  });
+
+  segmentLengthsCheckbox.addEventListener('change', () => {
+    localStorage.setItem(
+      'measurement-segment-lengths',
+      segmentLengthsCheckbox.checked ? 'true' : 'false'
+    );
+    [...measureOverlays, ...segmentTooltipOverlays].forEach((tooltip) => {
+      const element = tooltip.getElement();
+      if (element.classList.contains('ol-tooltip-segment')) {
+        element.classList.toggle(
+          'measurement-segments-hidden',
+          !segmentLengthsCheckbox.checked
+        );
+      }
+    });
   });
   const orthogonalSnapStyle = new Style({
     fill: measurementStyle.getFill(),
@@ -178,6 +197,7 @@ export function initMobileMeasurements(map) {
   function createSegmentTooltip() {
     const element = document.createElement('div');
     element.className = 'ol-tooltip ol-tooltip-segment';
+    element.classList.toggle('measurement-segments-hidden', !segmentLengthsCheckbox.checked);
     const segmentTooltip = new Overlay({
       element,
       offset: [0, -6],
@@ -224,6 +244,7 @@ export function initMobileMeasurements(map) {
       const element = tooltip.getElement();
 
       element.textContent = formatDistance(line);
+      element.classList.toggle('measurement-segments-hidden', !segmentLengthsCheckbox.checked);
       element.classList.toggle('hidden', length < 0.01);
       tooltip.setPosition([
         (start[0] + end[0]) / 2,
@@ -409,16 +430,30 @@ export function initMobileMeasurements(map) {
             angleDistance(firstToCursorX, firstToCursorY, 0);
           const candidateTwoErrorFromAnchor =
             angleDistance(anchorToCursorX, anchorToCursorY, Math.PI / 2);
+          const cursorPixel = map.getPixelFromCoordinate(cursor);
+          const snapDistancePixels = 12;
+
+          function isWithinSnapDistance(candidate) {
+            const candidatePixel = map.getPixelFromCoordinate(candidate);
+            return cursorPixel
+              && candidatePixel
+              && Math.hypot(
+                candidatePixel[0] - cursorPixel[0],
+                candidatePixel[1] - cursorPixel[1]
+              ) <= snapDistancePixels;
+          }
 
           if (
             candidateOneErrorFromFirst <= snapAngle
             && candidateOneErrorFromAnchor <= snapAngle
+            && isWithinSnapDistance(candidateOne)
           ) {
             rectangleCandidate = candidateOne;
           }
           if (
             candidateTwoErrorFromFirst <= snapAngle
             && candidateTwoErrorFromAnchor <= snapAngle
+            && isWithinSnapDistance(candidateTwo)
             && (
               candidateTwoErrorFromFirst + candidateTwoErrorFromAnchor
               < candidateOneErrorFromFirst + candidateOneErrorFromAnchor

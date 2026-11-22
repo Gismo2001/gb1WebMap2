@@ -1197,6 +1197,10 @@ div.ol-ctx-menu-container li.ol-ctx-menu-submenu > .ol-ctx-menu-container {
   font-weight: 600;
 }
 
+.ol-tooltip-segment.measurement-segments-hidden {
+  display: none;
+}
+
 .ol-tooltip-static {
   border: 1px solid #fff;
   background: #ffcc33;

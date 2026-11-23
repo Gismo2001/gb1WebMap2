@@ -19,6 +19,7 @@ export function initMobileMeasurements(map) {
   const supportPointsCheckbox = document.getElementById('show-measurement-support-points');
   const segmentLengthsCheckbox = document.getElementById('show-measurement-segment-lengths');
   const status = document.getElementById('measurement-status');
+  const measurementResults = document.getElementById('measurement-results-list');
   const overlay = document.getElementById('sidebar-overlay');
   const photoSidebar = document.getElementById('mobile-sidebar');
   const source = new VectorSource();
@@ -304,17 +305,12 @@ export function initMobileMeasurements(map) {
       return;
     }
 
-    let message = 'Klicke, um die Messung zu starten.';
     if (sketch) {
-      const geometry = sketch.getGeometry();
-      if (geometry instanceof Polygon) {
-        message = 'Klicke, um die Fläche weiterzuzeichnen.';
-      } else if (geometry instanceof LineString) {
-        message = 'Klicke, um die Linie weiterzuzeichnen.';
-      }
+      helpTooltipElement.classList.add('hidden');
+      return;
     }
 
-    helpTooltipElement.textContent = message;
+    helpTooltipElement.textContent = 'Klicke, um die Messung zu starten.';
     helpTooltip.setPosition(event.coordinate);
     helpTooltipElement.classList.remove('hidden');
     if (sketch) updateMeasureTooltip(sketch.getGeometry());
@@ -559,6 +555,9 @@ export function initMobileMeasurements(map) {
       const result = geometry instanceof LineString
         ? formatDistance(geometry)
         : formatArea(geometry);
+      const resultItem = document.createElement('li');
+      resultItem.textContent = `${geometry instanceof LineString ? 'Strecke' : 'Fläche'}: ${result}`;
+      measurementResults.appendChild(resultItem);
       clearTemporarySupportPoints();
       addSupportPoints(geometry);
       orthogonalSnapActive = false;
@@ -606,6 +605,7 @@ export function initMobileMeasurements(map) {
     source.clear();
     measureOverlays.forEach((overlay) => map.removeOverlay(overlay));
     measureOverlays.length = 0;
+    measurementResults.replaceChildren();
     status.textContent = 'Alle Messungen wurden gelöscht.';
   });
   closePanelBtn.addEventListener('click', closePanel);

@@ -1153,6 +1153,23 @@ div.ol-ctx-menu-container li.ol-ctx-menu-submenu > .ol-ctx-menu-container {
   line-height: 1.4;
 }
 
+.measurement-results {
+  margin-top: 16px;
+}
+
+.measurement-results h4 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+#measurement-results-list {
+  margin: 0;
+  padding-left: 24px;
+  color: #444;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
 .measurement-support-option {
   display: flex;
   align-items: center;

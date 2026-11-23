@@ -180,13 +180,17 @@
     </div>
     <label class="measurement-support-option" for="show-measurement-support-points">
       <input id="show-measurement-support-points" type="checkbox">
-      Stützpunkte sichtbar lassen
+      Stützpunkte zeigen
     </label>
     <label class="measurement-support-option" for="show-measurement-segment-lengths">
       <input id="show-measurement-segment-lengths" type="checkbox">
-      Längen einzelner Linien anzeigen
+      Längen anzeigen
     </label>
     <p id="measurement-status" role="status" aria-live="polite">Wähle eine Messfunktion aus.</p>
+    <div class="measurement-results">
+      <h4>Ergebnisse dieser Sitzung</h4>
+      <ol id="measurement-results-list" aria-live="polite"></ol>
+    </div>
   </div>
 </section>
 <input type="file" id="camera-input" accept="image/*" capture="environment" hidden>
